@@ -1,0 +1,102 @@
+CREATE OR REPLACE FUNCTION audit_line_item_update()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
+    VALUES (
+        NEW.order_line_item_id,
+        'Update',
+        NEW.updated_by,
+        'Updated record',
+        NEW.role_id,
+        (SELECT user_id FROM users WHERE username = NEW.updated_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION log_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
+    VALUES (
+        NEW.order_line_item_id,
+        'Status Updated',
+        NEW.updated_by,
+        'Status changed to ' || (SELECT status_name FROM statuses WHERE status_id = NEW.status_id),
+        NEW.role_id,
+        NEW.user_id
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for logging status changes
+CREATE TRIGGER trigger_log_status_change
+AFTER UPDATE ON fulfillment_items
+FOR EACH ROW EXECUTE FUNCTION log_status_change();
+
+
+CREATE OR REPLACE FUNCTION update_fulfillment_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.lsc_on_hand_date IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON HAND EGYPT');
+    ELSIF NEW.arr_lsc_egypt IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ARR EGYPT');
+    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'EN ROUTE TO EGYPT');
+    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'FREIGHT FORWARDER');
+    ELSIF NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'READY TO SHIP');
+    ELSIF NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'PROC CHES WH');
+    ELSIF NEW.rcd_v2x_date IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'RCD CHES WH');
+    ELSIF NEW.edd_to_ches IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON ORDER');
+    ELSIF NEW.milstrip_req_no IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'INIT PROCESS');
+    ELSE
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'NOT ORDERED');
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger for updating fulfillment status
+CREATE TRIGGER trigger_update_fulfillment_status
+BEFORE INSERT OR UPDATE ON fulfillment_items
+FOR EACH ROW EXECUTE FUNCTION update_fulfillment_status();
+
+
+
+CREATE OR REPLACE FUNCTION update_mrl_status()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update MRL line item status based on fulfillment records
+    UPDATE MRL_line_items
+    SET status_id = (
+        SELECT MIN(s.status_value)
+        FROM fulfillment_items fi
+        JOIN statuses s ON fi.status_id = s.status_id
+        WHERE fi.order_line_item_id = NEW.order_line_item_id
+    ),
+    multiple_fulfillments = (
+        SELECT COUNT(*) > 1
+        FROM fulfillment_items fi
+        WHERE fi.order_line_item_id = NEW.order_line_item_id
+    )
+    WHERE order_line_item_id = NEW.order_line_item_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Trigger for updating MRL status
+CREATE TRIGGER trigger_update_mrl_status
+AFTER INSERT OR UPDATE ON fulfillment_items
+FOR EACH ROW EXECUTE FUNCTION update_mrl_status();

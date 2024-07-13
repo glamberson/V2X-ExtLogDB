@@ -1,0 +1,272 @@
+### Detailed Audit Trail Documentation
+
+#### Overview
+
+The audit trail functionality in the database is designed to provide a comprehensive log of all significant actions performed on key tables. It tracks changes made to `MRL_line_items`, `fulfillment_items`, user activities, comments, and inquiry status updates. The audit trail is essential for maintaining data integrity, ensuring accountability, and enabling the ability to review historical changes.
+
+#### Audit Trail Table Structure
+
+The `audit_trail` table is the central repository for all audit entries. It includes the following fields:
+
+```sql
+CREATE TABLE audit_trail (
+    audit_id SERIAL PRIMARY KEY,
+    order_line_item_id INT REFERENCES MRL_line_items(order_line_item_id) ON DELETE CASCADE,
+    fulfillment_item_id INT REFERENCES fulfillment_items(fulfillment_item_id) ON DELETE CASCADE,
+    action VARCHAR(100),
+    changed_by VARCHAR(50),
+    changed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    details TEXT,
+    update_source VARCHAR(50),
+    role_id INT REFERENCES roles(role_id),
+    user_id INT REFERENCES users(user_id)
+);
+```
+
+- `audit_id`: Unique identifier for the audit record.
+- `order_line_item_id`: Foreign key to the `MRL_line_items` table, linking the audit record to a specific line item.
+- `fulfillment_item_id`: Foreign key to the `fulfillment_items` table, linking the audit record to a specific fulfillment item.
+- `action`: Description of the action taken (e.g., 'Status Updated', 'Comment Added').
+- `changed_by`: User who performed the action.
+- `changed_at`: Timestamp when the action was performed.
+- `details`: Detailed description of the change.
+- `update_source`: Source of the update (e.g., 'Manual Entry', 'Bulk Update').
+- `role_id`: Role of the user who performed the action.
+- `user_id`: User ID of the person who performed the action.
+
+#### Trigger Functions
+
+Trigger functions are used to automatically log changes to the audit trail whenever relevant actions occur.
+
+1. **Log Status Change**
+
+Logs changes to the status of fulfillment items.
+
+```sql
+CREATE OR REPLACE FUNCTION log_status_change() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (
+        order_line_item_id, 
+        fulfillment_item_id, 
+        action, 
+        changed_by, 
+        changed_at, 
+        details, 
+        update_source, 
+        role_id, 
+        user_id
+    )
+    VALUES (
+        NEW.order_line_item_id, 
+        NEW.fulfillment_item_id, 
+        'Status Updated', 
+        NEW.updated_by, 
+        CURRENT_TIMESTAMP, 
+        'Status: ' || (SELECT status_name FROM statuses WHERE status_id = NEW.status_id), 
+        NEW.update_source, 
+        (SELECT role_id FROM users WHERE username = NEW.updated_by), 
+        (SELECT user_id FROM users WHERE username = NEW.updated_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_log_status_change
+AFTER INSERT OR UPDATE ON fulfillment_items
+FOR EACH ROW
+EXECUTE FUNCTION log_status_change();
+```
+
+2. **Log Line Item Comment**
+
+Logs comments added to line items.
+
+```sql
+CREATE OR REPLACE FUNCTION log_line_item_comment() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (
+        order_line_item_id, 
+        fulfillment_item_id, 
+        action, 
+        changed_by, 
+        changed_at, 
+        details, 
+        update_source, 
+        role_id, 
+        user_id
+    )
+    VALUES (
+        NEW.order_line_item_id, 
+        NEW.fulfillment_item_id, 
+        'Comment Added', 
+        NEW.commented_by, 
+        CURRENT_TIMESTAMP, 
+        NEW.comment, 
+        'Comment Addition', 
+        NEW.role_id, 
+        (SELECT user_id FROM users WHERE username = NEW.commented_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_log_line_item_comment
+AFTER INSERT ON line_item_comments
+FOR EACH ROW
+EXECUTE FUNCTION log_line_item_comment();
+```
+
+3. **Log Inquiry Status Change**
+
+Logs changes to the inquiry status of line items.
+
+```sql
+CREATE OR REPLACE FUNCTION log_inquiry_status_change() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (
+        order_line_item_id, 
+        fulfillment_item_id, 
+        action, 
+        changed_by, 
+        changed_at, 
+        details, 
+        update_source, 
+        role_id, 
+        user_id
+    )
+    VALUES (
+        NEW.order_line_item_id, 
+        NULL, 
+        'Inquiry Status Updated', 
+        NEW.updated_by, 
+        CURRENT_TIMESTAMP, 
+        'Inquiry Status: ' || NEW.inquiry_status, 
+        'Inquiry Update', 
+        NEW.role_id, 
+        (SELECT user_id FROM users WHERE username = NEW.updated_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_log_inquiry_status_change
+AFTER INSERT OR UPDATE ON line_item_inquiry
+FOR EACH ROW
+EXECUTE FUNCTION log_inquiry_status_change();
+```
+
+4. **Log User Activity**
+
+Logs user activity such as logins and logouts.
+
+```sql
+CREATE OR REPLACE FUNCTION log_user_activity(
+    p_user_id INT,
+    p_activity_type VARCHAR(50),
+    p_activity_details TEXT
+)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO user_activity (
+        user_id,
+        activity_type,
+        activity_time,
+        activity_details
+    )
+    VALUES (
+        p_user_id,
+        p_activity_type,
+        CURRENT_TIMESTAMP,
+        p_activity_details
+    );
+
+    -- Also log the activity in the audit trail
+    INSERT INTO audit_trail (
+        user_id,
+        action,
+        changed_by,
+        changed_at,
+        details,
+        update_source,
+        role_id,
+        order_line_item_id,
+        fulfillment_item_id
+    )
+    VALUES (
+        p_user_id,
+        p_activity_type,
+        (SELECT username FROM users WHERE user_id = p_user_id),
+        CURRENT_TIMESTAMP,
+        p_activity_details,
+        'User Activity',
+        (SELECT role_id FROM users WHERE user_id = p_user_id),
+        NULL,
+        NULL
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_log_user_login
+AFTER INSERT ON user_activity
+FOR EACH ROW
+WHEN (NEW.activity_type = 'login')
+EXECUTE FUNCTION log_user_activity(NEW.user_id, 'login', NEW.activity_details);
+
+CREATE TRIGGER trg_log_user_logout
+AFTER INSERT ON user_activity
+FOR EACH ROW
+WHEN (NEW.activity_type = 'logout')
+EXECUTE FUNCTION log_user_activity(NEW.user_id, 'logout', NEW.activity_details);
+```
+
+#### Sample Queries
+
+**Insert Operation Example**
+
+```sql
+-- Insert into MRL_line_items table
+INSERT INTO MRL_line_items (
+    jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui, 
+    market_research_up, market_research_ep, availability_identifier, 
+    request_date, rdd, pri, swlin, hull_or_shop, suggested_source, 
+    mfg_cage, apl, nha_equipment_system, nha_model, nha_serial, 
+    techmanual, dwg_pc, requestor_remarks, inquiry_status, 
+    created_by, status_id, received_quantity, has_comments, 
+    multiple_fulfillments
+) VALUES (
+    'JCN123', 'TW123', 'Nomenclature', 'COG1', 'FSC1', 'NIIN1', 'Part123', 
+    10, 'EA', 100.00, 1000.00, 'AVAIL1', '2024-07-01', '2024-07-15', 'PRI1', 
+    'SWLIN1', 'Hull', 'Source', 'CAGE1', 'APL1', 'NHA1', 'Model1', 'Serial1', 
+    'Manual1', 'DWG1', 'Remarks', FALSE, 1, 1, 0, FALSE, FALSE
+);
+
+-- Check audit trail for the new entry
+SELECT * FROM audit_trail WHERE order_line_item_id = (SELECT order_line_item_id FROM MRL_line_items WHERE jcn = 'JCN123');
+```
+
+**Update Operation Example**
+
+```sql
+-- Update MRL_line_items table
+UPDATE MRL_line_items
+SET nomenclature = 'Updated Nomenclature', updated_by = 'user123', update_source = 'Manual Update'
+WHERE order_line_item_id = (SELECT order_line_item_id FROM MRL_line_items WHERE jcn = 'JCN123');
+
+-- Check audit trail for the updated entry
+SELECT * FROM audit_trail WHERE order_line_item_id = (SELECT order_line_item_id FROM MRL_line_items WHERE jcn = 'JCN123');
+```
+
+#### Verification Steps
+
+1. **Verify All Trigger Functions:**
+   - Ensure all the trigger functions are complete and correctly implemented.
+   - Confirm they log appropriate actions into the `audit_trail` table.
+
+2. **Test the Functions:**
+   - Perform tests to trigger these functions and verify entries in the `audit_trail` table.
+   - Validate that all necessary details are captured correctly.
+
+By following these steps, you can ensure that the audit trail implementation is thorough and complete, ensuring that all relevant actions are logged accurately.

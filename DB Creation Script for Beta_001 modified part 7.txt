@@ -1,0 +1,82 @@
+-- View to show all line items with their current status
+CREATE OR REPLACE VIEW vw_line_items_with_status AS
+SELECT 
+    l.order_line_item_id,
+    l.jcn,
+    l.twcode,
+    l.nomenclature,
+    l.cog,
+    l.fsc,
+    l.niin,
+    l.part_no,
+    l.qty,
+    l.ui,
+    l.market_research_up,
+    l.market_research_ep,
+    l.availability_identifier,
+    l.request_date,
+    l.rdd,
+    l.pri,
+    l.swlin,
+    l.hull_or_shop,
+    l.suggested_source,
+    l.mfg_cage,
+    l.apl,
+    l.nha_equipment_system,
+    l.nha_model,
+    l.nha_serial,
+    l.techmanual,
+    l.dwg_pc,
+    l.requestor_remarks,
+    l.inquiry_status,
+    l.created_by,
+    l.created_at,
+    s.status_name AS current_status,
+    l.received_quantity,
+    l.has_comments,
+    l.multiple_fulfillments
+FROM MRL_line_items l
+JOIN statuses s ON l.status_id = s.status_id;
+
+-- View to show all fulfillment items with their current status
+CREATE OR REPLACE VIEW vw_fulfillment_items_with_status AS
+SELECT 
+    f.fulfillment_item_id,
+    f.order_line_item_id,
+    f.created_at,
+    f.updated_at,
+    f.milstrip_req_no,
+    f.edd_to_ches,
+    f.rcd_v2x_date,
+    f.lot_id,
+    f.triwall,
+    f.shipdoc_tcn,
+    f.v2x_ship_no,
+    f.booking,
+    f.vessel,
+    f.container,
+    f.sail_date,
+    f.edd_to_egypt,
+    f.arr_lsc_egypt,
+    f.lsc_on_hand_date,
+    f.carrier,
+    s.status_name AS current_status,
+    f.created_by,
+    f.updated_by,
+    f.update_source,
+    f.has_comments,
+    f.inquiry_status
+FROM fulfillment_items f
+JOIN statuses s ON f.status_id = s.status_id;
+
+-- Indexes for performance improvement
+CREATE INDEX idx_mrl_line_items_jcn ON MRL_line_items(jcn);
+CREATE INDEX idx_mrl_line_items_twcode ON MRL_line_items(twcode);
+CREATE INDEX idx_fulfillment_items_order_line_item_id ON fulfillment_items(order_line_item_id);
+
+-- Indexes for commonly queried fields in audit trail
+CREATE INDEX idx_audit_trail_order_line_item_id ON audit_trail(order_line_item_id);
+CREATE INDEX idx_audit_trail_fulfillment_item_id ON audit_trail(fulfillment_item_id);
+CREATE INDEX idx_audit_trail_changed_at ON audit_trail(changed_at);
+
+

@@ -1,0 +1,145 @@
+-- Function to update MRL line item status based on fulfillment items
+CREATE OR REPLACE FUNCTION update_mrl_status() 
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Determine the overall status of the MRL line item based on related fulfillment items
+    IF NEW.lsc_on_hand_date IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON HAND EGYPT');
+    ELSIF NEW.arr_lsc_egypt IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ARR EGYPT');
+    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'EN ROUTE TO EGYPT');
+    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'FREIGHT FORWARDER');
+    ELSIF NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'READY TO SHIP');
+    ELSIF NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'PROC CHES WH');
+    ELSIF NEW.rcd_v2x_date IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'RCD CHES WH');
+    ELSIF NEW.edd_to_ches IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON ORDER');
+    ELSIF NEW.milstrip_req_no IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'INIT PROCESS');
+    ELSE
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'NOT ORDERED');
+    END IF;
+    
+    -- Check for multiple fulfillments
+    IF (SELECT COUNT(*) FROM fulfillment_items WHERE order_line_item_id = NEW.order_line_item_id) > 1 THEN
+        NEW.multiple_fulfillments := TRUE;
+    ELSE
+        NEW.multiple_fulfillments := FALSE;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to invoke the MRL line item status update function
+CREATE TRIGGER trg_update_mrl_status
+AFTER INSERT OR UPDATE ON fulfillment_items
+FOR EACH ROW
+EXECUTE FUNCTION update_mrl_status();
+
+-- Function to log status changes
+CREATE OR REPLACE FUNCTION log_status_change() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (
+        order_line_item_id, 
+        fulfillment_item_id, 
+        action, 
+        changed_by, 
+        changed_at, 
+        details, 
+        update_source, 
+        role_id, 
+        user_id
+    )
+    VALUES (
+        NEW.order_line_item_id, 
+        NEW.fulfillment_item_id, 
+        'Status Updated', 
+        NEW.updated_by, 
+        CURRENT_TIMESTAMP, 
+        'Status: ' || (SELECT status_name FROM statuses WHERE status_id = NEW.status_id), 
+        NEW.update_source, 
+        (SELECT role_id FROM users WHERE username = NEW.updated_by), 
+        (SELECT user_id FROM users WHERE username = NEW.updated_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to invoke the log status change function
+CREATE TRIGGER trg_log_status_change
+AFTER INSERT OR UPDATE ON fulfillment_items
+FOR EACH ROW
+EXECUTE FUNCTION log_status_change();
+
+-- Function to log line item comments
+CREATE OR REPLACE FUNCTION log_line_item_comment() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO line_item_comments (
+        order_line_item_id, 
+        fulfillment_item_id, 
+        comment, 
+        commented_by, 
+        commented_at, 
+        role_id
+    )
+    VALUES (
+        NEW.order_line_item_id, 
+        NEW.fulfillment_item_id, 
+        NEW.comment, 
+        NEW.commented_by, 
+        CURRENT_TIMESTAMP, 
+        (SELECT role_id FROM users WHERE username = NEW.commented_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to invoke the log line item comment function
+CREATE TRIGGER trg_log_line_item_comment
+AFTER INSERT ON line_item_comments
+FOR EACH ROW
+EXECUTE FUNCTION log_line_item_comment();
+
+-- Function to log inquiry status changes
+CREATE OR REPLACE FUNCTION log_inquiry_status_change() 
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO audit_trail (
+        order_line_item_id, 
+        action, 
+        changed_by, 
+        changed_at, 
+        details, 
+        update_source, 
+        role_id, 
+        user_id
+    )
+    VALUES (
+        NEW.order_line_item_id, 
+        NULL, 
+        'Inquiry Status Updated', 
+        NEW.updated_by, 
+        CURRENT_TIMESTAMP, 
+        'Inquiry Status: ' || NEW.inquiry_status, 
+        'Inquiry Update', 
+        NEW.role_id, 
+        (SELECT user_id FROM users WHERE username = NEW.updated_by)
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to invoke the log inquiry status change function
+CREATE TRIGGER trg_log_inquiry_status_change
+AFTER INSERT OR UPDATE ON line_item_inquiry
+FOR EACH ROW
+EXECUTE FUNCTION log_inquiry_status_change();
+

@@ -1,0 +1,83 @@
+-- Function to perform bulk update of fulfillment items
+CREATE OR REPLACE FUNCTION bulk_update_fulfillment_items()
+RETURNS VOID AS $$
+DECLARE
+    record RECORD;
+BEGIN
+    -- Loop through each record in the temp_bulk_update table
+    FOR record IN SELECT * FROM temp_bulk_update LOOP
+        -- Check if the fulfillment item exists
+        IF EXISTS (SELECT 1 FROM fulfillment_items WHERE fulfillment_item_id = record.fulfillment_item_id) THEN
+            -- Update the fulfillment item
+            PERFORM update_fulfillment_item(
+                record.fulfillment_item_id,
+                record.order_line_item_id,
+                record.milstrip_req_no,
+                record.edd_to_ches,
+                record.rcd_v2x_date,
+                record.lot_id,
+                record.triwall,
+                record.shipdoc_tcn,
+                record.v2x_ship_no,
+                record.booking,
+                record.vessel,
+                record.container,
+                record.sail_date,
+                record.edd_to_egypt,
+                record.arr_lsc_egypt,
+                record.lsc_on_hand_date,
+                record.carrier,
+                record.status_id,
+                'Bulk Update',
+                record.reason
+            );
+        ELSE
+            -- Flag the record for manual review if the fulfillment item does not exist
+            UPDATE temp_bulk_update
+            SET flag_for_review = TRUE
+            WHERE fulfillment_item_id = record.fulfillment_item_id;
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to archive a line item and its associated fulfillment items
+CREATE OR REPLACE FUNCTION archive_line_item(
+    p_order_line_item_id INT,
+    p_archived_by VARCHAR(50)
+)
+RETURNS VOID AS $$
+BEGIN
+    -- Insert into audit trail before archiving
+    INSERT INTO audit_trail (
+        order_line_item_id, 
+        action, 
+        changed_by, 
+        changed_at, 
+        details, 
+        update_source, 
+        role_id, 
+        user_id
+    )
+    VALUES (
+        p_order_line_item_id, 
+        'Archived', 
+        p_archived_by, 
+        CURRENT_TIMESTAMP, 
+        'Line item and associated fulfillment items archived', 
+        'Archive Process', 
+        (SELECT role_id FROM users WHERE username = p_archived_by), 
+        (SELECT user_id FROM users WHERE username = p_archived_by)
+    );
+
+    -- Archive fulfillment items
+    UPDATE fulfillment_items
+    SET status_id = (SELECT status_id FROM statuses WHERE status_name = 'ARCHIVED')
+    WHERE order_line_item_id = p_order_line_item_id;
+
+    -- Archive MRL line item
+    UPDATE MRL_line_items
+    SET status_id = (SELECT status_id FROM statuses WHERE status_name = 'ARCHIVED')
+    WHERE order_line_item_id = p_order_line_item_id;
+END;
+$$ LANGUAGE plpgsql;

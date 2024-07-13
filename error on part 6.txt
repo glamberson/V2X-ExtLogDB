@@ -1,0 +1,7 @@
+SQL Error: ERROR:  syntax error at or near "."
+LINE 6: EXECUTE PROCEDURE log_user_activity(NEW.user_id, 'login', NE...
+
+SQL Error: ERROR:  syntax error at or near "."
+LINE 6: EXECUTE PROCEDURE log_user_activity(NEW.user_id, 'logout', N...
+                                               ^
+                                               ^

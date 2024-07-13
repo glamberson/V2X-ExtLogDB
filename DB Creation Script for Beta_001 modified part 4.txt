@@ -1,0 +1,160 @@
+-- Function to add a line item comment
+CREATE OR REPLACE FUNCTION add_line_item_comment(
+    p_order_line_item_id INT,
+    p_fulfillment_item_id INT,
+    p_comment TEXT,
+    p_commented_by VARCHAR(100),
+    p_role_id INT
+)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO line_item_comments (
+        order_line_item_id, 
+        fulfillment_item_id, 
+        comment, 
+        commented_by, 
+        commented_at, 
+        role_id
+    )
+    VALUES (
+        p_order_line_item_id, 
+        p_fulfillment_item_id, 
+        p_comment, 
+        p_commented_by, 
+        CURRENT_TIMESTAMP, 
+        p_role_id
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to update fulfillment item
+CREATE OR REPLACE FUNCTION update_fulfillment_item(
+    p_fulfillment_item_id INT,
+    p_order_line_item_id INT,
+    p_milstrip_req_no VARCHAR(50),
+    p_edd_to_ches DATE,
+    p_rcd_v2x_date DATE,
+    p_lot_id VARCHAR(15),
+    p_triwall VARCHAR(15),
+    p_shipdoc_tcn VARCHAR(30),
+    p_v2x_ship_no VARCHAR(20),
+    p_booking VARCHAR(20),
+    p_vessel VARCHAR(30),
+    p_container VARCHAR(25),
+    p_sail_date DATE,
+    p_edd_to_egypt DATE,
+    p_arr_lsc_egypt DATE,
+    p_lsc_on_hand_date DATE,
+    p_carrier VARCHAR(50),
+    p_status_id INT,
+    p_updated_by VARCHAR(50),
+    p_update_source VARCHAR(50)
+)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE fulfillment_items
+    SET 
+        order_line_item_id = p_order_line_item_id,
+        milstrip_req_no = p_milstrip_req_no,
+        edd_to_ches = p_edd_to_ches,
+        rcd_v2x_date = p_rcd_v2x_date,
+        lot_id = p_lot_id,
+        triwall = p_triwall,
+        shipdoc_tcn = p_shipdoc_tcn,
+        v2x_ship_no = p_v2x_ship_no,
+        booking = p_booking,
+        vessel = p_vessel,
+        container = p_container,
+        sail_date = p_sail_date,
+        edd_to_egypt = p_edd_to_egypt,
+        arr_lsc_egypt = p_arr_lsc_egypt,
+        lsc_on_hand_date = p_lsc_on_hand_date,
+        carrier = p_carrier,
+        status_id = p_status_id,
+        updated_by = p_updated_by,
+        update_source = p_update_source,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE fulfillment_item_id = p_fulfillment_item_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to update line item inquiry status
+CREATE OR REPLACE FUNCTION update_line_item_inquiry_status(
+    p_order_line_item_id INT,
+    p_inquiry_status BOOLEAN,
+    p_updated_by VARCHAR(50),
+    p_role_id INT
+)
+RETURNS VOID AS $$
+BEGIN
+    INSERT INTO line_item_inquiry (
+        order_line_item_id,
+        inquiry_status,
+        updated_by,
+        updated_at,
+        role_id
+    )
+    VALUES (
+        p_order_line_item_id,
+        p_inquiry_status,
+        p_updated_by,
+        CURRENT_TIMESTAMP,
+        p_role_id
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to view all items in inquiry status
+CREATE OR REPLACE FUNCTION view_items_in_inquiry_status()
+RETURNS TABLE(
+    order_line_item_id INT,
+    inquiry_status BOOLEAN,
+    updated_by VARCHAR(50),
+    updated_at TIMESTAMPTZ,
+    role_id INT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        order_line_item_id,
+        inquiry_status,
+        updated_by,
+        updated_at,
+        role_id
+    FROM line_item_inquiry
+    WHERE inquiry_status = TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to view line item history including comments
+CREATE OR REPLACE FUNCTION view_line_item_history(p_order_line_item_id INT)
+RETURNS TABLE(
+    fulfillment_item_id INT,
+    action VARCHAR(100),
+    changed_by VARCHAR(50),
+    changed_at TIMESTAMPTZ,
+    details TEXT,
+    update_source VARCHAR(50),
+    comment TEXT,
+    commented_by VARCHAR(100),
+    commented_at TIMESTAMPTZ
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        a.fulfillment_item_id,
+        a.action,
+        a.changed_by,
+        a.changed_at,
+        a.details,
+        a.update_source,
+        c.comment,
+        c.commented_by,
+        c.commented_at
+    FROM audit_trail a
+    LEFT JOIN line_item_comments c ON a.order_line_item_id = c.order_line_item_id
+    WHERE a.order_line_item_id = p_order_line_item_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
