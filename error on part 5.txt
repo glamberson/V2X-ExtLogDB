@@ -1,3 +1,0 @@
-SQL Error: ERROR:  loop variable of loop over rows must be a record variable or list of scalar variables
-LINE 6:     FOR record IN SELECT * FROM temp_bulk_update LOOP
-                ^
