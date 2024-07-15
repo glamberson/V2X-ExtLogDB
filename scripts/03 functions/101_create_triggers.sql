@@ -1,4 +1,4 @@
--- version 0.5.1
+-- version 0.6
 
 
 
@@ -55,6 +55,73 @@ AFTER INSERT ON user_activity
 FOR EACH ROW
 WHEN (NEW.activity_type = 'logout')
 EXECUTE PROCEDURE log_user_activity();
+
+CREATE TRIGGER trg_log_user_login
+AFTER INSERT ON user_activity
+FOR EACH ROW
+EXECUTE FUNCTION log_user_login();
+
+CREATE TRIGGER trg_log_user_logout
+AFTER UPDATE ON user_activity
+FOR EACH ROW
+EXECUTE FUNCTION log_user_logout();
+
+-- Trigger to invoke the archive_line_item function
+CREATE OR REPLACE FUNCTION trg_archive_line_item()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM archive_line_item(
+        NEW.order_line_item_id,
+        NEW.archived_by,
+        NEW.archive_reason,
+        NEW.role_id,
+        NEW.user_id
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for archiving line items
+CREATE TRIGGER trg_archive_line_item
+AFTER UPDATE OF archived_by ON MRL_line_items
+FOR EACH ROW
+WHEN (NEW.archived_by IS NOT NULL)
+EXECUTE FUNCTION trg_archive_line_item();
+
+
+-- Trigger to invoke the archive_fulfillment_item function
+CREATE OR REPLACE FUNCTION trg_archive_fulfillment_item()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM archive_fulfillment_item(
+        NEW.fulfillment_item_id,
+        NEW.archived_by,
+        NEW.archive_reason,
+        NEW.role_id,
+        NEW.user_id
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger for archiving fulfillment items
+CREATE TRIGGER trg_archive_fulfillment_item
+AFTER UPDATE OF archived_by ON fulfillment_items
+FOR EACH ROW
+WHEN (NEW.archived_by IS NOT NULL)
+EXECUTE FUNCTION trg_archive_fulfillment_item();
+
+-- Create triggers to log changes on relevant tables
+CREATE TRIGGER trg_log_all_changes_mrl
+AFTER INSERT OR UPDATE OR DELETE ON MRL_line_items
+FOR EACH ROW
+EXECUTE FUNCTION log_all_changes();
+
+CREATE TRIGGER trg_log_all_changes_fulfillment
+AFTER INSERT OR UPDATE OR DELETE ON fulfillment_items
+FOR EACH ROW
+EXECUTE FUNCTION log_all_changes();
+
 
 
 

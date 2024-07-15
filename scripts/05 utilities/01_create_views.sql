@@ -1,4 +1,4 @@
--- version 0.5.1
+-- version 0.6
 
 
 CREATE OR REPLACE VIEW availability_events_view AS
@@ -153,5 +153,73 @@ SELECT
     f.inquiry_status
 FROM fulfillment_items f
 JOIN statuses s ON f.status_id = s.status_id;
+
+CREATE OR REPLACE VIEW combined_line_items_fulfillments AS
+SELECT
+    m.order_line_item_id,
+    m.jcn,
+    m.twcode,
+    m.nomenclature,
+    m.cog,
+    m.fsc,
+    m.niin,
+    m.part_no,
+    m.qty,
+    m.ui,
+    m.market_research_up,
+    m.market_research_ep,
+    m.availability_identifier,
+    m.request_date,
+    m.rdd,
+    m.pri,
+    m.swlin,
+    m.hull_or_shop,
+    m.suggested_source,
+    m.mfg_cage,
+    m.apl,
+    m.nha_equipment_system,
+    m.nha_model,
+    m.nha_serial,
+    m.techmanual,
+    m.dwg_pc,
+    m.requestor_remarks,
+    m.inquiry_status,
+    m.created_by AS mrl_created_by,
+    m.created_at AS mrl_created_at,
+    m.updated_by AS mrl_updated_by,
+    m.updated_at AS mrl_updated_at,
+    m.update_source AS mrl_update_source,
+    m.status_id AS mrl_status_id,
+    m.received_quantity,
+    m.has_comments,
+    m.multiple_fulfillments,
+    f.fulfillment_item_id,
+    f.created_by AS fulfillment_created_by,
+    f.created_at AS fulfillment_created_at,
+    f.updated_by AS fulfillment_updated_by,
+    f.updated_at AS fulfillment_updated_at,
+    f.update_source AS fulfillment_update_source,
+    f.status_id AS fulfillment_status_id,
+    f.shipdoc_tcn,
+    f.v2x_ship_no,
+    f.booking,
+    f.vessel,
+    f.container,
+    f.sail_date,
+    f.edd_to_ches,
+    f.rcd_v2x_date,
+    f.lot_id,
+    f.triwall,
+    f.lsc_on_hand_date,
+    f.arr_lsc_egypt,
+    f.milstrip_req_no,
+    f.inquiry_status AS fulfillment_inquiry_status,
+    f.comments AS fulfillment_comments
+FROM
+    MRL_line_items m
+LEFT JOIN
+    fulfillment_items f
+ON
+    m.order_line_item_id = f.order_line_item_id;
 
 

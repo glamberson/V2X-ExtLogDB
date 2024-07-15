@@ -1,8 +1,8 @@
--- version 0.5.1
+-- version 0.6
 
 -- functions included are: audit_fulfillment_update, update_mrl_status, log_inquiry_status_change, add_line_item_comment, 
 --                         log_line_item_comment, update_mrl_line_item, add_line_item_comment, update_fulfillment_item,
---                         update_inquiry_status_with_reason, update_fulfillment_status, user_login, user_logout, 
+--                         update_fulfillment_status, user_login, user_logout, 
 --                         view_line_item_history, process_bulk_update
 
 
@@ -193,37 +193,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION update_inquiry_status_with_reason(
-    p_order_line_item_id INT,
-    p_inquiry_status BOOLEAN,
-    p_reason TEXT,
-    p_updated_by VARCHAR,
-    p_role_id INT
-)
-RETURNS VOID AS $$
-BEGIN
-    -- Update the inquiry status
-    INSERT INTO line_item_inquiry (order_line_item_id, inquiry_status, updated_by, updated_at, role_id)
-    VALUES (p_order_line_item_id, p_inquiry_status, p_updated_by, CURRENT_TIMESTAMP AT TIME ZONE 'UTC', p_role_id)
-    ON CONFLICT (order_line_item_id) DO UPDATE
-    SET inquiry_status = EXCLUDED.inquiry_status,
-        updated_by = EXCLUDED.updated_by,
-        updated_at = EXCLUDED.updated_at,
-        role_id = EXCLUDED.role_id;
-
-    -- Log the update in the audit trail
-    INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-    VALUES (
-        p_order_line_item_id,
-        'Inquiry Status Updated',
-        p_updated_by,
-        'Inquiry Status: ' || p_inquiry_status || ', Reason: ' || p_reason,
-        p_role_id,
-        (SELECT user_id FROM users WHERE username = p_updated_by)
-    );
-END;
-$$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION update_fulfillment_status()

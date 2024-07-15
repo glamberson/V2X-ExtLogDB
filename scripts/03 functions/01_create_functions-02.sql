@@ -1,62 +1,10 @@
--- version 0.5.1
+-- version 0.6
 
--- functions included: view_items_in_inquiry_status, view_line_item_history_including_comments, bulk_update_fulfillment_items,
---                     archive_line_item, log_failed_login, audit_line_item_update, log_status_change, update_fulfillment_status,
+-- functions included: bulk_update_fulfillment_items,
+--                     archive_line_item, audit_line_item_update, log_status_change,
 --                     update_mrl_status,
 
 
--- Function to view all items in inquiry status
-CREATE OR REPLACE FUNCTION view_items_in_inquiry_status()
-RETURNS TABLE(
-    order_line_item_id INT,
-    inquiry_status BOOLEAN,
-    updated_by VARCHAR(50),
-    updated_at TIMESTAMPTZ,
-    role_id INT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        order_line_item_id,
-        inquiry_status,
-        updated_by,
-        updated_at,
-        role_id
-    FROM line_item_inquiry
-    WHERE inquiry_status = TRUE;
-END;
-$$ LANGUAGE plpgsql;
-
--- Function to view line item history including comments
-CREATE OR REPLACE FUNCTION view_line_item_history(p_order_line_item_id INT)
-RETURNS TABLE(
-    fulfillment_item_id INT,
-    action VARCHAR(100),
-    changed_by VARCHAR(50),
-    changed_at TIMESTAMPTZ,
-    details TEXT,
-    update_source VARCHAR(50),
-    comment TEXT,
-    commented_by VARCHAR(100),
-    commented_at TIMESTAMPTZ
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        a.fulfillment_item_id,
-        a.action,
-        a.changed_by,
-        a.changed_at,
-        a.details,
-        a.update_source,
-        c.comment,
-        c.commented_by,
-        c.commented_at
-    FROM audit_trail a
-    LEFT JOIN line_item_comments c ON a.order_line_item_id = c.order_line_item_id
-    WHERE a.order_line_item_id = p_order_line_item_id;
-END;
-$$ LANGUAGE plpgsql;
 
 
 -- Function to perform bulk update of fulfillment items
@@ -143,35 +91,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to log failed login attempts
-CREATE OR REPLACE FUNCTION log_failed_login(
-    p_username VARCHAR(100),
-    p_reason TEXT
-)
-RETURNS VOID AS $$
-DECLARE
-    v_user_id INT;
-BEGIN
-    -- Get user ID if the username exists
-    SELECT user_id INTO v_user_id
-    FROM users
-    WHERE username = p_username;
-
-    -- Insert failed login activity
-    INSERT INTO user_activity (
-        user_id,
-        activity_type,
-        activity_time,
-        activity_details
-    )
-    VALUES (
-        v_user_id,
-        'failed_login',
-        CURRENT_TIMESTAMP,
-        p_reason
-    );
-END;
-$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION audit_line_item_update()
 RETURNS TRIGGER AS $$
@@ -202,35 +121,6 @@ BEGIN
         NEW.role_id,
         NEW.user_id
     );
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION update_fulfillment_status()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.lsc_on_hand_date IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON HAND EGYPT');
-    ELSIF NEW.arr_lsc_egypt IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ARR EGYPT');
-    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'EN ROUTE TO EGYPT');
-    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'FREIGHT FORWARDER');
-    ELSIF NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'READY TO SHIP');
-    ELSIF NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'PROC CHES WH');
-    ELSIF NEW.rcd_v2x_date IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'RCD CHES WH');
-    ELSIF NEW.edd_to_ches IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON ORDER');
-    ELSIF NEW.milstrip_req_no IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'INIT PROCESS');
-    ELSE
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'NOT ORDERED');
-    END IF;
-
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

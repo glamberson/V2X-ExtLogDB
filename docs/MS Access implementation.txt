@@ -1,0 +1,162 @@
+Integrating PostgreSQL user roles and permissions into an MS Access frontend requires a few steps to ensure that the application uses the correct database roles based on the authenticated user. Below are the detailed steps and logic to implement this:
+
+### Steps to Implement Application Logic in MS Access
+
+1. **Create PostgreSQL Roles**: Already completed as per previous instructions.
+2. **Create a Login Form in MS Access**: This form will handle user authentication.
+3. **Establish DSN-less Connections in MS Access**: Use VBA to connect to PostgreSQL with the correct role.
+4. **Map Application Users to PostgreSQL Roles**: Implement logic in MS Access VBA to map users to roles.
+5. **Set Up User Permissions in MS Access**: Ensure users can only perform actions they are permitted to do.
+
+### Detailed Steps
+
+#### Step 1: Create a Login Form in MS Access
+
+1. Open your MS Access database.
+2. Create a new form for login (e.g., `frmLogin`).
+3. Add two text boxes: one for the username (`txtUsername`) and one for the password (`txtPassword`).
+4. Add a button for login (`btnLogin`).
+
+#### Step 2: Create a Table for Application Users
+
+Ensure your PostgreSQL `users` table is set up as follows:
+
+```sql
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    role_id INT REFERENCES roles(role_id),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Step 3: Establish DSN-less Connections in MS Access
+
+Use VBA to connect to PostgreSQL. Here’s how you can do it:
+
+1. Open the VBA editor in MS Access (ALT + F11).
+2. Create a new module (e.g., `modDBConnection`).
+3. Add the following code to handle the connection:
+
+```vba
+Option Compare Database
+Option Explicit
+
+Public dbConnection As ADODB.Connection
+
+Public Function GetDBConnection(username As String, password As String, role As String) As ADODB.Connection
+    Dim connString As String
+    Set dbConnection = New ADODB.Connection
+    
+    Select Case role
+        Case "KPPO Admin"
+            connString = "Driver={PostgreSQL Unicode};Server=your_server;Port=5432;Database=your_database;Uid=kppo_admin_user;Pwd=admin_password;"
+        Case "Chesapeake Warehouse", "NAVSUP", "Logistics Service Center (LSC)"
+            connString = "Driver={PostgreSQL Unicode};Server=your_server;Port=5432;Database=your_database;Uid=readonly_user;Pwd=readonly_password;"
+        Case "Report Viewer"
+            connString = "Driver={PostgreSQL Unicode};Server=your_server;Port=5432;Database=your_database;Uid=report_viewer_user;Pwd=report_password;"
+        Case Else
+            MsgBox "Invalid role"
+            Exit Function
+    End Select
+    
+    dbConnection.Open connString
+    Set GetDBConnection = dbConnection
+End Function
+```
+
+#### Step 4: Implement the Login Logic
+
+1. In the `frmLogin` form, add the following VBA code:
+
+```vba
+Private Sub btnLogin_Click()
+    Dim username As String
+    Dim password As String
+    Dim role As String
+    Dim dbConn As ADODB.Connection
+    
+    username = Me.txtUsername.Value
+    password = Me.txtPassword.Value
+    
+    ' Authenticate the user (you can implement a query to your PostgreSQL database here)
+    role = AuthenticateUser(username, password)
+    
+    If role <> "" Then
+        Set dbConn = GetDBConnection(username, password, role)
+        If Not dbConn Is Nothing Then
+            MsgBox "Login successful"
+            ' Proceed to the main form or application
+        Else
+            MsgBox "Connection failed"
+        End If
+    Else
+        MsgBox "Authentication failed"
+    End If
+End Sub
+
+Private Function AuthenticateUser(username As String, password As String) As String
+    Dim rs As ADODB.Recordset
+    Dim strSQL As String
+    Dim role As String
+    
+    Set rs = New ADODB.Recordset
+    strSQL = "SELECT roles.role_name FROM users INNER JOIN roles ON users.role_id = roles.role_id WHERE username = '" & username & "' AND password_hash = crypt('" & password & "', password_hash)"
+    
+    rs.Open strSQL, CurrentProject.Connection, adOpenStatic, adLockReadOnly
+    
+    If Not rs.EOF Then
+        role = rs.Fields("role_name").Value
+    Else
+        role = ""
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    
+    AuthenticateUser = role
+End Function
+```
+
+#### Step 5: Set Up User Permissions in MS Access
+
+1. Restrict form access based on user roles. For example, disable certain buttons or controls for read-only users.
+2. Use the `Open` event of forms to check user roles and set permissions accordingly.
+
+```vba
+Private Sub Form_Open(Cancel As Integer)
+    Dim role As String
+    ' Assume role is stored in a global variable or session after login
+    role = GetCurrentUserRole()
+    
+    Select Case role
+        Case "KPPO Admin"
+            ' Full access
+        Case "Chesapeake Warehouse", "NAVSUP", "Logistics Service Center (LSC)"
+            ' Read-only access to most forms, but write access to fulfillment items and comments
+            Me.AllowEdits = False
+            Me.AllowDeletions = False
+            Me.AllowAdditions = False
+        Case "Report Viewer"
+            ' Read-only access to everything except comments
+            Me.AllowEdits = False
+            Me.AllowDeletions = False
+            Me.AllowAdditions = False
+            ' Enable comments section here if needed
+        Case Else
+            MsgBox "Invalid role"
+            Cancel = True
+    End Select
+End Sub
+```
+
+### Summary
+
+1. **Create Login Form**: In MS Access to handle user authentication.
+2. **Define Application Users**: In your PostgreSQL database.
+3. **Establish DSN-less Connections**: Using VBA to connect to PostgreSQL with the appropriate role.
+4. **Implement Login Logic**: Using VBA to authenticate users and connect to the database.
+5. **Set Up User Permissions**: In MS Access based on user roles.
+
+Would you like to proceed with these steps, or do you have any questions or adjustments before implementing this?

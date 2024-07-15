@@ -1,15 +1,17 @@
--- version 0.5.1
+-- version 0.6
+
+
+-- Create comments table (cleanup from previous experiments)
 
 
 CREATE TABLE line_item_comments (
     comment_id SERIAL PRIMARY KEY, -- Unique identifier for the comment
-    order_line_item_id INT, -- Foreign key to MRL line items or fulfillment items
-    fulfillment_item_id INT, -- Foreign key to fulfillment items or NULL if it refers to MRL line item
+    order_line_item_id INT REFERENCES MRL_line_items(order_line_item_id) ON DELETE CASCADE, -- Foreign key to MRL line items table
+    fulfillment_item_id INT REFERENCES fulfillment_items(fulfillment_item_id) ON DELETE CASCADE, -- Foreign key to fulfillment items table
     comment TEXT, -- The comment text
-    commented_by VARCHAR(100), -- User who made the comment
-    commented_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, -- Timestamp with timezone when the comment was made
+    commented_by VARCHAR(100), -- Username of the person who made the comment
+    commented_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the comment was made
     role_id INT REFERENCES roles(role_id), -- Foreign key to roles table
-    CHECK ((order_line_item_id IS NOT NULL AND fulfillment_item_id IS NULL) OR 
-           (order_line_item_id IS NULL AND fulfillment_item_id IS NOT NULL)) -- Ensure only one of the two fields is set
+    user_id INT REFERENCES users(user_id) -- Foreign key to users table
 );
 
