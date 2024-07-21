@@ -1,4 +1,4 @@
--- version 0.6
+-- version 0.7
 
 
 -- Create audit_trail table (added fields)
@@ -15,4 +15,6 @@ CREATE TABLE audit_trail (
     update_source TEXT, -- Source of the update
     role_id INT REFERENCES roles(role_id), -- Foreign key to roles table
     user_id INT REFERENCES users(user_id) -- Foreign key to users table
+);
+
 

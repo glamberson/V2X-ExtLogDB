@@ -16,8 +16,8 @@ INSERT INTO users (username, password_hash, role_id) VALUES
     ('admin', crypt('admin_password', gen_salt('bf')), 1),
     ('chesapeake_user', crypt('chesapeake_password', gen_salt('bf')), 2),
     ('navsup_user', crypt('navsup_password', gen_salt('bf')), 3),
-    ('lsc_user', crypt('lsc_password', gen_salt('bf')), 4);
-    ('report_viewer, crypt('report_viewer_password', gen_salt('bf')), 5);
+    ('lsc_user', crypt('lsc_password', gen_salt('bf')), 4),
+    ('report_viewer', crypt('report_viewer_password', gen_salt('bf')), 5);
 
 
 
