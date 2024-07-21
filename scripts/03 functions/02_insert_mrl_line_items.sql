@@ -35,7 +35,7 @@ BEGIN
         techmanual TEXT,
         dwg_pc TEXT,
         requestor_remarks TEXT,
-        inquiry_status BOOLEAN DEFAULT FALSE,
+        inquiry_status BOOLEAN,
         created_by INT,
         update_source TEXT
     )

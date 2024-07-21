@@ -123,36 +123,6 @@ SELECT
 FROM MRL_line_items l
 JOIN statuses s ON l.status_id = s.status_id;
 
--- View to show all fulfillment items with their current status
-CREATE OR REPLACE VIEW fulfillment_items_with_status_view AS
-SELECT 
-    f.fulfillment_item_id,
-    f.order_line_item_id,
-    f.created_at,
-    f.updated_at,
-    f.milstrip_req_no,
-    f.edd_to_ches,
-    f.rcd_v2x_date,
-    f.lot_id,
-    f.triwall,
-    f.shipdoc_tcn,
-    f.v2x_ship_no,
-    f.booking,
-    f.vessel,
-    f.container,
-    f.sail_date,
-    f.edd_to_egypt,
-    f.arr_lsc_egypt,
-    f.lsc_on_hand_date,
-    f.carrier,
-    s.status_name AS current_status,
-    f.created_by,
-    f.updated_by,
-    f.update_source,
-    f.has_comments,
-    f.inquiry_status
-FROM fulfillment_items f
-JOIN statuses s ON f.status_id = s.status_id;
 
 CREATE OR REPLACE VIEW combined_line_items_fulfillments_view AS
 SELECT

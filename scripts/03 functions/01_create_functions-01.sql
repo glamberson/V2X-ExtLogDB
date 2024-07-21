@@ -60,7 +60,7 @@ BEGIN
         NEW.order_line_item_id,
         'Inquiry Status Updated',
         NEW.updated_by,
-        'Inquiry Status '  NEW.inquiry_status,
+        'Inquiry Status ',  NEW.inquiry_status,
         NEW.role_id,
         (SELECT user_id FROM users WHERE username = NEW.updated_by)
     );
