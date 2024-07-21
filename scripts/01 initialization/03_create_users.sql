@@ -1,4 +1,4 @@
--- version 0.5.1
+-- version 0.7
 -- create users table and initial users with assigned roles
 
 
@@ -17,5 +17,7 @@ INSERT INTO users (username, password_hash, role_id) VALUES
     ('chesapeake_user', crypt('chesapeake_password', gen_salt('bf')), 2),
     ('navsup_user', crypt('navsup_password', gen_salt('bf')), 3),
     ('lsc_user', crypt('lsc_password', gen_salt('bf')), 4);
+    ('report_viewer, crypt('report_viewer_password', gen_salt('bf')), 5);
+
 
 

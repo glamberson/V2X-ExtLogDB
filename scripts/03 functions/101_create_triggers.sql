@@ -138,5 +138,16 @@ FOR EACH ROW
 EXECUTE FUNCTION combined_status_audit_update();
 
 
+-- Trigger for MRL_line_items
+CREATE TRIGGER trg_audit_mrl_changes
+AFTER INSERT OR UPDATE OR DELETE ON MRL_line_items
+FOR EACH ROW
+EXECUTE FUNCTION log_all_changes();
+
+-- Trigger for fulfillment_items
+CREATE TRIGGER trg_audit_fulfillment_changes
+AFTER INSERT OR UPDATE OR DELETE ON fulfillment_items
+FOR EACH ROW
+EXECUTE FUNCTION log_all_changes();
 
 
