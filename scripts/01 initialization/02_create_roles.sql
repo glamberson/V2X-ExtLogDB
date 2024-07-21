@@ -12,6 +12,6 @@ INSERT INTO roles (role_name) VALUES
     ('KPPO Admin'),
     ('Chesapeake Warehouse'),
     ('NAVSUP'),
-    ('Logistics Service Center (LSC)')
+    ('Logistics Service Center (LSC)'),
     ('Report Viewer');
 
