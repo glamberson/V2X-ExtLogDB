@@ -1,4 +1,4 @@
--- version 0.6
+-- version 0.7
 
 
 CREATE OR REPLACE VIEW availability_events_view AS
@@ -34,7 +34,7 @@ JOIN
     roles r ON li.role_id = r.role_id;
 
 
-CREATE OR REPLACE VIEW view_inquiry_status_items AS
+CREATE OR REPLACE VIEW inquiry_status_items_view AS
 SELECT 
     m.order_line_item_id,
     m.jcn,
@@ -84,7 +84,7 @@ ORDER BY
 
 
 -- View to show all line items with their current status
-CREATE OR REPLACE VIEW vw_line_items_with_status AS
+CREATE OR REPLACE VIEW line_items_with_status_view AS
 SELECT 
     l.order_line_item_id,
     l.jcn,
@@ -124,7 +124,7 @@ FROM MRL_line_items l
 JOIN statuses s ON l.status_id = s.status_id;
 
 -- View to show all fulfillment items with their current status
-CREATE OR REPLACE VIEW vw_fulfillment_items_with_status AS
+CREATE OR REPLACE VIEW fulfillment_items_with_status_view AS
 SELECT 
     f.fulfillment_item_id,
     f.order_line_item_id,
@@ -154,7 +154,7 @@ SELECT
 FROM fulfillment_items f
 JOIN statuses s ON f.status_id = s.status_id;
 
-CREATE OR REPLACE VIEW combined_line_items_fulfillments AS
+CREATE OR REPLACE VIEW combined_line_items_fulfillments_view AS
 SELECT
     m.order_line_item_id,
     m.jcn,
