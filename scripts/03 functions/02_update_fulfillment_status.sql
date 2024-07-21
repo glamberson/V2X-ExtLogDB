@@ -1,20 +1,33 @@
--- version 0.6.3
+-- version 0.6.5
 
 -- update fulfillment status
 
-
-CREATE OR REPLACE FUNCTION update_fulfillment_status(order_line_item_id INT, fulfillment_item_id INT, status_id INT, updated_by INT, update_source TEXT)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION update_fulfillment_status()
+RETURNS TRIGGER AS $$
 BEGIN
-    UPDATE fulfillment_items
-    SET status_id = status_id, updated_by = updated_by, update_source = update_source, updated_at = CURRENT_TIMESTAMP
-    WHERE fulfillment_item_id = fulfillment_item_id;
+    IF NEW.lsc_on_hand_date IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON HAND EGYPT');
+    ELSIF NEW.arr_lsc_egypt IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ARR EGYPT');
+    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'EN ROUTE TO EGYPT');
+    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'FREIGHT FORWARDER');
+    ELSIF NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'READY TO SHIP');
+    ELSIF NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'PROC CHES WH');
+    ELSIF NEW.rcd_v2x_date IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'RCD CHES WH');
+    ELSIF NEW.edd_to_ches IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON ORDER');
+    ELSIF NEW.milstrip_req_no IS NOT NULL THEN
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'INIT PROCESS');
+    ELSE
+        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'NOT ORDERED');
+    END IF;
 
-    -- Log status change in audit trail
-    PERFORM log_audit('UPDATE', order_line_item_id, fulfillment_item_id, updated_by, 'Fulfillment status updated');
-
-    -- Cascade status to MRL line item
-    PERFORM cascade_status_to_mrl(order_line_item_id);
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 

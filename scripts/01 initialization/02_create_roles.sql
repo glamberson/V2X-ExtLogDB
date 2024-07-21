@@ -1,5 +1,5 @@
 -- Create roles table and predefined roles
--- version 0.5.1
+-- version 0.7
 
 CREATE TABLE roles (
     role_id SERIAL PRIMARY KEY, -- Unique identifier for the role
@@ -12,5 +12,6 @@ INSERT INTO roles (role_name) VALUES
     ('KPPO Admin'),
     ('Chesapeake Warehouse'),
     ('NAVSUP'),
-    ('Logistics Service Center (LSC)');
+    ('Logistics Service Center (LSC)')
+    ('Report Viewer');
 

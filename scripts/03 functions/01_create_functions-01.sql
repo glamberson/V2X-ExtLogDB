@@ -1,8 +1,7 @@
--- version 0.6
+-- version 0.6.5
 
 -- functions included are: audit_fulfillment_update, update_mrl_status, log_inquiry_status_change, add_line_item_comment, 
---                         log_line_item_comment, update_mrl_line_item, add_line_item_comment, update_fulfillment_item,
---                         update_fulfillment_status, user_login, user_logout, 
+--                         log_line_item_comment, update_mrl_line_item, update_fulfillment_item,
 --                         view_line_item_history, process_bulk_update
 
 
@@ -140,32 +139,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION add_line_item_comment (
-    p_order_line_item_id INT,
-    p_fulfillment_item_id INT,
-    p_comment TEXT,
-    p_commented_by VARCHAR,
-    p_role_id INT
-)
-RETURNS VOID AS $$
-BEGIN
-    INSERT INTO line_item_comments (order_line_item_id, fulfillment_item_id, comment, commented_by, commented_at, role_id)
-    VALUES (p_order_line_item_id, p_fulfillment_item_id, p_comment, p_commented_by, CURRENT_TIMESTAMP AT TIME ZONE 'UTC', p_role_id);
-
-    -- Update the has_comments field in MRL_line_items or fulfillment_items
-    IF p_order_line_item_id IS NOT NULL THEN
-        UPDATE MRL_line_items
-        SET has_comments = TRUE
-        WHERE order_line_item_id = p_order_line_item_id;
-    ELSE
-        UPDATE fulfillment_items
-        SET has_comments = TRUE
-        WHERE fulfillment_item_id = p_fulfillment_item_id;
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
-
-
 CREATE OR REPLACE FUNCTION update_fulfillment_item(
     p_fulfillment_item_id INT,
     p_field_name VARCHAR,
@@ -194,136 +167,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
-CREATE OR REPLACE FUNCTION update_fulfillment_status()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF NEW.lsc_on_hand_date IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON HAND EGYPT');
-    ELSIF NEW.arr_lsc_egypt IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ARR EGYPT');
-    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'EN ROUTE TO EGYPT');
-    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'FREIGHT FORWARDER');
-    ELSIF NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'READY TO SHIP');
-    ELSIF NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'PROC CHES WH');
-    ELSIF NEW.rcd_v2x_date IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'RCD CHES WH');
-    ELSIF NEW.edd_to_ches IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON ORDER');
-    ELSIF NEW.milstrip_req_no IS NOT NULL THEN
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'INIT PROCESS');
-    ELSE
-        NEW.status_id := (SELECT status_id FROM statuses WHERE status_name = 'NOT ORDERED');
-    END IF;
-
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION user_login(
-    p_username VARCHAR,
-    p_password VARCHAR
-)
-RETURNS BOOLEAN AS $$
-DECLARE
-    v_user_id INT;
-    v_role_id INT;
-    v_password_hash VARCHAR;
-    v_login_successful BOOLEAN := FALSE;
-BEGIN
-    -- Check if the user exists and get the password hash
-    SELECT user_id, role_id, password_hash INTO v_user_id, v_role_id, v_password_hash
-    FROM users
-    WHERE username = p_username;
-
-    -- Verify the password
-    IF crypt(p_password, v_password_hash) = v_password_hash THEN
-        v_login_successful := TRUE;
-
-        -- Log the login activity
-        PERFORM log_user_activity(v_user_id, 'login', 'User logged in');
-
-        -- Also log this activity into the audit trail
-        INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-        VALUES (
-            NULL, -- No specific line item ID for general user activity
-            'login',
-            p_username,
-            'User logged in',
-            v_role_id,
-            v_user_id
-        );
-    ELSE
-        -- Log the failed login attempt
-        PERFORM log_failed_login(p_username, 'Incorrect password');
-
-        -- Also log this activity into the audit trail
-        INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-        VALUES (
-            NULL, -- No specific line item ID for general user activity
-            'failed_login',
-            p_username,
-            'Incorrect password',
-            NULL, -- No specific role for general user activity
-            NULL -- No specific user ID for failed login
-        );
-    END IF;
-
-    RETURN v_login_successful;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        -- Log the failed login attempt
-        PERFORM log_failed_login(p_username, 'User not found');
-
-        -- Also log this activity into the audit trail
-        INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-        VALUES (
-            NULL, -- No specific line item ID for general user activity
-            'failed_login',
-            p_username,
-            'User not found',
-            NULL, -- No specific role for general user activity
-            NULL -- No specific user ID for failed login
-        );
-
-        RETURN FALSE;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION user_logout(
-    p_user_id INT
-)
-RETURNS VOID AS $$
-DECLARE
-    v_username VARCHAR;
-    v_role_id INT;
-BEGIN
-    -- Get the username and role ID
-    SELECT username, role_id INTO v_username, v_role_id
-    FROM users
-    WHERE user_id = p_user_id;
-
-    -- Log the logout activity
-    PERFORM log_user_activity(p_user_id, 'logout', 'User logged out');
-
-    -- Also log this activity into the audit trail
-    INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-    VALUES (
-        NULL, -- No specific line item ID for general user activity
-        'logout',
-        v_username,
-        'User logged out',
-        v_role_id,
-        p_user_id
-    );
-END;
-$$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION view_line_item_history(p_order_line_item_id INT)

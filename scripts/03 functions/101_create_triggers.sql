@@ -1,4 +1,6 @@
--- version 0.6
+-- version 0.7
+
+-- unconfirmed or implemented
 
 
 
@@ -122,6 +124,18 @@ AFTER INSERT OR UPDATE OR DELETE ON fulfillment_items
 FOR EACH ROW
 EXECUTE FUNCTION log_all_changes();
 
+
+
+-- Triggers for the combined function
+CREATE TRIGGER trg_combined_status_audit_update
+AFTER INSERT OR UPDATE ON fulfillment_items
+FOR EACH ROW
+EXECUTE FUNCTION combined_status_audit_update();
+
+CREATE TRIGGER trg_create_fulfillment_on_mrl_insert
+AFTER INSERT ON MRL_line_items
+FOR EACH ROW
+EXECUTE FUNCTION combined_status_audit_update();
 
 
 

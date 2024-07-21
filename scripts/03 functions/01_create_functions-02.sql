@@ -1,7 +1,7 @@
 -- version 0.6
 
 -- functions included: bulk_update_fulfillment_items,
---                     archive_line_item, audit_line_item_update, log_status_change,
+--                     audit_line_item_update, log_status_change,
 --                     update_mrl_status,
 
 
@@ -50,46 +50,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to archive a line item and its associated fulfillment items
-CREATE OR REPLACE FUNCTION archive_line_item(
-    p_order_line_item_id INT,
-    p_archived_by VARCHAR(50)
-)
-RETURNS VOID AS $$
-BEGIN
-    -- Insert into audit trail before archiving
-    INSERT INTO audit_trail (
-        order_line_item_id, 
-        action, 
-        changed_by, 
-        changed_at, 
-        details, 
-        update_source, 
-        role_id, 
-        user_id
-    )
-    VALUES (
-        p_order_line_item_id, 
-        'Archived', 
-        p_archived_by, 
-        CURRENT_TIMESTAMP, 
-        'Line item and associated fulfillment items archived', 
-        'Archive Process', 
-        (SELECT role_id FROM users WHERE username = p_archived_by), 
-        (SELECT user_id FROM users WHERE username = p_archived_by)
-    );
-
-    -- Archive fulfillment items
-    UPDATE fulfillment_items
-    SET status_id = (SELECT status_id FROM statuses WHERE status_name = 'ARCHIVED')
-    WHERE order_line_item_id = p_order_line_item_id;
-
-    -- Archive MRL line item
-    UPDATE MRL_line_items
-    SET status_id = (SELECT status_id FROM statuses WHERE status_name = 'ARCHIVED')
-    WHERE order_line_item_id = p_order_line_item_id;
-END;
-$$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION audit_line_item_update()
