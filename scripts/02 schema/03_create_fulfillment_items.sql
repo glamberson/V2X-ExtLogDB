@@ -1,6 +1,6 @@
--- version 0.6
+-- version 0.7.4
 
--- Create fulfillment items table (added MILSTRIP/req field)
+-- Create fulfillment items table (added MILSTRIP/req field)(added carrier field)
 
 -- Create fulfillment_items table
 CREATE TABLE fulfillment_items (
@@ -17,6 +17,7 @@ CREATE TABLE fulfillment_items (
     booking VARCHAR(20), -- Booking number
     vessel VARCHAR(30), -- Vessel name
     container VARCHAR(25), -- Container number
+    carrier VARCHAR(50),
     sail_date DATE, -- Sail date
     edd_to_ches DATE, -- Estimated delivery date to Chesapeake warehouse
     rcd_v2x_date DATE, -- Received by V2X date

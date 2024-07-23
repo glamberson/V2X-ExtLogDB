@@ -1,8 +1,8 @@
--- version 0.6.5
+-- version 0.7.4
 
 -- functions included are: audit_fulfillment_update, update_mrl_status, log_inquiry_status_change, add_line_item_comment, 
---                         log_line_item_comment, update_mrl_line_item, update_fulfillment_item,
---                         view_line_item_history, process_bulk_update
+--                         log_line_item_comment,
+--                         view_line_item_history,
 
 
 CREATE OR REPLACE FUNCTION audit_fulfillment_update()
@@ -112,61 +112,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION update_mrl_line_item(
-    p_order_line_item_id INT,
-    p_field_name VARCHAR,
-    p_new_value TEXT,
-    p_updated_by VARCHAR,
-    p_role_id INT
-)
-RETURNS VOID AS $$
-BEGIN
-    -- Construct dynamic SQL to update the specified field
-    EXECUTE 'UPDATE MRL_line_items SET ' || p_field_name || ' = $1 WHERE order_line_item_id = $2'
-    USING p_new_value, p_order_line_item_id;
-
-    -- Log the update in the audit trail
-    INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-    VALUES (
-        p_order_line_item_id,
-        'Update',
-        p_updated_by,
-        'Updated ' || p_field_name || ' to ' || p_new_value,
-        p_role_id,
-        (SELECT user_id FROM users WHERE username = p_updated_by)
-    );
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION update_fulfillment_item(
-    p_fulfillment_item_id INT,
-    p_field_name VARCHAR,
-    p_new_value TEXT,
-    p_updated_by VARCHAR,
-    p_update_source VARCHAR,
-    p_role_id INT
-)
-RETURNS VOID AS $$
-BEGIN
-    -- Construct dynamic SQL to update the specified field
-    EXECUTE 'UPDATE fulfillment_items SET ' || p_field_name || ' = $1, updated_by = $2, updated_at = CURRENT_TIMESTAMP WHERE fulfillment_item_id = $3'
-    USING p_new_value, p_updated_by, p_fulfillment_item_id;
-
-    -- Log the update in the audit trail
-    INSERT INTO audit_trail (order_line_item_id, action, changed_by, details, role_id, user_id)
-    VALUES (
-        (SELECT order_line_item_id FROM fulfillment_items WHERE fulfillment_item_id = p_fulfillment_item_id),
-        'Update',
-        p_updated_by,
-        'Updated ' || p_field_name || ' to ' || p_new_value,
-        p_role_id,
-        (SELECT user_id FROM users WHERE username = p_updated_by)
-    );
-END;
-$$ LANGUAGE plpgsql;
-
-
 
 
 CREATE OR REPLACE FUNCTION view_line_item_history(p_order_line_item_id INT)
@@ -201,54 +146,6 @@ BEGIN
         at.order_line_item_id = p_order_line_item_id
     ORDER BY
         at.changed_at, lc.commented_at;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION process_bulk_update()
-RETURNS VOID AS $$
-BEGIN
-    -- Update fulfillment items based on temp_bulk_update data
-    UPDATE fulfillment_items fi
-    SET 
-        fi.edd_to_ches = tbu.edd_to_ches,
-        fi.carrier = tbu.carrier,
-        -- Add other columns as necessary
-        fi.updated_at = NOW(),
-        fi.updated_by = 'bulk_update',
-        fi.update_source = tbu.update_source
-    FROM temp_bulk_update tbu
-    WHERE 
-        tbu.order_line_item_id = fi.order_line_item_id 
-        AND tbu.fulfillment_item_id = fi.fulfillment_item_id;
-
-    -- Log the update in the audit trail
-    INSERT INTO audit_trail (
-        order_line_item_id, 
-        fulfillment_item_id, 
-        action, 
-        changed_by, 
-        details, 
-        update_source, 
-        changed_at
-    )
-    SELECT 
-        tbu.order_line_item_id, 
-        tbu.fulfillment_item_id, 
-        'Bulk Update', 
-        'admin_user', 
-        tbu.reason, 
-        tbu.update_source, 
-        NOW()
-    FROM temp_bulk_update tbu;
-
-    -- Flag records with multiple fulfillment items
-    UPDATE temp_bulk_update tbu
-    SET flag_for_review = TRUE
-    WHERE (
-        SELECT COUNT(*) 
-        FROM fulfillment_items fi 
-        WHERE fi.order_line_item_id = tbu.order_line_item_id
-    ) > 1;
 END;
 $$ LANGUAGE plpgsql;
 

@@ -1,4 +1,4 @@
--- version 0.5.1
+-- version 0.7.4
 
 
 
@@ -19,8 +19,10 @@ CREATE TABLE temp_bulk_update (
     arr_lsc_egypt DATE,
     lsc_on_hand_date DATE,
     carrier VARCHAR(50),
+    milstrip_req_no VARCHAR(25), -- Requisition or MILSTRIP number
     status_id INT REFERENCES statuses(status_id),
     flag_for_review BOOLEAN DEFAULT FALSE,
+    comments TEXT,
     reason TEXT
 );
 
