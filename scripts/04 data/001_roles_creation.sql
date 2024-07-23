@@ -1,9 +1,11 @@
--- version 0.7
+-- version 0.7.2
 
 -- create roles and grant pemissions
 
 
 
+--Create Login Role
+CREATE ROLE "login" WITH LOGIN PASSWORD 'FOTS-Egypt';
 
 -- Create KPPO Admin role with full access
 CREATE ROLE kppo_admin_user WITH LOGIN PASSWORD 'admin_password';
@@ -25,3 +27,4 @@ GRANT USAGE ON SCHEMA public TO report_viewer_user;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO report_viewer_user;
 GRANT INSERT, UPDATE ON TABLE line_item_comments TO report_viewer_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO report_viewer_user;
+

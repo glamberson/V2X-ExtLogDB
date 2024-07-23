@@ -1,9 +1,11 @@
--- version 0.6.3
+-- version 0.7.3
 
--- insert mrl line items (bulk)
+-- insert mrl line items (bulk) PROCEDURE (converted from function)
 
-CREATE OR REPLACE FUNCTION insert_mrl_line_items(batch_data JSONB)
-RETURNS VOID AS $$
+
+CREATE OR REPLACE PROCEDURE insert_mrl_line_items(batch_data JSONB)
+LANGUAGE plpgsql
+AS $$
 DECLARE
     rec RECORD;
     new_order_line_item_id INT;
@@ -62,5 +64,10 @@ BEGIN
         -- Log in audit trail
         PERFORM log_audit('INSERT', new_order_line_item_id, NULL, rec.created_by, 'Initial batch load');
     END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error inserting MRL line items: %', SQLERRM;
+        RAISE;
 END;
-$$ LANGUAGE plpgsql;
+$$;

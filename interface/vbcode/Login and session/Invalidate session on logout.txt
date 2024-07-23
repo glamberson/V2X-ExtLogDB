@@ -1,0 +1,25 @@
+
+
+' version 0.7.2
+
+
+
+' Function to log out the user and invalidate the session token
+Public Sub LogoutUser()
+    Dim conn As ADODB.Connection
+    Dim cmd As ADODB.Command
+
+    Set conn = CreatePostgresConnection()
+
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = conn
+    cmd.CommandText = "SELECT invalidate_session(?)"
+    cmd.Parameters.Append cmd.CreateParameter("@p_session_id", adVarChar, adParamInput, 255, g_sessionToken)
+    
+    cmd.Execute
+
+    conn.Close
+    
+    ' Clear the session token
+    g_sessionToken = ""
+End Sub

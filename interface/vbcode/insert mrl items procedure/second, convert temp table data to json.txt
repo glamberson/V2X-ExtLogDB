@@ -1,0 +1,38 @@
+Public Function ConvertToJSON() As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Dim json As String
+    Dim f As DAO.Field
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("SELECT * FROM TempTable")
+
+    json = "["
+    
+    Do While Not rs.EOF
+        json = json & "{"
+        For Each f In rs.Fields
+            json = json & """" & f.Name & """:"
+            If IsNull(f.Value) Then
+                json = json & "null"
+            ElseIf f.Type = dbText Then
+                json = json & """" & f.Value & """"
+            Else
+                json = json & f.Value
+            End If
+            json = json & ","
+        Next f
+        json = Left(json, Len(json) - 1)
+        json = json & "},"
+        rs.MoveNext
+    Loop
+    
+    json = Left(json, Len(json) - 1)
+    json = json & "]"
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    ConvertToJSON = json
+End Function
