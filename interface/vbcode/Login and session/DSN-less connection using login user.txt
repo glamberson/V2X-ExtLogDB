@@ -10,7 +10,7 @@ Public Function CreateGenericConnection() As ADODB.Connection
                             "Server=192.168.4.21;" & _
                             "Port=5432;" & _
                             "Database=Beta_003;" & _
-                            "Uid=login_user;" & _
+                            "Uid=login;" & _
                             "Pwd=FOTS-Egypt;"
     conn.Open
     
