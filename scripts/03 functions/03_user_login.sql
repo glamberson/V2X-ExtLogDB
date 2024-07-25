@@ -1,5 +1,5 @@
 
--- version 0.7.2
+-- version 0.7.5
 
 -- user login (database session version)
 
@@ -27,7 +27,8 @@ BEGIN
         v_session_id := create_session(v_user_id, v_role_id, p_duration);
 
         -- Log the login activity
-        PERFORM log_user_activity(v_user_id, 'login', 'User logged in');
+        -- We're passing NULL for logout_time since the user is just logging in
+        PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
 
         RETURN v_session_id;
     ELSE
@@ -44,3 +45,4 @@ EXCEPTION
         RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
+

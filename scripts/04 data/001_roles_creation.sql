@@ -1,4 +1,4 @@
--- version 0.7.2
+-- version 0.7.5
 
 -- create roles and grant pemissions
 
@@ -6,6 +6,16 @@
 
 --Create Login Role
 CREATE ROLE "login" WITH LOGIN PASSWORD 'FOTS-Egypt';
+-- Grant USAGE on the schema
+GRANT USAGE ON SCHEMA public TO login;
+GRANT CONNECT ON DATABASE "Beta_003" TO login;
+-- Grant EXECUTE permission on the user_login function
+GRANT EXECUTE ON FUNCTION user_login(VARCHAR, VARCHAR, INTERVAL) TO login;
+-- If the user_login function needs to access the users table, grant SELECT permission
+GRANT SELECT ON TABLE users TO login;
+-- Grant execute permission on the login wrapper function
+GRANT EXECUTE ON FUNCTION login_wrapper(VARCHAR, VARCHAR, INTERVAL) TO login;
+
 
 -- Create KPPO Admin role with full access
 CREATE ROLE kppo_admin_user WITH LOGIN PASSWORD 'admin_password';
