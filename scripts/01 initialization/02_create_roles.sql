@@ -14,5 +14,5 @@ INSERT INTO roles (role_name) VALUES
     ('Chesapeake Warehouse', 'logistics_user'),
     ('NAVSUP', 'logistics_user'),
     ('Logistics Service Center (LSC)', 'logistics_user'),
-    ('Report Viewer', 'report_ivewer_user');
+    ('Report Viewer', 'report_viewer_user');
 
