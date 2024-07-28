@@ -1,0 +1,108 @@
+To verify your user/role setup and session management within PostgreSQL, let's review the relevant portions of your configuration and code, focusing particularly on how session management and termination are handled. Based on your provided scripts and typical best practices, here is an overview:
+
+### 1. User/Role Setup in PostgreSQL
+
+#### User and Role Creation
+You should have roles and users defined with specific permissions. Here is an example of how roles and users might be set up:
+```sql
+-- Create roles
+CREATE ROLE mrl_user;
+CREATE ROLE mrl_admin;
+
+-- Create users and assign roles
+CREATE USER user1 WITH PASSWORD 'password';
+GRANT mrl_user TO user1;
+
+CREATE USER admin1 WITH PASSWORD 'password';
+GRANT mrl_admin TO admin1;
+```
+
+#### Granting Permissions
+Permissions should be granted to the roles rather than directly to users:
+```sql
+-- Granting permissions to roles
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO mrl_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO mrl_admin;
+```
+
+### 2. Session Management in PostgreSQL
+
+#### Session Token Management
+You can implement session management using a combination of database tables and functions. Here is an example approach:
+
+1. **Session Table**:
+    ```sql
+    CREATE TABLE user_sessions (
+        session_id UUID PRIMARY KEY,
+        user_id INT REFERENCES users(id),
+        valid_until TIMESTAMP
+    );
+    ```
+
+2. **Creating a Session**:
+    ```sql
+    CREATE OR REPLACE FUNCTION create_session(p_user_id INT, p_duration INTERVAL) RETURNS UUID AS $$
+    DECLARE
+        v_session_id UUID := uuid_generate_v4();
+        v_valid_until TIMESTAMP := NOW() + p_duration;
+    BEGIN
+        INSERT INTO user_sessions (session_id, user_id, valid_until) 
+        VALUES (v_session_id, p_user_id, v_valid_until);
+        RETURN v_session_id;
+    END;
+    $$ LANGUAGE plpgsql;
+    ```
+
+3. **Validating a Session**:
+    ```sql
+    CREATE OR REPLACE FUNCTION validate_session(p_session_id UUID) RETURNS BOOLEAN AS $$
+    DECLARE
+        v_valid BOOLEAN;
+    BEGIN
+        SELECT COUNT(*) > 0 INTO v_valid
+        FROM user_sessions 
+        WHERE session_id = p_session_id AND valid_until > NOW();
+        RETURN v_valid;
+    END;
+    $$ LANGUAGE plpgsql;
+    ```
+
+4. **Terminating a Session**:
+    ```sql
+    CREATE OR REPLACE FUNCTION terminate_session(p_session_id UUID) RETURNS VOID AS $$
+    BEGIN
+        DELETE FROM user_sessions WHERE session_id = p_session_id;
+    END;
+    $$ LANGUAGE plpgsql;
+    ```
+
+### 3. Automatic Session Termination
+
+To automatically terminate sessions when they expire, you can use a PostgreSQL background worker or a cron job that periodically cleans up expired sessions. Here is an example using a cron job:
+
+1. **Create a Cleanup Function**:
+    ```sql
+    CREATE OR REPLACE FUNCTION cleanup_expired_sessions() RETURNS VOID AS $$
+    BEGIN
+        DELETE FROM user_sessions WHERE valid_until <= NOW();
+    END;
+    $$ LANGUAGE plpgsql;
+    ```
+
+2. **Set Up a Cron Job**:
+    Using `pg_cron` extension, you can set up a scheduled task to run the cleanup function:
+    ```sql
+    -- Install pg_cron extension if not already installed
+    CREATE EXTENSION pg_cron;
+
+    -- Schedule the cleanup job to run every hour
+    SELECT cron.schedule('cleanup_expired_sessions', '0 * * * *', 'CALL cleanup_expired_sessions()');
+    ```
+
+### Summary
+
+- **User/Role Setup**: Ensure roles are properly set up and permissions are granted to roles, which are then assigned to users.
+- **Session Management**: Implement session creation, validation, and termination with appropriate functions and a session table.
+- **Automatic Session Termination**: Use a cleanup function and a scheduled task (cron job) to remove expired sessions.
+
+Based on the scripts and configuration you have provided, your setup appears to be on the right track. Ensure that the cleanup process is in place to handle expired sessions automatically, which will help in managing sessions effectively. If there are any specific parts of your current implementation you'd like to review or if you need detailed code adjustments, please let me know!

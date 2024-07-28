@@ -1,0 +1,130 @@
+To ensure that users cannot continue to use their roles beyond the expiration of their session tokens, you need to enforce session validation within the database logic itself. This typically involves the following steps:
+
+1. **Store the Session Token**: Ensure that every interaction with the database includes a session token that is validated against the session table.
+2. **Enforce Session Validation**: Use row-level security policies or triggers to enforce that only users with valid session tokens can perform actions on the database.
+3. **Session Token in Queries**: Modify the application to include session tokens in each query to the database.
+
+Here's how you can implement these steps in your PostgreSQL database:
+
+### 1. Store the Session Token
+Ensure that each user interaction includes a session token. This token can be stored in a session table as outlined earlier.
+
+### 2. Enforce Session Validation
+You can enforce session validation using PostgreSQL row-level security (RLS) policies. Here is how you can do it:
+
+#### Define a Security Policy
+1. **Enable RLS on the Table**:
+   ```sql
+   ALTER TABLE your_table_name ENABLE ROW LEVEL SECURITY;
+   ```
+
+2. **Create the Policy**:
+   ```sql
+   CREATE POLICY session_policy ON your_table_name
+   USING (EXISTS (
+       SELECT 1 FROM user_sessions 
+       WHERE session_id = current_setting('app.current_session', true)::uuid 
+       AND user_id = current_user::int 
+       AND valid_until > NOW()
+   ));
+   ```
+
+### 3. Session Token in Queries
+Ensure that the application sets the session token for each user session and includes it in each query. This can be done using the `SET` command in PostgreSQL to set a session-specific variable.
+
+#### Setting the Session Token
+In your application's login process, after validating the user, set the session token:
+```sql
+SET app.current_session = 'your-session-token';
+```
+
+### Example of Enforcing Session Validation
+
+Here is a complete example integrating all the components:
+
+#### 1. Create the Session Table
+```sql
+CREATE TABLE user_sessions (
+    session_id UUID PRIMARY KEY,
+    user_id INT REFERENCES users(id),
+    valid_until TIMESTAMP
+);
+```
+
+#### 2. Create Functions for Session Management
+```sql
+-- Function to create a session
+CREATE OR REPLACE FUNCTION create_session(p_user_id INT, p_duration INTERVAL) RETURNS UUID AS $$
+DECLARE
+    v_session_id UUID := uuid_generate_v4();
+    v_valid_until TIMESTAMP := NOW() + p_duration;
+BEGIN
+    INSERT INTO user_sessions (session_id, user_id, valid_until) 
+    VALUES (v_session_id, p_user_id, v_valid_until);
+    RETURN v_session_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to validate a session
+CREATE OR REPLACE FUNCTION validate_session(p_session_id UUID) RETURNS BOOLEAN AS $$
+DECLARE
+    v_valid BOOLEAN;
+BEGIN
+    SELECT COUNT(*) > 0 INTO v_valid
+    FROM user_sessions 
+    WHERE session_id = p_session_id AND valid_until > NOW();
+    RETURN v_valid;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to terminate a session
+CREATE OR REPLACE FUNCTION terminate_session(p_session_id UUID) RETURNS VOID AS $$
+BEGIN
+    DELETE FROM user_sessions WHERE session_id = p_session_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to clean up expired sessions
+CREATE OR REPLACE FUNCTION cleanup_expired_sessions() RETURNS VOID AS $$
+BEGIN
+    DELETE FROM user_sessions WHERE valid_until <= NOW();
+END;
+$$ LANGUAGE plpgsql;
+```
+
+#### 3. Enable RLS and Define Security Policy
+```sql
+-- Enable RLS
+ALTER TABLE your_table_name ENABLE ROW LEVEL SECURITY;
+
+-- Define the RLS policy
+CREATE POLICY session_policy ON your_table_name
+USING (EXISTS (
+    SELECT 1 FROM user_sessions 
+    WHERE session_id = current_setting('app.current_session', true)::uuid 
+    AND user_id = current_user::int 
+    AND valid_until > NOW()
+));
+```
+
+#### 4. Set Session Token in Application
+In your application code (e.g., after user login), set the session token for each session:
+```sql
+-- After login validation
+SET app.current_session = 'your-session-token';
+```
+
+### Example Application Usage
+- **Login Procedure**:
+  1. Validate user credentials.
+  2. Create a session using `create_session` function.
+  3. Set the session token using `SET app.current_session`.
+
+- **Query Execution**:
+  Include the session token in each interaction:
+  ```sql
+  SET app.current_session = 'your-session-token';
+  SELECT * FROM your_table_name;
+  ```
+
+By following these steps, you ensure that each query checks for a valid session token before allowing access, thereby preventing users from continuing to use their roles once their session has expired. This approach integrates session management directly into the database access control mechanisms, making it robust and secure.
