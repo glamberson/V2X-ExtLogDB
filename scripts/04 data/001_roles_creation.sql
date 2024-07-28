@@ -14,7 +14,7 @@ GRANT SELECT ON users TO "login";
 GRANT EXECUTE ON FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, p_duration INTERVAL) TO "login";
 GRANT EXECUTE ON FUNCTION create_session(user_id INT, role_id INT, duration INTERVAL) TO "login";
 GRANT EXECUTE ON FUNCTION log_user_activity(user_id INT, login_time TIMESTAMPTZ, logout_time TIMESTAMPTZ, activity TEXT) TO "login";
-GRANT EXECUTE ON FUNCTION log_failed_login_attempt(username TEXT, reason TEXT) TO "login";
+GRANT EXECUTE ON FUNCTION log_failed_login_attempt(username VARCHAR, reason TEXT) TO "login";
 
 
 -- Create other roles without login capability and with NOINHERIT
