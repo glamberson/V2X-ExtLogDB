@@ -1,29 +1,19 @@
--- version 0.7.12
+--Procedure: public.insert_mrl_line_items(jsonb, text)
 
--- Procedure to insert MRL line items from JSONB data with update_source parameter
+--DROP PROCEDURE public.insert_mrl_line_items(jsonb, text);
 
-
-CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
-    batch_data jsonb,
-    update_source TEXT
+CREATE OR REPLACE PROCEDURE public.insert_mrl_line_items
+(
+  IN  batch_data     jsonb,
+  IN  update_source  text 
 )
-LANGUAGE plpgsql
 AS $$
 DECLARE
     item jsonb;
-    user_id INT;
-    role_id INT;
-    new_order_line_item_id INT;
 BEGIN
-    -- Get user_id and role_id from the session settings and cast them to INT
-    user_id := current_setting('user.id')::INT;
-    role_id := current_setting('role.id')::INT;
-
-    -- Loop through each item in the JSONB array
     FOR item IN
         SELECT * FROM jsonb_array_elements(batch_data)
     LOOP
-        -- Insert into MRL_line_items table
         INSERT INTO MRL_line_items (
             jcn,
             twcode,
@@ -54,7 +44,8 @@ BEGIN
             inquiry_status,
             created_by,
             update_source
-        ) VALUES (
+        )
+        VALUES (
             item->>'jcn',
             item->>'twcode',
             item->>'nomenclature',
@@ -62,13 +53,13 @@ BEGIN
             item->>'fsc',
             item->>'niin',
             item->>'part_no',
-            (item->>'qty')::INT,
+            (item->>'qty')::int,
             item->>'ui',
-            (item->>'market_research_up')::NUMERIC,
-            (item->>'market_research_ep')::NUMERIC,
+            (item->>'market_research_up')::numeric,
+            (item->>'market_research_ep')::numeric,
             item->>'availability_identifier',
-            (item->>'request_date')::DATE,
-            (item->>'rdd')::DATE,
+            (item->>'request_date')::date,
+            (item->>'rdd')::date,
             item->>'pri',
             item->>'swlin',
             item->>'hull_or_shop',
@@ -81,21 +72,23 @@ BEGIN
             item->>'techmanual',
             item->>'dwg_pc',
             item->>'requestor_remarks',
-            (item->>'inquiry_status')::BOOLEAN,
-            user_id,
+            (item->>'inquiry_status')::boolean,
+            (item->>'created_by')::int,
             update_source
-        ) RETURNING order_line_item_id INTO new_order_line_item_id;
-
-        -- Call the log_audit function with explicitly cast parameters
+        );
+        
+        -- Log the action in the audit trail
         PERFORM log_audit(
-            'INSERT', 
-            new_order_line_item_id::INT, 
-            NULL::INT, 
-            user_id::INT, 
-            'Inserted new MRL line item'::TEXT,
-            update_source::TEXT
+            'INSERT',
+            currval(pg_get_serial_sequence('MRL_line_items', 'order_line_item_id')),
+            NULL,
+            (item->>'created_by')::int,
+            update_source
         );
     END LOOP;
 END;
-$$;
+$$
+LANGUAGE 'plpgsql';
 
+ALTER PROCEDURE public.insert_mrl_line_items(jsonb, text)
+  OWNER TO postgres;
