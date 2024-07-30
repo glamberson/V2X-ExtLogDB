@@ -1385,17 +1385,17 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql  
--- version 0.7.11
+-- version 0.6.3
 
 -- log audit
 
-CREATE OR REPLACE FUNCTION log_audit(action TEXT, order_line_item_id INT, fulfillment_item_id INT, changed_by INT, details TEXT, update_source TEXT)
+CREATE OR REPLACE FUNCTION log_audit(action TEXT, order_line_item_id INT, fulfillment_item_id INT, changed_by INT, details TEXT)
 RETURNS VOID AS $$
 BEGIN
     INSERT INTO audit_trail (
         order_line_item_id, fulfillment_item_id, action, changed_by, changed_at, details, update_source, role_id, user_id
     ) VALUES (
-        order_line_item_id, fulfillment_item_id, action, changed_by, CURRENT_TIMESTAMP, details, update_source, current_setting('role.id')::INT, current_setting('user.id')::INT
+        order_line_item_id, fulfillment_item_id, action, changed_by, CURRENT_TIMESTAMP, details, current_setting('update_source'), current_setting('role.id'), current_setting('user.id')
     );
 END;
 $$ LANGUAGE plpgsql;
@@ -1962,11 +1962,6 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO "report_viewer_user";
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql  
--- version 0.7.9.1
-
-
-INSERT INTO availability_events (availability_identifier, availability_name, start_date, end_date, description, created_by)
-VALUES ('41', 'Sadeeq', '2024-01-01', '202-01-02', 'This is a dummy description', 1);
 
 
 
@@ -2205,106 +2200,78 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.7.12
+-- version 0.7.3
 
--- Procedure to insert MRL line items from JSONB data with update_source parameter
+-- insert mrl line items (bulk) PROCEDURE (converted from function)
 
 
-CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
-    batch_data jsonb,
-    update_source TEXT
-)
+CREATE OR REPLACE PROCEDURE insert_mrl_line_items(batch_data JSONB)
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    item jsonb;
-    user_id INT;
-    role_id INT;
+    rec RECORD;
     new_order_line_item_id INT;
 BEGIN
-    -- Get user_id and role_id from the session settings and cast them to INT
-    user_id := current_setting('user.id')::INT;
-    role_id := current_setting('role.id')::INT;
-
-    -- Loop through each item in the JSONB array
-    FOR item IN
-        SELECT * FROM jsonb_array_elements(batch_data)
+    FOR rec IN SELECT * FROM jsonb_to_recordset(batch_data) AS (
+        jcn VARCHAR(50),
+        twcode VARCHAR(50),
+        nomenclature TEXT,
+        cog VARCHAR(10),
+        fsc VARCHAR(10),
+        niin VARCHAR(20),
+        part_no VARCHAR(50),
+        qty INT,
+        ui VARCHAR(10),
+        market_research_up MONEY,
+        market_research_ep MONEY,
+        availability_identifier VARCHAR(50),
+        request_date DATE,
+        rdd DATE,
+        pri VARCHAR(10),
+        swlin VARCHAR(20),
+        hull_or_shop VARCHAR(20),
+        suggested_source TEXT,
+        mfg_cage VARCHAR(20),
+        apl VARCHAR(50),
+        nha_equipment_system TEXT,
+        nha_model TEXT,
+        nha_serial TEXT,
+        techmanual TEXT,
+        dwg_pc TEXT,
+        requestor_remarks TEXT,
+        inquiry_status BOOLEAN,
+        created_by INT,
+        update_source TEXT
+    )
     LOOP
-        -- Insert into MRL_line_items table
         INSERT INTO MRL_line_items (
-            jcn,
-            twcode,
-            nomenclature,
-            cog,
-            fsc,
-            niin,
-            part_no,
-            qty,
-            ui,
-            market_research_up,
-            market_research_ep,
-            availability_identifier,
-            request_date,
-            rdd,
-            pri,
-            swlin,
-            hull_or_shop,
-            suggested_source,
-            mfg_cage,
-            apl,
-            nha_equipment_system,
-            nha_model,
-            nha_serial,
-            techmanual,
-            dwg_pc,
-            requestor_remarks,
-            inquiry_status,
-            created_by,
-            update_source
+            jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui, 
+            market_research_up, market_research_ep, availability_identifier, request_date, rdd, 
+            pri, swlin, hull_or_shop, suggested_source, mfg_cage, apl, nha_equipment_system, 
+            nha_model, nha_serial, techmanual, dwg_pc, requestor_remarks, inquiry_status, 
+            created_by, update_source, created_at
         ) VALUES (
-            item->>'jcn',
-            item->>'twcode',
-            item->>'nomenclature',
-            item->>'cog',
-            item->>'fsc',
-            item->>'niin',
-            item->>'part_no',
-            (item->>'qty')::INT,
-            item->>'ui',
-            (item->>'market_research_up')::NUMERIC,
-            (item->>'market_research_ep')::NUMERIC,
-            item->>'availability_identifier',
-            (item->>'request_date')::DATE,
-            (item->>'rdd')::DATE,
-            item->>'pri',
-            item->>'swlin',
-            item->>'hull_or_shop',
-            item->>'suggested_source',
-            item->>'mfg_cage',
-            item->>'apl',
-            item->>'nha_equipment_system',
-            item->>'nha_model',
-            item->>'nha_serial',
-            item->>'techmanual',
-            item->>'dwg_pc',
-            item->>'requestor_remarks',
-            (item->>'inquiry_status')::BOOLEAN,
-            user_id,
-            update_source
-        ) RETURNING order_line_item_id INTO new_order_line_item_id;
+            rec.jcn, rec.twcode, rec.nomenclature, rec.cog, rec.fsc, rec.niin, rec.part_no, 
+            rec.qty, rec.ui, rec.market_research_up, rec.market_research_ep, rec.availability_identifier, 
+            rec.request_date, rec.rdd, rec.pri, rec.swlin, rec.hull_or_shop, rec.suggested_source, 
+            rec.mfg_cage, rec.apl, rec.nha_equipment_system, rec.nha_model, rec.nha_serial, rec.techmanual, 
+            rec.dwg_pc, rec.requestor_remarks, rec.inquiry_status, rec.created_by, rec.update_source, 
+            CURRENT_TIMESTAMP
+        )
+        RETURNING order_line_item_id INTO new_order_line_item_id;
 
-        -- Call the log_audit function with explicitly cast parameters
-        PERFORM log_audit(
-            'INSERT', 
-            new_order_line_item_id::INT, 
-            NULL::INT, 
-            user_id::INT, 
-            'Inserted new MRL line item'::TEXT,
-            update_source::TEXT
-        );
+        -- Create associated fulfillment record
+        PERFORM create_fulfillment_record(new_order_line_item_id, rec.created_by, rec.update_source);
+
+        -- Log in audit trail
+        PERFORM log_audit('INSERT', new_order_line_item_id, NULL, rec.created_by, 'Initial batch load');
     END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE 'Error inserting MRL line items: %', SQLERRM;
+        RAISE;
 END;
 $$;
-
  
  
