@@ -1,5 +1,5 @@
 
--- version 0.7.13
+-- version 0.7.13.4
 
 -- user login (database session version)
 
@@ -27,8 +27,8 @@ BEGIN
         v_session_id := create_session(v_user_id, v_role_id, p_duration);
 
         -- Set user_id and role_id for the current session
-        PERFORM set_config('myapp.user_id', v_user_id::TEXT, FALSE);
-        PERFORM set_config('myapp.role_id', v_role_id::TEXT, FALSE);
+        PERFORM set_config('myapp.user_id', v_user_id::TEXT, TRUE);
+        PERFORM set_config('myapp.role_id', v_role_id::TEXT, TRUE);
 
         -- Log the login activity
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');

@@ -1,6 +1,6 @@
 
 ' insert mrl line items
-' version 0.7.12
+' version 0.7.14
 Public Sub InsertMRLLineItems()
     Dim conn As ADODB.Connection
     Dim cmd As ADODB.Command
@@ -26,6 +26,5 @@ Public Sub InsertMRLLineItems()
         .Execute
     End With
     
-    conn.Close
 End Sub
 

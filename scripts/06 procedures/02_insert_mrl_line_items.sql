@@ -1,4 +1,4 @@
--- version 0.7.12
+-- version 0.7.12.4
 
 -- Procedure to insert MRL line items from JSONB data with update_source parameter
 
@@ -16,8 +16,8 @@ DECLARE
     new_order_line_item_id INT;
 BEGIN
     -- Get user_id and role_id from the session settings and cast them to INT
-    user_id := current_setting('user.id')::INT;
-    role_id := current_setting('role.id')::INT;
+    user_id := current_setting('myapp.user_id')::INT;
+    role_id := current_setting('myapp.role_id')::INT;
 
     -- Loop through each item in the JSONB array
     FOR item IN

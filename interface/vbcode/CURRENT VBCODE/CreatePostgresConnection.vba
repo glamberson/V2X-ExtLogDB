@@ -1,16 +1,16 @@
 ' CreatePostgresConnection
-' version 0.7.6.1
-Public Function CreatePostgresConnection() As ADODB.Connection
-    Dim conn As ADODB.Connection
-    Set conn = New ADODB.Connection
+' version 0.7.14
 
-    conn.ConnectionString = "Driver={PostgreSQL Unicode};" & _
-                            "Server=localhost;" & _
-                            "Port=5432;" & _
-                            "Database=Beta_003;" & _
-                            "Uid=login;" & _
-                            "Pwd=FOTS-Egypt;"
-    conn.Open
-    
-    Set CreatePostgresConnection = conn
+
+Public Function CreatePostgresConnection() As ADODB.Connection
+    If g_conn Is Nothing Then
+        Set g_conn = New ADODB.Connection
+        g_conn.ConnectionString = g_connString
+        g_conn.Open
+    ElseIf g_conn.State = adStateClosed Then
+        g_conn.Open
+    End If
+    Set CreatePostgresConnection = g_conn
 End Function
+
+
