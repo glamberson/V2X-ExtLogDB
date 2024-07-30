@@ -1,14 +1,16 @@
 ' ValidateUser
-' Version 0.7.14
+' Version 0.7.14.4
 
 ' Function to validate user login and store session token
 Public Function ValidateUser(username As String, password As String) As Boolean
-    Dim conn As ADODB.Connection
     Dim cmd As ADODB.Command
     Dim rs As ADODB.Recordset
     Dim isValid As Boolean
 
-    Set conn = CreatePostgresConnection()
+    ' Initialize the connection if it hasn't been set
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
 
     Set cmd = New ADODB.Command
     cmd.ActiveConnection = g_conn
@@ -24,9 +26,6 @@ Public Function ValidateUser(username As String, password As String) As Boolean
     End If
 
     rs.Close
-    conn.Close
 
     ValidateUser = isValid
 End Function
-
-  

@@ -1,4 +1,4 @@
--- version 0.7.13
+-- version 0.7.14.5
 
 -- log audit
 
@@ -11,34 +11,37 @@ CREATE OR REPLACE FUNCTION log_audit(
 )
 RETURNS VOID AS $$
 DECLARE
-    v_changed_by_username VARCHAR;
+    v_user_id INT;
 BEGIN
-    -- Look up the username associated with the current user_id
-    SELECT username INTO v_changed_by_username
-    FROM users
-    WHERE user_id = current_setting('myapp.user_id')::INT;
+    -- Retrieve the session user_id
+    v_user_id := current_setting('myapp.user_id')::INT;
+
+    -- Check if user_id is correctly set
+    IF v_user_id IS NULL OR v_user_id = 0 THEN
+        RAISE EXCEPTION 'Invalid user_id: %', v_user_id;
+    END IF;
 
     -- Insert into the audit trail
     INSERT INTO audit_trail (
-        order_line_item_id, 
-        fulfillment_item_id, 
-        action, 
-        changed_by, 
-        changed_at, 
-        details, 
-        update_source, 
-        role_id, 
+        order_line_item_id,
+        fulfillment_item_id,
+        action,
+        changed_by,
+        changed_at,
+        details,
+        update_source,
+        role_id,
         user_id
     ) VALUES (
-        order_line_item_id, 
-        fulfillment_item_id, 
-        action, 
-        v_changed_by_username, 
-        CURRENT_TIMESTAMP, 
-        details, 
-        update_source, 
-        current_setting('myapp.role_id')::INT, 
-        current_setting('myapp.user_id')::INT
+        order_line_item_id,
+        fulfillment_item_id,
+        action,
+        v_user_id,
+        CURRENT_TIMESTAMP,
+        details,
+        update_source,
+        current_setting('myapp.role_id')::INT,
+        v_user_id
     );
 END;
 $$ LANGUAGE plpgsql;

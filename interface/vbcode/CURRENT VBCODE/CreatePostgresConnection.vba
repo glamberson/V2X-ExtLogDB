@@ -1,16 +1,8 @@
 ' CreatePostgresConnection
-' version 0.7.14
+' version 0.7.14.4
 
 
 Public Function CreatePostgresConnection() As ADODB.Connection
-    If g_conn Is Nothing Then
-        Set g_conn = New ADODB.Connection
-        g_conn.ConnectionString = g_connString
-        g_conn.Open
-    ElseIf g_conn.State = adStateClosed Then
-        g_conn.Open
-    End If
+    ' Just return the existing connection as it's supposed to be initialized only once
     Set CreatePostgresConnection = g_conn
 End Function
-
-
