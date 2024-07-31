@@ -341,7 +341,7 @@ CREATE TABLE archived_MRL_line_items (
     ui VARCHAR(10),
     market_research_up MONEY,
     market_research_ep MONEY,
-    availability_identifier VARCHAR(50) REFERENCES availability_events(availability_identifier),
+    availability_identifier INT REFERENCES availability_events(availability_identifier),
     request_date DATE,
     rdd DATE,
     pri VARCHAR(10),

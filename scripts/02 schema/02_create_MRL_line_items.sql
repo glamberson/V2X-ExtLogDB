@@ -1,4 +1,4 @@
- -- version 0.6
+ -- version 0.7.14.9
 
 
 -- Create MRL line items table ("updated" fields added)
@@ -18,7 +18,7 @@ CREATE TABLE MRL_line_items (
     ui VARCHAR(10), -- Unit of Issue (Unit of Measure), determines the measuring unit for the material
     market_research_up MONEY, -- Unit price in USD determined by market research (Haystack GOLD or historical info)
     market_research_ep MONEY, -- Total estimated price in USD (unit price  quantity), based on market research
-    availability_identifier VARCHAR(50) REFERENCES availability_events(availability_identifier), -- Internal availability identifier used in CMMS
+    availability_identifier INT REFERENCES availability_events(availability_identifier), -- Internal availability identifier used in CMMS
     request_date DATE, -- Date when the LSC submits the line item for fulfillmentprocurement
     rdd DATE, -- Required Delivery Date, the date by which an item must be received in Egypt
     pri VARCHAR(10), -- Priority level set for the procurement of the item
