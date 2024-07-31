@@ -83,13 +83,13 @@ INSERT INTO statuses (status_name, status_value) VALUES
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\02_availability_events.sql  
--- version 0.7.14.8
+-- version 0.5.1
 
 
 
 CREATE TABLE availability_events (
     availability_event_id SERIAL PRIMARY KEY, -- Unique identifier for the availability event
-    availability_identifier INT UNIQUE NOT NULL, -- Internal availability identifier used in CMMS
+    availability_identifier VARCHAR(50) UNIQUE NOT NULL, -- Internal availability identifier used in CMMS
     availability_name VARCHAR(100) NOT NULL, -- Name of the availability event
     start_date DATE NOT NULL, -- Start date of the availability event
     end_date DATE NOT NULL, -- End date of the availability event
@@ -186,7 +186,7 @@ CREATE TABLE fulfillment_items (
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql  
--- version 0.7.14.5
+-- version 0.7
 
 
 -- Create audit_trail table (added fields)
@@ -197,7 +197,7 @@ CREATE TABLE audit_trail (
     order_line_item_id INT REFERENCES MRL_line_items(order_line_item_id) ON DELETE CASCADE, -- Foreign key to MRL line items table
     fulfillment_item_id INT REFERENCES fulfillment_items(fulfillment_item_id) ON DELETE CASCADE, -- Foreign key to fulfillment items table
     action VARCHAR(100), -- Action performed (e.g., 'Status Updated')
-    changed_by INT REFERENCES users(user_id), -- User ID of the person who performed the action
+    changed_by VARCHAR(100), -- Username of the person who performed the action
     changed_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the action was performed
     details TEXT, -- Details of the action performed
     update_source TEXT, -- Source of the update
@@ -1385,57 +1385,17 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql  
--- version 0.7.14.9 debug
+-- version 0.7.11
 
 -- log audit
 
-CREATE OR REPLACE FUNCTION log_audit(
-    action TEXT,
-    order_line_item_id INT,
-    fulfillment_item_id INT,
-    details TEXT,
-    update_source TEXT
-)
+CREATE OR REPLACE FUNCTION log_audit(action TEXT, order_line_item_id INT, fulfillment_item_id INT, changed_by INT, details TEXT, update_source TEXT)
 RETURNS VOID AS $$
-DECLARE
-    v_user_id INT;
 BEGIN
-   -- Debug logging
-    RAISE NOTICE 'log_audit input: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
-                 action, order_line_item_id, fulfillment_item_id, details, update_source;
-    RAISE NOTICE 'Current settings: user_id=%, role_id=%',
-                 current_setting('myapp.user_id', true), current_setting('myapp.role_id', true);
- 
-
-   -- Retrieve the session user_id
-    v_user_id := current_setting('myapp.user_id')::INT;
-
-    -- Check if user_id is correctly set
-    IF v_user_id IS NULL OR v_user_id = 0 THEN
-        RAISE EXCEPTION 'Invalid user_id: %', v_user_id;
-    END IF;
-
-    -- Insert into the audit trail
     INSERT INTO audit_trail (
-        order_line_item_id,
-        fulfillment_item_id,
-        action,
-        changed_by,
-        changed_at,
-        details,
-        update_source,
-        role_id,
-        user_id
+        order_line_item_id, fulfillment_item_id, action, changed_by, changed_at, details, update_source, role_id, user_id
     ) VALUES (
-        order_line_item_id,
-        fulfillment_item_id,
-        action,
-        v_user_id,
-        CURRENT_TIMESTAMP,
-        details,
-        update_source,
-        current_setting('myapp.role_id')::INT,
-        v_user_id
+        order_line_item_id, fulfillment_item_id, action, changed_by, CURRENT_TIMESTAMP, details, update_source, current_setting('role.id')::INT, current_setting('user.id')::INT
     );
 END;
 $$ LANGUAGE plpgsql;
@@ -1728,7 +1688,7 @@ $$ LANGUAGE plpgsql;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql  
 
--- version 0.7.13.4
+-- version 0.7.6
 
 -- user login (database session version)
 
@@ -1755,11 +1715,8 @@ BEGIN
         -- Create a session
         v_session_id := create_session(v_user_id, v_role_id, p_duration);
 
-        -- Set user_id and role_id for the current session
-        PERFORM set_config('myapp.user_id', v_user_id::TEXT, TRUE);
-        PERFORM set_config('myapp.role_id', v_role_id::TEXT, TRUE);
-
         -- Log the login activity
+        -- We're passing NULL for logout_time since the user is just logging in
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
 
         RETURN v_session_id;
@@ -1776,10 +1733,7 @@ EXCEPTION
 
         RETURN NULL;
 END;
-$$ LANGUAGE plpgsql;
-
-
- 
+$$ LANGUAGE plpgsql; 
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_logout.sql  
 
@@ -2251,7 +2205,7 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.7.14.9 debug
+-- version 0.7.12
 
 -- Procedure to insert MRL line items from JSONB data with update_source parameter
 
@@ -2268,15 +2222,9 @@ DECLARE
     role_id INT;
     new_order_line_item_id INT;
 BEGIN
-    -- Debug logging
-    RAISE NOTICE 'insert_mrl_line_items input: batch_data=%, update_source=%', batch_data, update_source;
-    RAISE NOTICE 'Current settings: user_id=%, role_id=%',
-                 current_setting('myapp.user_id', true), current_setting('myapp.role_id', true);
- 
-
-   -- Get user_id and role_id from the session settings and cast them to INT
-    user_id := current_setting('myapp.user_id')::INT;
-    role_id := current_setting('myapp.role_id')::INT;
+    -- Get user_id and role_id from the session settings and cast them to INT
+    user_id := current_setting('user.id')::INT;
+    role_id := current_setting('role.id')::INT;
 
     -- Loop through each item in the JSONB array
     FOR item IN
@@ -2325,7 +2273,7 @@ BEGIN
             item->>'ui',
             (item->>'market_research_up')::NUMERIC,
             (item->>'market_research_ep')::NUMERIC,
-            item->>'availability_identifier'::INT,
+            item->>'availability_identifier',
             (item->>'request_date')::DATE,
             (item->>'rdd')::DATE,
             item->>'pri',
@@ -2350,7 +2298,8 @@ BEGIN
             'INSERT', 
             new_order_line_item_id::INT, 
             NULL::INT, 
-            'Bulk Insert MRL Line Item Process',
+            user_id::INT, 
+            'Inserted new MRL line item'::TEXT,
             update_source::TEXT
         );
     END LOOP;
