@@ -1,17 +1,21 @@
 
--- version 0.7.5
+-- version 0.7.14.15
 
 -- user login wrapper (use this to log in while maintaining minimal "login" permissions)
 
 CREATE OR REPLACE FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, p_duration INTERVAL)
-RETURNS UUID
+RETURNS TABLE (session_id UUID, user_id INT, role_id INT)
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
-    v_result UUID;
+    v_session_id UUID;
+    v_user_id INT;
+    v_role_id INT;
 BEGIN
-    v_result := user_login(p_username, p_password, p_duration);
-    RETURN v_result;
+    SELECT * INTO v_session_id, v_user_id, v_role_id 
+    FROM user_login(p_username, p_password, p_duration);
+    
+    RETURN QUERY SELECT v_session_id, v_user_id, v_role_id;
 END;
 $$;

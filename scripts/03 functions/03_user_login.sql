@@ -1,7 +1,7 @@
 
--- version 0.7.13.4
+-- version 0.7.14.15 
 
--- user login (database session version)
+-- user login
 
 
 CREATE OR REPLACE FUNCTION user_login(
@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION user_login(
     p_password VARCHAR,
     p_duration INTERVAL
 )
-RETURNS UUID AS $$
+RETURNS TABLE (session_id UUID, user_id INT, role_id INT) AS $$
 DECLARE
     v_user_id INT;
     v_role_id INT;
@@ -26,27 +26,21 @@ BEGIN
         -- Create a session
         v_session_id := create_session(v_user_id, v_role_id, p_duration);
 
-        -- Set user_id and role_id for the current session
-        PERFORM set_config('myapp.user_id', v_user_id::TEXT, TRUE);
-        PERFORM set_config('myapp.role_id', v_role_id::TEXT, TRUE);
-
         -- Log the login activity
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
 
-        RETURN v_session_id;
+        RETURN QUERY SELECT v_session_id, v_user_id, v_role_id;
     ELSE
         -- Log the failed login attempt
         PERFORM log_failed_login_attempt(p_username, 'Incorrect password');
 
-        RETURN NULL;
+        RETURN QUERY SELECT NULL::UUID, NULL::INT, NULL::INT;
     END IF;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
         -- Log the failed login attempt
         PERFORM log_failed_login_attempt(p_username, 'User not found');
 
-        RETURN NULL;
+        RETURN QUERY SELECT NULL::UUID, NULL::INT, NULL::INT;
 END;
 $$ LANGUAGE plpgsql;
-
-
