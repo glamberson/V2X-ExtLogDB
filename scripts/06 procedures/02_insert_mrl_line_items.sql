@@ -1,4 +1,4 @@
--- version 0.7.12.4
+-- version 0.7.14.6
 
 -- Procedure to insert MRL line items from JSONB data with update_source parameter
 
@@ -91,8 +91,7 @@ BEGIN
             'INSERT', 
             new_order_line_item_id::INT, 
             NULL::INT, 
-            user_id::INT, 
-            'Inserted new MRL line item'::TEXT,
+            'Bulk Insert MRL Line Item Process',
             update_source::TEXT
         );
     END LOOP;
