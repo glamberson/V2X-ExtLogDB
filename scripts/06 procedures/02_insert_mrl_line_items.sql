@@ -1,4 +1,4 @@
--- version 0.7.14.6
+-- version 0.7.14.7
 
 -- Procedure to insert MRL line items from JSONB data with update_source parameter
 
@@ -66,7 +66,7 @@ BEGIN
             item->>'ui',
             (item->>'market_research_up')::NUMERIC,
             (item->>'market_research_ep')::NUMERIC,
-            item->>'availability_identifier',
+            item->>'availability_identifier'::INT,
             (item->>'request_date')::DATE,
             (item->>'rdd')::DATE,
             item->>'pri',
