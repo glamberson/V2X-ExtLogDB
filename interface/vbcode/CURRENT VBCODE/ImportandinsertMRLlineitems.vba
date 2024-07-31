@@ -1,5 +1,5 @@
 ' import and insert mrl line items
-' 0.7.12
+' version 0.7.12
 Sub ImportAndInsertMRLLineItems()
     If Not ValidateExcelData() Then
         MsgBox "Data validation failed. Please correct the errors and try again."
