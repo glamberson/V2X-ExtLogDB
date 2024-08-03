@@ -1,6 +1,6 @@
 ' global variables
-' version 0.7.14.17
-
+' version 0.7.14.21
+Option Compare Database
 Option Explicit
 
 ' Declare a global variable to store the session token

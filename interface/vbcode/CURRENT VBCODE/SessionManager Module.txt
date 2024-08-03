@@ -1,0 +1,90 @@
+' Function to check session and permissions
+Public Function CheckSessionAndPermission(requiredRoleId As Long) As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = "SELECT * FROM validate_session_and_permission(?, ?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_required_role_id", adInteger, adParamInput, , requiredRoleId)
+    End With
+    
+    Set rs = cmd.Execute
+    
+    If Not rs.EOF Then
+        isValid = rs.Fields("is_valid").Value
+        If isValid Then
+            g_userId = rs.Fields("user_id").Value
+            g_roleId = rs.Fields("role_id").Value
+        End If
+    Else
+        isValid = False
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+    
+    CheckSessionAndPermission = isValid
+End Function
+
+' Function to execute a protected PostgreSQL function
+Public Function ExecuteProtectedFunction(functionName As String, requiredRoleId As Long, ParamArray args()) As Variant
+    If Not CheckSessionAndPermission(requiredRoleId) Then
+        MsgBox "You don't have permission to perform this action.", vbExclamation
+        Exit Function
+    End If
+    
+    ' If we get here, the session is valid and the user has permission
+    ' Now we can execute the actual function
+    
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim i As Long
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = "SELECT * FROM " & functionName & "(?)"
+        
+        ' Add session_id parameter
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        
+        ' Add other parameters
+        For i = LBound(args) To UBound(args)
+            .CommandText = Left(.CommandText, Len(.CommandText) - 1) & ", ?)"
+            .Parameters.Append .CreateParameter("@p" & i, adVariant, adParamInput, , args(i))
+        Next i
+    End With
+    
+    Set rs = cmd.Execute
+    
+    ' Return the result
+    If Not rs.EOF Then
+        ExecuteProtectedFunction = rs.Fields(0).Value
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+End Function
+
+#########
+example
+
+' Example of calling a protected function
+Public Sub CallExampleFunction()
+    Dim result As Variant
+    
+    ' Assuming role_id 1 is required for this function
+    result = ExecuteProtectedFunction("some_protected_function", 1, "param1", 42, #1/1/2023#)
+    
+    If Not IsNull(result) Then
+        Debug.Print "Function result: " & result
+    Else
+        Debug.Print "Function call failed"
+    End If
+End Sub
