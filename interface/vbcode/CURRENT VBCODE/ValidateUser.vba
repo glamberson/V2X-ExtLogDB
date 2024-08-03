@@ -1,5 +1,5 @@
 ' ValidateUser
-' Version 0.7.14.17
+' Version 0.7.14.20
 
 Public Function ValidateUser(username As String, password As String) As Boolean
     Dim cmd As ADODB.Command
@@ -20,9 +20,11 @@ Public Function ValidateUser(username As String, password As String) As Boolean
     Set rs = cmd.Execute
     If Not rs.EOF Then
         g_sessionToken = rs.Fields("session_id").Value
-        g_userId = rs.Fields("user_id").Value
-        g_roleId = rs.Fields("role_id").Value
+        g_userId = rs.Fields("login_user_id").Value
+        g_roleId = rs.Fields("login_role_id").Value
         isValid = Not IsNull(g_sessionToken)
+        
+        If isValid Then SetSessionVariables
     End If
 
     rs.Close
