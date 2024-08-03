@@ -1,15 +1,13 @@
 
--- version 0.7.14.15 
-
+-- version 0.7.14.20
 -- user login
-
 
 CREATE OR REPLACE FUNCTION user_login(
     p_username VARCHAR,
     p_password VARCHAR,
     p_duration INTERVAL
 )
-RETURNS TABLE (session_id UUID, user_id INT, role_id INT) AS $$
+RETURNS TABLE (session_id UUID, login_user_id INT, login_role_id INT) AS $$
 DECLARE
     v_user_id INT;
     v_role_id INT;
@@ -25,6 +23,9 @@ BEGIN
     IF FOUND AND crypt(p_password, v_password_hash) = v_password_hash THEN
         -- Create a session
         v_session_id := create_session(v_user_id, v_role_id, p_duration);
+
+        -- Set session variables
+        PERFORM set_session_variables(v_session_id, v_user_id, v_role_id);
 
         -- Log the login activity
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
@@ -44,3 +45,4 @@ EXCEPTION
         RETURN QUERY SELECT NULL::UUID, NULL::INT, NULL::INT;
 END;
 $$ LANGUAGE plpgsql;
+
