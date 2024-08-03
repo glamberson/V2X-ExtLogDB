@@ -1,0 +1,38 @@
+' version 0.7.14.21
+' Function to validate session and check permissions
+
+Public Function ValidateSessionAndPermission(requiredRoleId As Long) As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+    
+    ' Create a new command object
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = "SELECT * FROM validate_session_and_permission(?, ?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_required_role_id", adInteger, adParamInput, , requiredRoleId)
+    End With
+    
+    ' Execute the command
+    Set rs = cmd.Execute
+    
+    ' Check the result
+    If Not rs.EOF Then
+        isValid = rs.Fields("is_valid").Value
+        If Not isValid Then
+            Debug.Print "Invalid session or insufficient permissions"
+        End If
+    Else
+        isValid = False
+    End If
+    
+    ' Clean up
+    rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+    
+    ValidateSessionAndPermission = isValid
+End Function
+
