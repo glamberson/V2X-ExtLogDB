@@ -1,4 +1,4 @@
--- version 0.7.14.19 4x changed session and userid roleid configuration and syntax fixed
+-- version 0.7.14.27 4x changed session and userid roleid configuration and syntax fixed
 
 -- Procedure to insert MRL line items from JSONB data with update_source parameter
 
@@ -10,8 +10,8 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     item jsonb;
-    user_id INT;
-    role_id INT;
+    current_user_id INT;
+    current_role_id INT;
     new_order_line_item_id INT;
     v_jcn TEXT;
     v_twcode TEXT;
@@ -21,8 +21,7 @@ DECLARE
     v_request_date DATE;
     v_rdd DATE;
     v_inquiry_status BOOLEAN;
-    v_user_id INT;
-    v_role_id INT;
+    
 BEGIN
     RAISE LOG 'insert_mrl_line_items started';
     RAISE LOG 'Batch data: %', batch_data;
@@ -32,8 +31,8 @@ BEGIN
     RAISE LOG 'Attempting to retrieve session variables';
     
     -- Get session variables
-    v_user_id := current_setting('myapp.user_id', true)::INT;
-    v_role_id := current_setting('myapp.role_id', true)::INT;
+    current_user_id := current_setting('myapp.user_id', true)::INT;
+    current_role_id := current_setting('myapp.role_id', true)::INT;
 
     -- Validate batch_data
     IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
@@ -77,7 +76,7 @@ BEGIN
                 item->>'suggested_source', item->>'mfg_cage', item->>'apl',
                 item->>'nha_equipment_system', item->>'nha_model', item->>'nha_serial',
                 item->>'techmanual', item->>'dwg_pc', item->>'requestor_remarks',
-                v_inquiry_status, v_user_id, update_source
+                v_inquiry_status, current_user_id, update_source
             ) RETURNING order_line_item_id INTO new_order_line_item_id;
 
             RAISE LOG 'Inserted new MRL line item with ID: %', new_order_line_item_id;

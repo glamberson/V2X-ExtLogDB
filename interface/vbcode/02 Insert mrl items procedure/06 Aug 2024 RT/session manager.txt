@@ -1,0 +1,119 @@
+Option Compare Database
+
+'   version 0.7.14.22
+' Function to check session and permission
+
+Public Function CheckSessionAndPermission(requiredRoleId As Long) As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = "SELECT * FROM validate_session_and_permission(?, ?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_required_role_id", adInteger, adParamInput, , requiredRoleId)
+    End With
+    
+    Set rs = cmd.Execute
+    
+    If Not rs.EOF Then
+        isValid = rs.Fields("is_valid").Value
+        If isValid Then
+            g_userId = rs.Fields("user_id").Value
+            g_roleId = rs.Fields("role_id").Value
+        End If
+    Else
+        isValid = False
+    
+    rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+    
+    CheckSessionAndPermission = isValid
+End Function
+
+' execute protected (postgres) function
+' debug
+Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
+    On Error GoTo ErrorHandler
+    
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    
+    Debug.Print "Executing protected function: " & functionName
+    Debug.Print "Session Token: " & g_sessionToken
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = "SELECT * FROM validate_session_and_permission(?, ?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
+    End With
+    
+    Debug.Print "Executing validate_session_and_permission"
+    Set rs = cmd.Execute
+    
+    Dim isValid As Boolean
+    If Not rs.EOF Then
+        isValid = rs.Fields("is_valid").Value
+        Debug.Print "Session validation result: " & isValid
+    Else
+        isValid = False
+        Debug.Print "Session validation failed: No results returned"
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    
+    If Not isValid Then
+        MsgBox "You don't have permission to perform this action.", vbExclamation
+        Exit Function
+    End If
+    
+    ' If we get here, the session is valid and the user has permission
+    ' Now we can execute the actual function
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = "SELECT * FROM " & functionName & "(?)"
+        
+        ' Add session_id parameter
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        
+        ' Add other parameters
+        Dim i As Long
+        For i = LBound(args) To UBound(args)
+            .CommandText = Left(.CommandText, Len(.CommandText) - 1) & ", ?)"
+            .Parameters.Append .CreateParameter("@p" & i, adVariant, adParamInput, , args(i))
+        Next i
+    End With
+    
+    Debug.Print "Executing function: " & functionName
+    Set rs = cmd.Execute
+    
+    ' Return the result
+    If Not rs.EOF Then
+        ExecuteProtectedFunction = rs.Fields(0).Value
+        Debug.Print "Function executed successfully"
+    Else
+        Debug.Print "Function returned no results"
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+    Exit Function
+
+ErrorHandler:
+    Debug.Print "Error in ExecuteProtectedFunction: " & Err.Description
+    Debug.Print "Error Number: " & Err.Number
+    If Err.Number = 42883 Then  ' Function does not exist
+        MsgBox "Function '" & functionName & "' does not exist.", vbExclamation
+    Else
+        MsgBox "An error occurred: " & Err.Description, vbExclamation
+    End If
+End Function
