@@ -1,4 +1,4 @@
-' Function to check session and permissions
+' Function to check session and permission
 Public Function CheckSessionAndPermission(requiredRoleId As Long) As Boolean
     Dim cmd As ADODB.Command
     Dim rs As ADODB.Recordset

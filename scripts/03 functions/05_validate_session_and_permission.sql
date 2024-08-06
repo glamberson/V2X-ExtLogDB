@@ -1,8 +1,10 @@
--- version 0.7.14.21
+
+-- validate session and permission (version checking new function permissions table)
+-- version 0.7.14.23
 
 CREATE OR REPLACE FUNCTION validate_session_and_permission(
     p_session_id UUID,
-    p_required_role_id INT
+    p_function_name TEXT
 ) RETURNS TABLE (
     is_valid BOOLEAN,
     user_id INT,
@@ -10,17 +12,27 @@ CREATE OR REPLACE FUNCTION validate_session_and_permission(
 ) AS $$
 BEGIN
     RETURN QUERY
+    WITH function_perm AS (
+        SELECT min_role_id
+        FROM function_permissions
+        WHERE function_name = p_function_name
+        UNION ALL
+        SELECT 9  -- Default to role 9 if function not found in table
+        LIMIT 1
+    )
     SELECT 
         CASE WHEN us.user_id IS NOT NULL AND 
-                  (r.role_id = p_required_role_id OR p_required_role_id = 0)
+                  us.role_id <= fp.min_role_id
              THEN TRUE 
              ELSE FALSE 
         END as is_valid,
         us.user_id,
         us.role_id
     FROM validate_session(p_session_id) us
-    LEFT JOIN roles r ON us.role_id = r.role_id;
+    CROSS JOIN function_perm fp;  -- This now correctly refers to the CTE named 'function_perm'
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 
