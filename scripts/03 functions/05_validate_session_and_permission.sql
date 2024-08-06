@@ -1,14 +1,15 @@
 
 -- validate session and permission (version checking new function permissions table)
--- version 0.7.14.23
+-- version 0.7.14.28
+
 
 CREATE OR REPLACE FUNCTION validate_session_and_permission(
     p_session_id UUID,
     p_function_name TEXT
 ) RETURNS TABLE (
     is_valid BOOLEAN,
-    user_id INT,
-    role_id INT
+    session_user_id INT,
+    session_role_id INT
 ) AS $$
 BEGIN
     RETURN QUERY
@@ -21,18 +22,16 @@ BEGIN
         LIMIT 1
     )
     SELECT 
-        CASE WHEN us.user_id IS NOT NULL AND 
-                  us.role_id <= fp.min_role_id
+        CASE WHEN vs.user_id IS NOT NULL AND 
+                  vs.role_id <= fp.min_role_id
              THEN TRUE 
              ELSE FALSE 
         END as is_valid,
-        us.user_id,
-        us.role_id
-    FROM validate_session(p_session_id) us
-    CROSS JOIN function_perm fp;  -- This now correctly refers to the CTE named 'function_perm'
+        vs.user_id as session_user_id,
+        vs.role_id as session_role_id
+    FROM validate_session(p_session_id) vs
+    CROSS JOIN function_perm fp;
 END;
-$$ LANGUAGE plpgsql;
-
-
-
+$$ LANGUAGE plpgsql
+SECURITY DEFINER;
 

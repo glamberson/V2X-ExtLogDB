@@ -1,4 +1,4 @@
--- version 0.7.14.10 enhanced debug
+-- version 0.7.14.27 removing ambiguity in user_id
 
 -- log audit
 
@@ -11,8 +11,8 @@ CREATE OR REPLACE FUNCTION log_audit(
 )
 RETURNS VOID AS $$
 DECLARE
-    v_user_id INT;
-    v_role_id INT;
+    current_user_id INT;
+    current_role_id INT;
 BEGIN
     -- Detailed input logging
     RAISE NOTICE 'log_audit input: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
@@ -20,12 +20,12 @@ BEGIN
 
     -- Retrieve and log session variables
     BEGIN
-        v_user_id := current_setting('myapp.user_id')::INT;
-        v_role_id := current_setting('myapp.role_id')::INT;
+        current_user_id := current_setting('myapp.user_id')::INT;
+        current_role_id := current_setting('myapp.role_id')::INT;
     EXCEPTION WHEN OTHERS THEN
         RAISE NOTICE 'Error retrieving session variables: %', SQLERRM;
-        v_user_id := NULL;
-        v_role_id := NULL;
+        current_user_id := NULL;
+        current_role_id := NULL;
     END;
 
     RAISE NOTICE 'Session variables: user_id=%, role_id=%', v_user_id, v_role_id;
@@ -51,12 +51,12 @@ BEGIN
             order_line_item_id,
             fulfillment_item_id,
             action,
-            v_user_id,
+            current_user_id,
             CURRENT_TIMESTAMP,
             details,
             update_source,
-            v_role_id,
-            v_user_id
+            current_role_id,
+            current_user_id
         );
     EXCEPTION WHEN OTHERS THEN
         RAISE NOTICE 'Error inserting into audit_trail: %, SQLSTATE: %', SQLERRM, SQLSTATE;

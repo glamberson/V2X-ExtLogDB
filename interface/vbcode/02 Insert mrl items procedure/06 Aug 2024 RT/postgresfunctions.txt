@@ -1,0 +1,106 @@
+' global variables
+' version 0.7.14.21
+Option Compare Database
+Option Explicit
+
+' Declare a global variable to store the session token
+Public g_sessionToken As String
+Public g_conn As ADODB.Connection
+Public g_connString As String
+Public g_userId As Long
+Public g_roleId As Long
+
+' Initialize Postgres Connection
+' version 0.7.14.4
+
+Public Sub InitializePostgresConnection()
+    If g_conn Is Nothing Then
+        g_connString = "Driver={PostgreSQL Unicode};" & _
+                       "Server=localhost;" & _
+                       "Port=5432;" & _
+                       "Database=Beta_003;" & _
+                       "Uid=login;" & _
+                       "Pwd=FOTS-Egypt;"
+        Set g_conn = New ADODB.Connection
+        g_conn.ConnectionString = g_connString
+        g_conn.Open
+    End If
+End Sub
+
+
+' CreatePostgresConnection
+' version 0.7.14.4
+
+
+Public Function CreatePostgresConnection() As ADODB.Connection
+    ' Just return the existing connection as it's supposed to be initialized only once
+    Set CreatePostgresConnection = g_conn
+End Function
+
+' ValidateUser
+' Version 0.7.14.21
+
+Public Function ValidateUser(username As String, password As String) As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
+
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = g_conn
+    cmd.CommandText = "SELECT * FROM login_wrapper(?, ?, ?)"
+    cmd.Parameters.Append cmd.CreateParameter("@p_username", adVarChar, adParamInput, 255, username)
+    cmd.Parameters.Append cmd.CreateParameter("@p_password", adVarChar, adParamInput, 255, password)
+    cmd.Parameters.Append cmd.CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
+
+    Set rs = cmd.Execute
+    If Not rs.EOF Then
+        g_sessionToken = rs.Fields("session_id").Value
+        g_userId = rs.Fields("login_user_id").Value
+        g_roleId = rs.Fields("login_role_id").Value
+        isValid = Not IsNull(g_sessionToken)
+        
+    End If
+
+    rs.Close
+
+    ValidateUser = isValid
+End Function
+
+Public Sub TestSessionVariables()
+    Debug.Print "Session Token: " & g_sessionToken
+    Debug.Print "User ID: " & g_userId
+    Debug.Print "Role ID: " & g_roleId
+End Sub
+
+Public Function TestSessionVerification() As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+    
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = g_conn
+    cmd.CommandText = "SELECT * FROM verify_session(?)"
+    cmd.Parameters.Append cmd.CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+    
+    Set rs = cmd.Execute
+    
+    If Not rs.EOF Then
+        isValid = rs.Fields("is_valid").Value
+        Debug.Print "Session Valid: " & isValid
+        Debug.Print "User ID: " & rs.Fields("user_id").Value
+        Debug.Print "Role ID: " & rs.Fields("role_id").Value
+    Else
+        Debug.Print "Session not found"
+        isValid = False
+    End If
+    
+    rs.Close
+    TestSessionVerification = isValid
+End Function
+
+
+
