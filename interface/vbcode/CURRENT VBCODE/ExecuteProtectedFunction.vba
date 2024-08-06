@@ -1,49 +1,38 @@
-' Function to check session and permission
-Public Function CheckSessionAndPermission(requiredRoleId As Long) As Boolean
+' execute protected (postgres) function
+' version 0.7.14.23
+
+' Function to execute a protected PostgreSQL function
+Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmd As ADODB.Command
     Dim rs As ADODB.Recordset
-    Dim isValid As Boolean
     
     Set cmd = New ADODB.Command
     With cmd
         .ActiveConnection = g_conn
-        .CommandText = "SELECT * FROM validate_session_and_permission(?, ?)"
+        .CommandText = "SELECT validate_session_and_permission(?, ?)"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
-        .Parameters.Append .CreateParameter("@p_required_role_id", adInteger, adParamInput, , requiredRoleId)
+        .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
     End With
     
     Set rs = cmd.Execute
     
+    Dim isValid As Boolean
     If Not rs.EOF Then
         isValid = rs.Fields("is_valid").Value
-        If isValid Then
-            g_userId = rs.Fields("user_id").Value
-            g_roleId = rs.Fields("role_id").Value
-        End If
     Else
         isValid = False
     End If
     
     rs.Close
     Set rs = Nothing
-    Set cmd = Nothing
     
-    CheckSessionAndPermission = isValid
-End Function
-
-' Function to execute a protected PostgreSQL function
-Public Function ExecuteProtectedFunction(functionName As String, requiredRoleId As Long, ParamArray args()) As Variant
-    If Not CheckSessionAndPermission(requiredRoleId) Then
+    If Not isValid Then
         MsgBox "You don't have permission to perform this action.", vbExclamation
         Exit Function
     End If
     
     ' If we get here, the session is valid and the user has permission
     ' Now we can execute the actual function
-    
-    Dim cmd As ADODB.Command
-    Dim rs As ADODB.Recordset
-    Dim i As Long
     
     Set cmd = New ADODB.Command
     With cmd
@@ -54,11 +43,14 @@ Public Function ExecuteProtectedFunction(functionName As String, requiredRoleId 
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
         
         ' Add other parameters
+        Dim i As Long
         For i = LBound(args) To UBound(args)
             .CommandText = Left(.CommandText, Len(.CommandText) - 1) & ", ?)"
             .Parameters.Append .CreateParameter("@p" & i, adVariant, adParamInput, , args(i))
         Next i
     End With
+    
+    On Error GoTo ErrorHandler
     
     Set rs = cmd.Execute
     
@@ -70,21 +62,12 @@ Public Function ExecuteProtectedFunction(functionName As String, requiredRoleId 
     rs.Close
     Set rs = Nothing
     Set cmd = Nothing
-End Function
+    Exit Function
 
-#########
-example
-
-' Example of calling a protected function
-Public Sub CallExampleFunction()
-    Dim result As Variant
-    
-    ' Assuming role_id 1 is required for this function
-    result = ExecuteProtectedFunction("some_protected_function", 1, "param1", 42, #1/1/2023#)
-    
-    If Not IsNull(result) Then
-        Debug.Print "Function result: " & result
+ErrorHandler:
+    If Err.Number = 42883 Then  ' Function does not exist
+        MsgBox "Function '" & functionName & "' does not exist.", vbExclamation
     Else
-        Debug.Print "Function call failed"
+        MsgBox "An error occurred: " & Err.Description, vbExclamation
     End If
-End Sub
+End Function

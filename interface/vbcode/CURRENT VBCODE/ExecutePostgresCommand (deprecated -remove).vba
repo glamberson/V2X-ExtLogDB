@@ -1,5 +1,5 @@
 ' execute postgres command
-' version 0.7.6
+' version 0.7.14.22
 
 Public Sub ExecutePostgresCommand(cmdText As String, ParamArray params() As Variant)
     On Error GoTo ErrorHandler
@@ -18,7 +18,6 @@ Public Sub ExecutePostgresCommand(cmdText As String, ParamArray params() As Vari
     Next i
 
     cmd.Execute
-    conn.Close
     Exit Sub
 
 ErrorHandler:

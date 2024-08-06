@@ -1,10 +1,10 @@
 ' btnLogin
-' Version 0.7.6.4
+' Version 0.7.14.22
 Private Sub btnLogin_Click()
     Dim username As String
     Dim password As String
     
-    username = Nz(Me.txtUsername.Value, "")
+    username = Nz(Me.txtusername.Value, "")
     password = Nz(Me.txtPassword.Value, "")
     
     If Trim(username) = "" Or Trim(password) = "" Then
@@ -17,5 +17,8 @@ Private Sub btnLogin_Click()
         ' Here you would typically open your main form or navigate to the main part of your application
     Else
         MsgBox "Login failed. Please check your username and password."
+        
+           ExecutePostgresCommand "INSERT INTO audit_trail (action, changed_by, details, changed_at) " & _
+                               "VALUES ('failed_login', '" & username & "', 'Failed login.', NOW())"
     End If
 End Sub
