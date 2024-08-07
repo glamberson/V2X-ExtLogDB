@@ -34,35 +34,36 @@ Public Function CheckSessionAndPermission(requiredRoleId As Long) As Boolean
     CheckSessionAndPermission = isValid
 End Function
 
-' execute protected (postgres) function
-' debug
+
+' execute protected (postgres) function or procedure
+' version 0.7.14.31
+
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
-    On Error GoTo ErrorHandler
-    
     Dim cmd As ADODB.Command
     Dim rs As ADODB.Recordset
-    
-    Debug.Print "Executing protected function: " & functionName
-    Debug.Print "Session Token: " & g_sessionToken
     
     Set cmd = New ADODB.Command
     With cmd
         .ActiveConnection = g_conn
-        .CommandText = "SELECT * FROM validate_session_and_permission(?, ?)"
+        .CommandText = "SELECT (validate_session_and_permission(?, ?)).*"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
         .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
     End With
     
-    Debug.Print "Executing validate_session_and_permission"
     Set rs = cmd.Execute
     
     Dim isValid As Boolean
     If Not rs.EOF Then
+        ' Debug information
+        Debug.Print "Number of fields: " & rs.Fields.Count
+        Dim i As Integer
+        For i = 0 To rs.Fields.Count - 1
+            Debug.Print "Field " & i & ": " & rs.Fields(i).Name & " = " & rs.Fields(i).Value
+        Next i
+        
         isValid = rs.Fields("is_valid").Value
-        Debug.Print "Session validation result: " & isValid
     Else
         isValid = False
-        Debug.Print "Session validation failed: No results returned"
     End If
     
     rs.Close
@@ -74,46 +75,43 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     End If
     
     ' If we get here, the session is valid and the user has permission
-    ' Now we can execute the actual function
+    ' Now we can execute the actual function or procedure
     
     Set cmd = New ADODB.Command
     With cmd
         .ActiveConnection = g_conn
-        .CommandText = "SELECT * FROM " & functionName & "(?)"
+        .CommandType = adCmdText
+        .CommandText = "CALL " & functionName & "("
         
-        ' Add session_id parameter
-        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        ' Add parameters
+        Dim j As Long
+        For j = LBound(args) To UBound(args)
+            If j > LBound(args) Then .CommandText = .CommandText & ", "
+            .CommandText = .CommandText & "?"
+            .Parameters.Append .CreateParameter("param" & (j + 1), adVarChar, adParamInput, 8000, args(j))
+        Next j
         
-        ' Add other parameters
-        Dim i As Long
-        For i = LBound(args) To UBound(args)
-            .CommandText = Left(.CommandText, Len(.CommandText) - 1) & ", ?)"
-            .Parameters.Append .CreateParameter("@p" & i, adVariant, adParamInput, , args(i))
-        Next i
+        .CommandText = .CommandText & ")"
     End With
     
-    Debug.Print "Executing function: " & functionName
-    Set rs = cmd.Execute
+    On Error GoTo ErrorHandler
     
-    ' Return the result
-    If Not rs.EOF Then
-        ExecuteProtectedFunction = rs.Fields(0).Value
-        Debug.Print "Function executed successfully"
-    Else
-        Debug.Print "Function returned no results"
-    End If
+    cmd.Execute
     
-    rs.Close
-    Set rs = Nothing
+    ExecuteProtectedFunction = True ' Indicate success
+    
     Set cmd = Nothing
     Exit Function
 
 ErrorHandler:
     Debug.Print "Error in ExecuteProtectedFunction: " & Err.Description
     Debug.Print "Error Number: " & Err.Number
+    Debug.Print "Command Text: " & cmd.CommandText
+    ExecuteProtectedFunction = False ' Indicate failure
     If Err.Number = 42883 Then  ' Function does not exist
-        MsgBox "Function '" & functionName & "' does not exist.", vbExclamation
+        MsgBox "Function or procedure '" & functionName & "' does not exist.", vbExclamation
     Else
         MsgBox "An error occurred: " & Err.Description, vbExclamation
     End If
 End Function
+

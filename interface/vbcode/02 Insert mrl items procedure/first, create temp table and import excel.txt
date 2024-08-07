@@ -1,6 +1,0 @@
-Sub ImportExcelToAccess()
-    Dim filePath As String
-    filePath = "C:\path\to\your\excel_file.xlsx"
-    
-    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", filePath, True
-End Sub
