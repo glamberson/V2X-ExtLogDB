@@ -1,7 +1,7 @@
--- version 0.7.14.27 4x changed session and userid roleid configuration and syntax fixed
 
--- Procedure to insert MRL line items from JSONB data with update_source parameter
 
+-- version 0.7.14.39
+-- Added more detailed logging for log audit
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
     batch_data jsonb,
     update_source TEXT
@@ -21,11 +21,12 @@ DECLARE
     v_request_date DATE;
     v_rdd DATE;
     v_inquiry_status BOOLEAN;
+    v_availability_identifier INT;
     
 BEGIN
     RAISE LOG 'insert_mrl_line_items started';
-    RAISE LOG 'Batch data: %', batch_data;
-    RAISE LOG 'Update source: %', update_source;
+    RAISE LOG 'Current database user: %', current_user;
+    RAISE LOG 'Current role: %', current_role;
 
     -- Retrieve and log session variables
     RAISE LOG 'Attempting to retrieve session variables';
@@ -33,6 +34,15 @@ BEGIN
     -- Get session variables
     current_user_id := current_setting('myapp.user_id', true)::INT;
     current_role_id := current_setting('myapp.role_id', true)::INT;
+
+    -- Log current user and role information
+    RAISE LOG 'Current user ID from session: %, Current role ID from session: %', current_user_id, current_role_id;
+    
+    -- Additional check for role
+    RAISE LOG 'Is current user a member of kppo_admin_user role: %', (SELECT TRUE FROM pg_roles WHERE rolname = 'kppo_admin_user' AND pg_has_role(current_user, oid, 'member'));
+
+    RAISE LOG 'Batch data: %', batch_data;
+    RAISE LOG 'Update source: %', update_source;
 
     -- Validate batch_data
     IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
@@ -56,9 +66,10 @@ BEGIN
             v_request_date := (item->>'request_date')::DATE;
             v_rdd := (item->>'rdd')::DATE;
             v_inquiry_status := (item->>'inquiry_status')::BOOLEAN;
+            v_availability_identifier := (item->>'availability_identifier')::INT;
 
-            RAISE LOG 'Extracted values: jcn=%, twcode=%, qty=%, market_research_up=%, market_research_ep=%, request_date=%, rdd=%, inquiry_status=%',
-                         v_jcn, v_twcode, v_qty, v_market_research_up, v_market_research_ep, v_request_date, v_rdd, v_inquiry_status;
+            RAISE LOG 'Extracted values: jcn=%, twcode=%, qty=%, market_research_up=%, market_research_ep=%, request_date=%, rdd=%, inquiry_status=%, availability_identifier=%',
+                         v_jcn, v_twcode, v_qty, v_market_research_up, v_market_research_ep, v_request_date, v_rdd, v_inquiry_status, v_availability_identifier;
 
             -- Insert into MRL_line_items table
             INSERT INTO MRL_line_items (
@@ -71,7 +82,7 @@ BEGIN
             ) VALUES (
                 v_jcn, v_twcode, item->>'nomenclature', item->>'cog', item->>'fsc',
                 item->>'niin', item->>'part_no', v_qty, item->>'ui',
-                v_market_research_up, v_market_research_ep, item->>'availability_identifier',
+                v_market_research_up, v_market_research_ep, v_availability_identifier,
                 v_request_date, v_rdd, item->>'pri', item->>'swlin', item->>'hull_or_shop',
                 item->>'suggested_source', item->>'mfg_cage', item->>'apl',
                 item->>'nha_equipment_system', item->>'nha_model', item->>'nha_serial',
@@ -83,21 +94,25 @@ BEGIN
 
             -- Call the log_audit function
             BEGIN
-                PERFORM log_audit(
-                    'INSERT'::TEXT, 
-                    new_order_line_item_id,
-                    NULL::INT,
-                    'Inserted new MRL line item'::TEXT,
-                    update_source
-                );
-                RAISE LOG 'log_audit called successfully for order_line_item_id: %', new_order_line_item_id;
+                 RAISE LOG 'Calling log_audit function';
+                 PERFORM log_audit(
+                        'INSERT'::TEXT, 
+                        new_order_line_item_id,
+                        NULL::INT,
+                        'Inserted new MRL line item'::TEXT,
+                        update_source
+                  );
+                  RAISE LOG 'log_audit function call completed';
             EXCEPTION WHEN OTHERS THEN
-                RAISE LOG 'Error in log_audit: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-                RAISE LOG 'Problematic data: new_order_line_item_id=%, update_source=%',
+                  RAISE LOG 'Error calling log_audit: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+                  RAISE LOG 'Problematic data: new_order_line_item_id=%, update_source=%',
                              new_order_line_item_id, update_source;
             END;
         EXCEPTION WHEN OTHERS THEN
             RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+            RAISE LOG 'Current user ID: %, Current role ID: %', current_user_id, current_role_id;
+            RAISE LOG 'Current database user: %', current_user;
+            RAISE LOG 'Current role: %', current_role;
             RAISE LOG 'Problematic item: %', item;
         END;
 
@@ -107,5 +122,8 @@ BEGIN
     RAISE LOG 'insert_mrl_line_items completed successfully';
 EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Unhandled exception in insert_mrl_line_items: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+    RAISE LOG 'Current user ID: %, Current role ID: %', current_user_id, current_role_id;
+    RAISE LOG 'Current database user: %', current_user;
+    RAISE LOG 'Current role: %', current_role;
 END;
 $$;

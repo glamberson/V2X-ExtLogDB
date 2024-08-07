@@ -1,0 +1,9 @@
+-- version 0.7.14.40
+
+
+
+CREATE TRIGGER trg_create_fulfillment_on_mrl_insert
+AFTER INSERT ON MRL_line_items
+FOR EACH ROW
+EXECUTE FUNCTION combined_status_audit_update();
+
