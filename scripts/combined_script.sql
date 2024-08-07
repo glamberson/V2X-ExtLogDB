@@ -1356,9 +1356,7 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql  
--- version 0.7.14.27 removing ambiguity in user_id
-
--- log audit
+-- version 0.7.14.39 Adding more detailed logging and error handling
 
 CREATE OR REPLACE FUNCTION log_audit(
     action TEXT,
@@ -1372,29 +1370,31 @@ DECLARE
     current_user_id INT;
     current_role_id INT;
 BEGIN
+    RAISE LOG 'log_audit function started';
+    
     -- Detailed input logging
-    RAISE NOTICE 'log_audit input: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
+    RAISE LOG 'log_audit input: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
                  action, order_line_item_id, fulfillment_item_id, details, update_source;
 
     -- Retrieve and log session variables
     BEGIN
-        current_user_id := current_setting('myapp.user_id')::INT;
-        current_role_id := current_setting('myapp.role_id')::INT;
+        current_user_id := current_setting('myapp.user_id', true)::INT;
+        current_role_id := current_setting('myapp.role_id', true)::INT;
+        RAISE LOG 'Session variables retrieved: user_id=%, role_id=%', current_user_id, current_role_id;
     EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Error retrieving session variables: %', SQLERRM;
+        RAISE LOG 'Error retrieving session variables: %', SQLERRM;
         current_user_id := NULL;
         current_role_id := NULL;
     END;
 
-    RAISE NOTICE 'Session variables: user_id=%, role_id=%', v_user_id, v_role_id;
-
     -- Detailed type checking
-    RAISE NOTICE 'Data types: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
+    RAISE LOG 'Data types: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
                  pg_typeof(action), pg_typeof(order_line_item_id), pg_typeof(fulfillment_item_id), 
                  pg_typeof(details), pg_typeof(update_source);
 
     -- Attempt to insert into audit_trail with detailed error handling
     BEGIN
+        RAISE LOG 'Attempting to insert into audit_trail';
         INSERT INTO audit_trail (
             order_line_item_id,
             fulfillment_item_id,
@@ -1416,13 +1416,19 @@ BEGIN
             current_role_id,
             current_user_id
         );
+        RAISE LOG 'Successfully inserted into audit_trail';
     EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Error inserting into audit_trail: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-        RAISE NOTICE 'Problematic data: order_line_item_id=%, fulfillment_item_id=%, action=%, changed_by=%, details=%, update_source=%, role_id=%, user_id=%',
-                     order_line_item_id, fulfillment_item_id, action, v_user_id, details, update_source, v_role_id, v_user_id;
+        RAISE LOG 'Error inserting into audit_trail: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+        RAISE LOG 'Problematic data: order_line_item_id=%, fulfillment_item_id=%, action=%, changed_by=%, details=%, update_source=%, role_id=%, user_id=%',
+                     order_line_item_id, fulfillment_item_id, action, current_user_id, details, update_source, current_role_id, current_user_id;
     END;
+    
+    RAISE LOG 'log_audit function completed';
 END;
 $$ LANGUAGE plpgsql;
+
+
+
 
  
  
@@ -1713,7 +1719,7 @@ $$ LANGUAGE plpgsql;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql  
 
--- version 0.7.14.20
+-- version 0.7.14.35
 -- user login
 
 CREATE OR REPLACE FUNCTION user_login(
@@ -1741,6 +1747,9 @@ BEGIN
         -- Set session variables
         PERFORM set_session_variables(v_session_id, v_user_id, v_role_id);
 
+        -- make sure the correct role_id is set after the login process
+        EXECUTE 'SET ROLE ' || (SELECT db_role_name FROM roles WHERE role_id = v_role_id);
+        
         -- Log the login activity
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
 
@@ -1867,19 +1876,52 @@ $$ LANGUAGE plpgsql;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_login_wrapper.sql  
 
--- version 0.7.14.20
+-- version 0.7.14.38
 
--- user login wrapper (use this to log in while maintaining minimal "login" permissions)
+-- version 0.7.14.23
 
 CREATE OR REPLACE FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, p_duration INTERVAL)
-RETURNS TABLE (session_id UUID, login_user_id INT, login_role_id INT)
+RETURNS TABLE (session_id UUID, login_user_id INT, login_role_id INT, login_db_role_name VARCHAR)
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+    v_session_id UUID;
+    v_user_id INT;
+    v_role_id INT;
+    v_db_role_name VARCHAR;
 BEGIN
-    RETURN QUERY SELECT * FROM user_login(p_username, p_password, p_duration);
+    -- Call user_login function
+    SELECT * INTO v_session_id, v_user_id, v_role_id 
+    FROM user_login(p_username, p_password, p_duration);
+
+    -- If login was successful
+    IF v_session_id IS NOT NULL THEN
+        -- Get the database role name
+        SELECT r.db_role_name INTO v_db_role_name
+        FROM roles r
+        WHERE r.role_id = v_role_id;
+    END IF;
+
+    RETURN QUERY SELECT v_session_id, v_user_id, v_role_id, v_db_role_name;
+END;
+$$; 
+ 
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_set_user_role.sql  
+
+-- version 0.7.14.36
+
+CREATE OR REPLACE FUNCTION set_user_role(p_db_role_name VARCHAR)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_db_role_name IS NOT NULL THEN
+        EXECUTE 'SET ROLE ' || quote_ident(p_db_role_name);
+    END IF;
 END;
 $$;
+
 
  
  
@@ -2014,10 +2056,8 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session.sql  
--- version 0.7.14.28
+-- version 0.7.14.29
 
-
--- Function to validate a session
 CREATE OR REPLACE FUNCTION validate_session(p_session_id UUID)
 RETURNS TABLE (
     session_user_id INT,
@@ -2030,13 +2070,14 @@ BEGIN
     WHERE session_id = p_session_id AND expires_at > CURRENT_TIMESTAMP;
 END;
 $$ LANGUAGE plpgsql;
+
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session_and_permission.sql  
 
 -- validate session and permission (version checking new function permissions table)
--- version 0.7.14.28
 
+-- version 0.7.14.29
 
 CREATE OR REPLACE FUNCTION validate_session_and_permission(
     p_session_id UUID,
@@ -2057,13 +2098,13 @@ BEGIN
         LIMIT 1
     )
     SELECT 
-        CASE WHEN vs.user_id IS NOT NULL AND 
-                  vs.role_id <= fp.min_role_id
+        CASE WHEN vs.session_user_id IS NOT NULL AND 
+                  vs.session_role_id <= fp.min_role_id
              THEN TRUE 
              ELSE FALSE 
         END as is_valid,
-        vs.user_id as session_user_id,
-        vs.role_id as session_role_id
+        vs.session_user_id,
+        vs.session_role_id
     FROM validate_session(p_session_id) vs
     CROSS JOIN function_perm fp;
 END;
@@ -2073,7 +2114,7 @@ SECURITY DEFINER;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\001_roles_creation.sql  
--- version 0.7.9
+-- version 0.7.14.39
 
 -- create roles and grant pemissions
 
@@ -2081,6 +2122,12 @@ SECURITY DEFINER;
 
 -- Create the "login" role with login capability and NOINHERIT
 CREATE ROLE "login" WITH LOGIN PASSWORD 'FOTS-Egypt' NOINHERIT;
+
+-- Create other roles without login capability and with NOINHERIT
+CREATE ROLE "kppo_admin_user" NOLOGIN NOINHERIT;
+CREATE ROLE "logistics_user" NOLOGIN NOINHERIT;
+CREATE ROLE "report_viewer_user" NOLOGIN NOINHERIT;
+
 
 -- Grant SELECT on the users table to validate credentials
 GRANT SELECT ON users TO "login";
@@ -2090,12 +2137,7 @@ GRANT EXECUTE ON FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, 
 GRANT EXECUTE ON FUNCTION create_session(user_id INT, role_id INT, duration INTERVAL) TO "login";
 GRANT EXECUTE ON FUNCTION log_user_activity(user_id INT, login_time TIMESTAMPTZ, logout_time TIMESTAMPTZ, activity TEXT) TO "login";
 GRANT EXECUTE ON FUNCTION log_failed_login_attempt(username VARCHAR, reason TEXT) TO "login";
-
-
--- Create other roles without login capability and with NOINHERIT
-CREATE ROLE "kppo_admin_user" NOLOGIN NOINHERIT;
-CREATE ROLE "logistics_user" NOLOGIN NOINHERIT;
-CREATE ROLE "report_viewer_user" NOLOGIN NOINHERIT;
+GRANT EXECUTE ON FUNCTION set_user_role(p_db_role_name VARCHAR) TO "login";
 
 -- Grant database connection privilege
 GRANT CONNECT ON DATABASE "Beta_003" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
@@ -2103,10 +2145,33 @@ GRANT CONNECT ON DATABASE "Beta_003" TO "login", "kppo_admin_user", "logistics_u
 -- Grant usage on schema
 GRANT USAGE ON SCHEMA public TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
 
+-- Grant the ability to switch roles
+GRANT "kppo_admin_user" TO "login";
+GRANT "logistics_user" TO "login";
+GRANT "report_viewer_user" TO "login";
+
 -- Grant specific privileges to each role
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "logistics_user";
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "kppo_admin_user";
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO "report_viewer_user";
+
+-- Grant usage on sequences to roles
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO kppo_admin_user, logistics_user, report_viewer_user;
+
+-- Grant select on sequences to roles (needed for some operations)
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO kppo_admin_user, logistics_user, report_viewer_user;
+
+-- Specifically for the audit_trail table's sequence
+GRANT USAGE, SELECT ON SEQUENCE audit_trail_audit_id_seq TO kppo_admin_user, logistics_user, report_viewer_user;
+
+-- For MRL_line_items table's sequence (if it exists)
+GRANT USAGE, SELECT ON SEQUENCE mrl_line_items_order_line_item_id_seq TO kppo_admin_user, logistics_user;
+
+-- For fulfillment_items table's sequence (if it exists)
+GRANT USAGE, SELECT ON SEQUENCE fulfillment_items_fulfillment_item_id_seq TO kppo_admin_user, logistics_user;
+
+
+
 
  
  
@@ -2354,10 +2419,10 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.7.14.27 4x changed session and userid roleid configuration and syntax fixed
 
--- Procedure to insert MRL line items from JSONB data with update_source parameter
 
+-- version 0.7.14.39
+-- Added more detailed logging for log audit
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
     batch_data jsonb,
     update_source TEXT
@@ -2377,11 +2442,12 @@ DECLARE
     v_request_date DATE;
     v_rdd DATE;
     v_inquiry_status BOOLEAN;
+    v_availability_identifier INT;
     
 BEGIN
     RAISE LOG 'insert_mrl_line_items started';
-    RAISE LOG 'Batch data: %', batch_data;
-    RAISE LOG 'Update source: %', update_source;
+    RAISE LOG 'Current database user: %', current_user;
+    RAISE LOG 'Current role: %', current_role;
 
     -- Retrieve and log session variables
     RAISE LOG 'Attempting to retrieve session variables';
@@ -2389,6 +2455,15 @@ BEGIN
     -- Get session variables
     current_user_id := current_setting('myapp.user_id', true)::INT;
     current_role_id := current_setting('myapp.role_id', true)::INT;
+
+    -- Log current user and role information
+    RAISE LOG 'Current user ID from session: %, Current role ID from session: %', current_user_id, current_role_id;
+    
+    -- Additional check for role
+    RAISE LOG 'Is current user a member of kppo_admin_user role: %', (SELECT TRUE FROM pg_roles WHERE rolname = 'kppo_admin_user' AND pg_has_role(current_user, oid, 'member'));
+
+    RAISE LOG 'Batch data: %', batch_data;
+    RAISE LOG 'Update source: %', update_source;
 
     -- Validate batch_data
     IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
@@ -2412,9 +2487,10 @@ BEGIN
             v_request_date := (item->>'request_date')::DATE;
             v_rdd := (item->>'rdd')::DATE;
             v_inquiry_status := (item->>'inquiry_status')::BOOLEAN;
+            v_availability_identifier := (item->>'availability_identifier')::INT;
 
-            RAISE LOG 'Extracted values: jcn=%, twcode=%, qty=%, market_research_up=%, market_research_ep=%, request_date=%, rdd=%, inquiry_status=%',
-                         v_jcn, v_twcode, v_qty, v_market_research_up, v_market_research_ep, v_request_date, v_rdd, v_inquiry_status;
+            RAISE LOG 'Extracted values: jcn=%, twcode=%, qty=%, market_research_up=%, market_research_ep=%, request_date=%, rdd=%, inquiry_status=%, availability_identifier=%',
+                         v_jcn, v_twcode, v_qty, v_market_research_up, v_market_research_ep, v_request_date, v_rdd, v_inquiry_status, v_availability_identifier;
 
             -- Insert into MRL_line_items table
             INSERT INTO MRL_line_items (
@@ -2427,7 +2503,7 @@ BEGIN
             ) VALUES (
                 v_jcn, v_twcode, item->>'nomenclature', item->>'cog', item->>'fsc',
                 item->>'niin', item->>'part_no', v_qty, item->>'ui',
-                v_market_research_up, v_market_research_ep, item->>'availability_identifier',
+                v_market_research_up, v_market_research_ep, v_availability_identifier,
                 v_request_date, v_rdd, item->>'pri', item->>'swlin', item->>'hull_or_shop',
                 item->>'suggested_source', item->>'mfg_cage', item->>'apl',
                 item->>'nha_equipment_system', item->>'nha_model', item->>'nha_serial',
@@ -2439,21 +2515,25 @@ BEGIN
 
             -- Call the log_audit function
             BEGIN
-                PERFORM log_audit(
-                    'INSERT'::TEXT, 
-                    new_order_line_item_id,
-                    NULL::INT,
-                    'Inserted new MRL line item'::TEXT,
-                    update_source
-                );
-                RAISE LOG 'log_audit called successfully for order_line_item_id: %', new_order_line_item_id;
+                 RAISE LOG 'Calling log_audit function';
+                 PERFORM log_audit(
+                        'INSERT'::TEXT, 
+                        new_order_line_item_id,
+                        NULL::INT,
+                        'Inserted new MRL line item'::TEXT,
+                        update_source
+                  );
+                  RAISE LOG 'log_audit function call completed';
             EXCEPTION WHEN OTHERS THEN
-                RAISE LOG 'Error in log_audit: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-                RAISE LOG 'Problematic data: new_order_line_item_id=%, update_source=%',
+                  RAISE LOG 'Error calling log_audit: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+                  RAISE LOG 'Problematic data: new_order_line_item_id=%, update_source=%',
                              new_order_line_item_id, update_source;
             END;
         EXCEPTION WHEN OTHERS THEN
             RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+            RAISE LOG 'Current user ID: %, Current role ID: %', current_user_id, current_role_id;
+            RAISE LOG 'Current database user: %', current_user;
+            RAISE LOG 'Current role: %', current_role;
             RAISE LOG 'Problematic item: %', item;
         END;
 
@@ -2463,6 +2543,10 @@ BEGIN
     RAISE LOG 'insert_mrl_line_items completed successfully';
 EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Unhandled exception in insert_mrl_line_items: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+    RAISE LOG 'Current user ID: %, Current role ID: %', current_user_id, current_role_id;
+    RAISE LOG 'Current database user: %', current_user;
+    RAISE LOG 'Current role: %', current_role;
 END;
-$$; 
+$$;
+ 
  
