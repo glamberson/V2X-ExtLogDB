@@ -1719,8 +1719,7 @@ $$ LANGUAGE plpgsql;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql  
 
--- version 0.7.14.35
--- user login
+-- version 0.7.14.39
 
 CREATE OR REPLACE FUNCTION user_login(
     p_username VARCHAR,
@@ -1747,9 +1746,6 @@ BEGIN
         -- Set session variables
         PERFORM set_session_variables(v_session_id, v_user_id, v_role_id);
 
-        -- make sure the correct role_id is set after the login process
-        EXECUTE 'SET ROLE ' || (SELECT db_role_name FROM roles WHERE role_id = v_role_id);
-        
         -- Log the login activity
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
 
@@ -1876,9 +1872,7 @@ $$ LANGUAGE plpgsql;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_login_wrapper.sql  
 
--- version 0.7.14.38
-
--- version 0.7.14.23
+-- version 0.7.14.39
 
 CREATE OR REPLACE FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, p_duration INTERVAL)
 RETURNS TABLE (session_id UUID, login_user_id INT, login_role_id INT, login_db_role_name VARCHAR)
@@ -1909,7 +1903,7 @@ $$;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_set_user_role.sql  
 
--- version 0.7.14.36
+-- version 0.7.14.39
 
 CREATE OR REPLACE FUNCTION set_user_role(p_db_role_name VARCHAR)
 RETURNS VOID
@@ -1921,7 +1915,6 @@ BEGIN
     END IF;
 END;
 $$;
-
 
  
  

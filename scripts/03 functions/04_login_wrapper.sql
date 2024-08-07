@@ -1,7 +1,5 @@
 
--- version 0.7.14.38
-
--- version 0.7.14.23
+-- version 0.7.14.39
 
 CREATE OR REPLACE FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, p_duration INTERVAL)
 RETURNS TABLE (session_id UUID, login_user_id INT, login_role_id INT, login_db_role_name VARCHAR)
