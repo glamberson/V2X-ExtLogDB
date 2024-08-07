@@ -39,7 +39,9 @@ End Function
 
 
 
-' Version 0.7.14.38
+' ValidateUser
+' Version 0.8.02
+
 Public Function ValidateUser(username As String, password As String) As Boolean
     Dim cmd As ADODB.Command
     Dim rs As ADODB.Recordset
@@ -59,59 +61,31 @@ Public Function ValidateUser(username As String, password As String) As Boolean
 
     Set rs = cmd.Execute
     If Not rs.EOF Then
-        g_sessionToken = rs.Fields("session_id").Value
-        g_userId = rs.Fields("login_user_id").Value
-        g_roleId = rs.Fields("login_role_id").Value
-        dbRoleName = rs.Fields("login_db_role_name").Value  ' Updated field name
-        isValid = Not IsNull(g_sessionToken)
-        
-        If isValid Then
+        ' Check if session_id is NULL, which indicates a failed login attempt
+        If Not IsNull(rs.Fields("session_id").Value) Then
+            g_sessionToken = rs.Fields("session_id").Value
+            g_userId = rs.Fields("login_user_id").Value
+            g_roleId = rs.Fields("login_role_id").Value
+            dbRoleName = rs.Fields("login_db_role_name").Value
+            isValid = True
+            
             ' Set the user role
             Set cmd = New ADODB.Command
             cmd.ActiveConnection = g_conn
             cmd.CommandText = "SELECT set_user_role(?)"
             cmd.Parameters.Append cmd.CreateParameter("@p_db_role_name", adVarChar, adParamInput, 255, dbRoleName)
             cmd.Execute
+        Else
+            ' Handle the failed login case
+            isValid = False
+            MsgBox "Invalid username or password.", vbExclamation
         End If
+    Else
+        isValid = False
+        MsgBox "Invalid username or password.", vbExclamation
     End If
 
     rs.Close
 
     ValidateUser = isValid
 End Function
-
-
-Public Sub TestSessionVariables()
-    Debug.Print "Session Token: " & g_sessionToken
-    Debug.Print "User ID: " & g_userId
-    Debug.Print "Role ID: " & g_roleId
-End Sub
-
-Public Function TestSessionVerification() As Boolean
-    Dim cmd As ADODB.Command
-    Dim rs As ADODB.Recordset
-    Dim isValid As Boolean
-    
-    Set cmd = New ADODB.Command
-    cmd.ActiveConnection = g_conn
-    cmd.CommandText = "SELECT * FROM verify_session(?)"
-    cmd.Parameters.Append cmd.CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
-    
-    Set rs = cmd.Execute
-    
-    If Not rs.EOF Then
-        isValid = rs.Fields("is_valid").Value
-        Debug.Print "Session Valid: " & isValid
-        Debug.Print "User ID: " & rs.Fields("user_id").Value
-        Debug.Print "Role ID: " & rs.Fields("role_id").Value
-    Else
-        Debug.Print "Session not found"
-        isValid = False
-    End If
-    
-    rs.Close
-    TestSessionVerification = isValid
-End Function
-
-
-
