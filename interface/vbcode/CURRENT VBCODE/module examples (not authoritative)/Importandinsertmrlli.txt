@@ -1,5 +1,5 @@
 
-
+' import and insert mrl line items
 ' 0.7.12
 Sub ImportAndInsertMRLLineItems()
     If Not ValidateExcelData() Then
@@ -9,6 +9,7 @@ Sub ImportAndInsertMRLLineItems()
     
     ImportExcelToAccess
     InsertMRLLineItems
+    
 End Sub
 
 ' import excel to access
@@ -138,33 +139,34 @@ Public Function ConvertToJSON() As String
     ConvertToJSON = json
 End Function
 
+
+' insert mrl line items
+' version 0.7.14.29
+
 Public Sub InsertMRLLineItems()
-    Dim conn As ADODB.Connection
-    Dim cmd As ADODB.Command
     Dim jsonData As String
-    Dim param As ADODB.Parameter
-    
-    jsonData = ConvertToJSON()
+    Dim updateSource As String
+    Dim result As Boolean
     
     Set frm = Forms!frMRL
+    jsonData = ConvertToJSON()
     updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
+    
     ' Debugging output
-    MsgBox jsonData
+    Debug.Print "JSON Data: " & jsonData
+    Debug.Print "Update Source: " & updateSource
     
-    Set conn = CreatePostgresConnection()
-    Set cmd = New ADODB.Command
+    ' Call the protected function
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonData, updateSource)
     
-    With cmd
-        .ActiveConnection = conn
-        .CommandType = adCmdText
-        .commandText = "CALL insert_mrl_line_items(?, ?)"
-        .Parameters.Append .CreateParameter("@batch_data", adLongVarChar, adParamInput, Len(jsonData), jsonData)
-        .Parameters.Append .CreateParameter("@update_source", adVarChar, adParamInput, Len(updateSource), updateSource)
-        .Execute
-    End With
-    
-    conn.Close
+    ' Check the result
+    If result Then
+        MsgBox "Data inserted successfully", vbInformation
+    Else
+        MsgBox "Failed to insert data", vbExclamation
+    End If
 End Sub
+
 
 ' validate excel data
 ' version 0.7.12
@@ -222,5 +224,36 @@ Public Function ValidateExcelData() As Boolean
     ValidateExcelData = isValid
 End Function
         
- 
+' execute postgres command
+' version 0.7.14.22
+
+Public Sub ExecutePostgresCommand(cmdText As String, ParamArray params() As Variant)
+    On Error GoTo ErrorHandler
+    
+    Dim conn As ADODB.Connection
+    Dim cmd As ADODB.Command
+    Dim i As Integer
+
+    Set conn = CreatePostgresConnection()
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = conn
+    cmd.CommandText = cmdText
+
+    For i = LBound(params) To UBound(params)
+        cmd.Parameters.Append cmd.CreateParameter("@param" & i + 1, adVarChar, adParamInput, 255, params(i))
+    Next i
+
+    cmd.Execute
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error: " & Err.Description, vbCritical
+    Exit Sub
+End Sub
+
+
+
+
+
+
 
