@@ -1,7 +1,5 @@
--- version 0.7.14.28
+-- version 0.7.14.29
 
-
--- Function to validate a session
 CREATE OR REPLACE FUNCTION validate_session(p_session_id UUID)
 RETURNS TABLE (
     session_user_id INT,
@@ -14,3 +12,4 @@ BEGIN
     WHERE session_id = p_session_id AND expires_at > CURRENT_TIMESTAMP;
 END;
 $$ LANGUAGE plpgsql;
+

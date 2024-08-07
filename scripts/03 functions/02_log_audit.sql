@@ -1,6 +1,4 @@
--- version 0.7.14.27 removing ambiguity in user_id
-
--- log audit
+-- version 0.7.14.39 Adding more detailed logging and error handling
 
 CREATE OR REPLACE FUNCTION log_audit(
     action TEXT,
@@ -14,29 +12,31 @@ DECLARE
     current_user_id INT;
     current_role_id INT;
 BEGIN
+    RAISE LOG 'log_audit function started';
+    
     -- Detailed input logging
-    RAISE NOTICE 'log_audit input: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
+    RAISE LOG 'log_audit input: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
                  action, order_line_item_id, fulfillment_item_id, details, update_source;
 
     -- Retrieve and log session variables
     BEGIN
-        current_user_id := current_setting('myapp.user_id')::INT;
-        current_role_id := current_setting('myapp.role_id')::INT;
+        current_user_id := current_setting('myapp.user_id', true)::INT;
+        current_role_id := current_setting('myapp.role_id', true)::INT;
+        RAISE LOG 'Session variables retrieved: user_id=%, role_id=%', current_user_id, current_role_id;
     EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Error retrieving session variables: %', SQLERRM;
+        RAISE LOG 'Error retrieving session variables: %', SQLERRM;
         current_user_id := NULL;
         current_role_id := NULL;
     END;
 
-    RAISE NOTICE 'Session variables: user_id=%, role_id=%', v_user_id, v_role_id;
-
     -- Detailed type checking
-    RAISE NOTICE 'Data types: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
+    RAISE LOG 'Data types: action=%, order_line_item_id=%, fulfillment_item_id=%, details=%, update_source=%',
                  pg_typeof(action), pg_typeof(order_line_item_id), pg_typeof(fulfillment_item_id), 
                  pg_typeof(details), pg_typeof(update_source);
 
     -- Attempt to insert into audit_trail with detailed error handling
     BEGIN
+        RAISE LOG 'Attempting to insert into audit_trail';
         INSERT INTO audit_trail (
             order_line_item_id,
             fulfillment_item_id,
@@ -58,11 +58,17 @@ BEGIN
             current_role_id,
             current_user_id
         );
+        RAISE LOG 'Successfully inserted into audit_trail';
     EXCEPTION WHEN OTHERS THEN
-        RAISE NOTICE 'Error inserting into audit_trail: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-        RAISE NOTICE 'Problematic data: order_line_item_id=%, fulfillment_item_id=%, action=%, changed_by=%, details=%, update_source=%, role_id=%, user_id=%',
-                     order_line_item_id, fulfillment_item_id, action, v_user_id, details, update_source, v_role_id, v_user_id;
+        RAISE LOG 'Error inserting into audit_trail: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+        RAISE LOG 'Problematic data: order_line_item_id=%, fulfillment_item_id=%, action=%, changed_by=%, details=%, update_source=%, role_id=%, user_id=%',
+                     order_line_item_id, fulfillment_item_id, action, current_user_id, details, update_source, current_role_id, current_user_id;
     END;
+    
+    RAISE LOG 'log_audit function completed';
 END;
 $$ LANGUAGE plpgsql;
+
+
+
 

@@ -1,10 +1,12 @@
+
 ' ValidateUser
-' Version 0.7.14.21
+' Version 0.7.14.38
 
 Public Function ValidateUser(username As String, password As String) As Boolean
     Dim cmd As ADODB.Command
     Dim rs As ADODB.Recordset
     Dim isValid As Boolean
+    Dim dbRoleName As String
 
     If g_conn Is Nothing Then
         InitializePostgresConnection
@@ -22,11 +24,22 @@ Public Function ValidateUser(username As String, password As String) As Boolean
         g_sessionToken = rs.Fields("session_id").Value
         g_userId = rs.Fields("login_user_id").Value
         g_roleId = rs.Fields("login_role_id").Value
+        dbRoleName = rs.Fields("login_db_role_name").Value  ' Updated field name
         isValid = Not IsNull(g_sessionToken)
         
+        If isValid Then
+            ' Set the user role
+            Set cmd = New ADODB.Command
+            cmd.ActiveConnection = g_conn
+            cmd.CommandText = "SELECT set_user_role(?)"
+            cmd.Parameters.Append cmd.CreateParameter("@p_db_role_name", adVarChar, adParamInput, 255, dbRoleName)
+            cmd.Execute
+        End If
     End If
 
     rs.Close
 
     ValidateUser = isValid
 End Function
+
+

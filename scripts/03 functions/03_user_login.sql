@@ -1,5 +1,5 @@
 
--- version 0.7.14.20
+-- version 0.7.14.35
 -- user login
 
 CREATE OR REPLACE FUNCTION user_login(
@@ -27,6 +27,9 @@ BEGIN
         -- Set session variables
         PERFORM set_session_variables(v_session_id, v_user_id, v_role_id);
 
+        -- make sure the correct role_id is set after the login process
+        EXECUTE 'SET ROLE ' || (SELECT db_role_name FROM roles WHERE role_id = v_role_id);
+        
         -- Log the login activity
         PERFORM log_user_activity(v_user_id, CURRENT_TIMESTAMP, NULL, 'User logged in');
 
