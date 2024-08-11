@@ -1247,21 +1247,42 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_create_fulfillment_record.sql  
--- version 0.6.3
-
--- create_fulfillment_record
+-- version 0.8.10
 
 
-CREATE OR REPLACE FUNCTION create_fulfillment_record(order_line_item_id INT, created_by INT, update_source TEXT)
+-- First, let's ensure the create_fulfillment_record function is up to date
+CREATE OR REPLACE FUNCTION create_fulfillment_record(
+    p_order_line_item_id INT, 
+    p_created_by INT, 
+    p_update_source TEXT
+)
 RETURNS VOID AS $$
+DECLARE
+    v_status_id INT;
 BEGIN
-    INSERT INTO fulfillment_items (order_line_item_id, created_by, update_source, created_at)
-    VALUES (order_line_item_id, created_by, update_source, CURRENT_TIMESTAMP);
+    -- Get the 'NOT ORDERED' status ID
+    SELECT status_id INTO v_status_id FROM statuses WHERE status_name = 'NOT ORDERED';
+
+    INSERT INTO fulfillment_items (
+        order_line_item_id, 
+        created_by, 
+        update_source, 
+        created_at,
+        status_id
+    )
+    VALUES (
+        p_order_line_item_id, 
+        p_created_by, 
+        p_update_source, 
+        CURRENT_TIMESTAMP,
+        v_status_id
+    );
 
     -- Log in audit trail
-    PERFORM log_audit('INSERT', order_line_item_id, NULL, created_by, 'Fulfillment record created');
+    PERFORM log_audit('INSERT', p_order_line_item_id, NULL, 'Fulfillment record created', p_update_source);
 END;
 $$ LANGUAGE plpgsql;
+
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_all_changes.sql  
@@ -2017,22 +2038,30 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_renew_session.sql  
--- version 0.7.14.20
+-- renew_session function
+-- version 0.8.08
 
-CREATE OR REPLACE FUNCTION renew_session(p_session_id UUID, p_duration INTERVAL)
-RETURNS BOOLEAN AS $$
-DECLARE
-    v_expires_at TIMESTAMPTZ;
+CREATE OR REPLACE FUNCTION renew_session(
+    p_session_id UUID,
+    p_duration INTERVAL
+)
+RETURNS VOID AS $$
 BEGIN
+    RAISE LOG 'Attempting to renew session: session_id = %, duration = %', p_session_id, p_duration;
+
     UPDATE user_sessions
-    SET expires_at = CURRENT_TIMESTAMP + p_duration
+    SET expires_at = NOW() + p_duration
     WHERE session_id = p_session_id
-    AND expires_at > CURRENT_TIMESTAMP
-    RETURNING expires_at INTO v_expires_at;
-    
-    RETURN v_expires_at IS NOT NULL;
+    AND expires_at > NOW(); -- Ensure we only renew active sessions
+
+    IF FOUND THEN
+        RAISE LOG 'Session renewed successfully: session_id %, new expires_at %', p_session_id, NOW() + p_duration;
+    ELSE
+        RAISE LOG 'Session not renewed: session_id %, duration %, expired or not found.', p_session_id, p_duration;
+    END IF;
 END;
-$$ LANGUAGE plpgsql; 
+$$ LANGUAGE plpgsql;
+ 
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_set_session_variables.sql  
 -- version 0.7.14.17
@@ -2067,10 +2096,9 @@ $$ LANGUAGE plpgsql;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session_and_permission.sql  
-
 -- validate session and permission (version checking new function permissions table)
 
--- version 0.7.14.29
+-- version 0.8.07
 
 CREATE OR REPLACE FUNCTION validate_session_and_permission(
     p_session_id UUID,
@@ -2080,29 +2108,67 @@ CREATE OR REPLACE FUNCTION validate_session_and_permission(
     session_user_id INT,
     session_role_id INT
 ) AS $$
+DECLARE
+    vs RECORD;
+    fp RECORD;
 BEGIN
-    RETURN QUERY
-    WITH function_perm AS (
-        SELECT min_role_id
-        FROM function_permissions
-        WHERE function_name = p_function_name
-        UNION ALL
-        SELECT 9  -- Default to role 9 if function not found in table
-        LIMIT 1
-    )
-    SELECT 
-        CASE WHEN vs.session_user_id IS NOT NULL AND 
-                  vs.session_role_id <= fp.min_role_id
-             THEN TRUE 
-             ELSE FALSE 
-        END as is_valid,
-        vs.session_user_id,
-        vs.session_role_id
-    FROM validate_session(p_session_id) vs
-    CROSS JOIN function_perm fp;
+    -- Get the minimum role_id required for the function
+    SELECT INTO fp min_role_id
+    FROM function_permissions
+    WHERE function_name = p_function_name
+    UNION ALL
+    SELECT 9  -- Default to role 9 if function not found in table
+    LIMIT 1;
+
+    -- Validate the session
+    SELECT INTO vs *
+    FROM validate_session(p_session_id);
+
+    -- Determine if the session is valid and has sufficient permissions
+    is_valid := vs.session_user_id IS NOT NULL AND vs.session_role_id <= fp.min_role_id;
+    session_user_id := vs.session_user_id;
+    session_role_id := vs.session_role_id;
+
+    -- Renew the session if valid
+    IF is_valid THEN
+        BEGIN
+            PERFORM renew_session(p_session_id, '1 hour');
+        EXCEPTION WHEN OTHERS THEN
+            RAISE LOG 'Error renewing session: %', SQLERRM;
+        END;
+    END IF;
+
+    RETURN NEXT;
 END;
 $$ LANGUAGE plpgsql
 SECURITY DEFINER;
+ 
+ 
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\06_trigger_create_fulfillment_record.sql  
+-- version 0.8.10
+
+CREATE OR REPLACE FUNCTION trigger_create_fulfillment_record()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Here you can add any additional logic, error handling, or checks specific to the trigger
+    IF NEW.order_line_item_id IS NULL THEN
+        RAISE EXCEPTION 'Cannot create fulfillment record: order_line_item_id is NULL';
+    END IF;
+
+    PERFORM create_fulfillment_record(
+        NEW.order_line_item_id, 
+        NEW.created_by, 
+        COALESCE(NEW.update_source, 'Initial MRL creation')
+    );
+
+    RETURN NEW;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Log the error and re-raise
+        RAISE NOTICE 'Error in trigger_create_fulfillment_record: %', SQLERRM;
+        RAISE;
+END;
+$$ LANGUAGE plpgsql;
 
  
  
@@ -2169,11 +2235,18 @@ GRANT USAGE, SELECT ON SEQUENCE fulfillment_items_fulfillment_item_id_seq TO kpp
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql  
--- version 0.7.9.1
+-- version 0.8.06
 
 
 INSERT INTO availability_events (availability_identifier, availability_name, start_date, end_date, description, created_by)
 VALUES ('41', 'Sadeeq', '2024-01-01', '202-01-02', 'This is a dummy description', 1);
+
+
+
+
+INSERT INTO function_permissions (function_name, min_role_id)
+VALUES ('insert_mrl_line_items', 1);
+
 
 
 
@@ -2412,134 +2485,128 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
-
-
--- version 0.7.14.39
--- Added more detailed logging for log audit
+-- version 0.8.15
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
-    batch_data jsonb,
+    batch_data text,
     update_source TEXT
 )
 LANGUAGE plpgsql
 AS $$
 DECLARE
+    parsed_data jsonb;
     item jsonb;
     current_user_id INT;
     current_role_id INT;
     new_order_line_item_id INT;
-    v_jcn TEXT;
-    v_twcode TEXT;
-    v_qty INT;
-    v_market_research_up NUMERIC;
-    v_market_research_ep NUMERIC;
-    v_request_date DATE;
-    v_rdd DATE;
-    v_inquiry_status BOOLEAN;
-    v_availability_identifier INT;
-    
+    v_record_count INT := 0;
+    v_success_count INT := 0;
+    v_error_count INT := 0;
+    v_error_messages TEXT := '';
 BEGIN
     RAISE LOG 'insert_mrl_line_items started';
-    RAISE LOG 'Current database user: %', current_user;
-    RAISE LOG 'Current role: %', current_role;
-
-    -- Retrieve and log session variables
-    RAISE LOG 'Attempting to retrieve session variables';
+    RAISE LOG 'Update source: %', update_source;
     
     -- Get session variables
     current_user_id := current_setting('myapp.user_id', true)::INT;
     current_role_id := current_setting('myapp.role_id', true)::INT;
 
-    -- Log current user and role information
     RAISE LOG 'Current user ID from session: %, Current role ID from session: %', current_user_id, current_role_id;
-    
-    -- Additional check for role
-    RAISE LOG 'Is current user a member of kppo_admin_user role: %', (SELECT TRUE FROM pg_roles WHERE rolname = 'kppo_admin_user' AND pg_has_role(current_user, oid, 'member'));
 
-    RAISE LOG 'Batch data: %', batch_data;
-    RAISE LOG 'Update source: %', update_source;
+    -- Safely parse the JSON data
+    BEGIN
+        parsed_data := batch_data::jsonb;
+    EXCEPTION WHEN OTHERS THEN
+        RAISE EXCEPTION 'Invalid JSON data: %', SQLERRM;
+    END;
 
     -- Validate batch_data
-    IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
-        RAISE LOG 'Invalid batch_data: not a JSON array or is NULL';
-        RETURN;
+    IF parsed_data IS NULL OR jsonb_typeof(parsed_data) != 'array' THEN
+        RAISE EXCEPTION 'Invalid batch_data: not a JSON array or is NULL';
     END IF;
 
-    -- Loop through each item in the JSONB array
-    RAISE LOG 'Starting to process batch items';
-    FOR item IN SELECT * FROM jsonb_array_elements(batch_data)
-    LOOP
-        RAISE LOG 'Processing item: %', item;
+    -- Log the number of records in the JSON data
+    RAISE LOG 'Number of records in JSON data: %', jsonb_array_length(parsed_data);
 
-        BEGIN
-            -- Extract and validate key fields
-            v_jcn := item->>'jcn';
-            v_twcode := item->>'twcode';
-            v_qty := (item->>'qty')::INT;
-            v_market_research_up := (item->>'market_research_up')::NUMERIC;
-            v_market_research_ep := (item->>'market_research_ep')::NUMERIC;
-            v_request_date := (item->>'request_date')::DATE;
-            v_rdd := (item->>'rdd')::DATE;
-            v_inquiry_status := (item->>'inquiry_status')::BOOLEAN;
-            v_availability_identifier := (item->>'availability_identifier')::INT;
-
-            RAISE LOG 'Extracted values: jcn=%, twcode=%, qty=%, market_research_up=%, market_research_ep=%, request_date=%, rdd=%, inquiry_status=%, availability_identifier=%',
-                         v_jcn, v_twcode, v_qty, v_market_research_up, v_market_research_ep, v_request_date, v_rdd, v_inquiry_status, v_availability_identifier;
-
-            -- Insert into MRL_line_items table
-            INSERT INTO MRL_line_items (
-                jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
-                market_research_up, market_research_ep, availability_identifier,
-                request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
-                mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
-                techmanual, dwg_pc, requestor_remarks, inquiry_status,
-                created_by, update_source
-            ) VALUES (
-                v_jcn, v_twcode, item->>'nomenclature', item->>'cog', item->>'fsc',
-                item->>'niin', item->>'part_no', v_qty, item->>'ui',
-                v_market_research_up, v_market_research_ep, v_availability_identifier,
-                v_request_date, v_rdd, item->>'pri', item->>'swlin', item->>'hull_or_shop',
-                item->>'suggested_source', item->>'mfg_cage', item->>'apl',
-                item->>'nha_equipment_system', item->>'nha_model', item->>'nha_serial',
-                item->>'techmanual', item->>'dwg_pc', item->>'requestor_remarks',
-                v_inquiry_status, current_user_id, update_source
-            ) RETURNING order_line_item_id INTO new_order_line_item_id;
-
-            RAISE LOG 'Inserted new MRL line item with ID: %', new_order_line_item_id;
-
-            -- Call the log_audit function
+    -- Start a subtransaction
+    BEGIN
+        -- Loop through each item in the JSONB array
+        FOR item IN SELECT * FROM jsonb_array_elements(parsed_data)
+        LOOP
+            v_record_count := v_record_count + 1;
             BEGIN
-                 RAISE LOG 'Calling log_audit function';
-                 PERFORM log_audit(
-                        'INSERT'::TEXT, 
-                        new_order_line_item_id,
-                        NULL::INT,
-                        'Inserted new MRL line item'::TEXT,
-                        update_source
-                  );
-                  RAISE LOG 'log_audit function call completed';
+                -- Insert into MRL_line_items table
+                INSERT INTO MRL_line_items (
+                    jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
+                    market_research_up, market_research_ep, availability_identifier,
+                    request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
+                    mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
+                    techmanual, dwg_pc, requestor_remarks, inquiry_status,
+                    created_by, update_source
+                ) VALUES (
+                    (item->>'jcn')::TEXT,
+                    (item->>'twcode')::TEXT,
+                    (item->>'nomenclature')::TEXT,
+                    (item->>'cog')::TEXT,
+                    (item->>'fsc')::TEXT,
+                    (item->>'niin')::TEXT,
+                    (item->>'part_no')::TEXT,
+                    (item->>'qty')::INT,
+                    (item->>'ui')::TEXT,
+                    (item->>'market_research_up')::NUMERIC,
+                    (item->>'market_research_ep')::NUMERIC,
+                    (item->>'availability_identifier')::INT,
+                    (item->>'request_date')::DATE,
+                    (item->>'rdd')::DATE,
+                    (item->>'pri')::TEXT,
+                    (item->>'swlin')::TEXT,
+                    (item->>'hull_or_shop')::TEXT,
+                    (item->>'suggested_source')::TEXT,
+                    (item->>'mfg_cage')::TEXT,
+                    (item->>'apl')::TEXT,
+                    (item->>'nha_equipment_system')::TEXT,
+                    (item->>'nha_model')::TEXT,
+                    (item->>'nha_serial')::TEXT,
+                    (item->>'techmanual')::TEXT,
+                    (item->>'dwg_pc')::TEXT,
+                    (item->>'requestor_remarks')::TEXT,
+                    (item->>'inquiry_status')::BOOLEAN,
+                    current_user_id,
+                    update_source
+                ) RETURNING order_line_item_id INTO new_order_line_item_id;
+
+                v_success_count := v_success_count + 1;
+                PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
+
             EXCEPTION WHEN OTHERS THEN
-                  RAISE LOG 'Error calling log_audit: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-                  RAISE LOG 'Problematic data: new_order_line_item_id=%, update_source=%',
-                             new_order_line_item_id, update_source;
+                v_error_count := v_error_count + 1;
+                v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
+                RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+                RAISE LOG 'Problematic item: %', item;
             END;
-        EXCEPTION WHEN OTHERS THEN
-            RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-            RAISE LOG 'Current user ID: %, Current role ID: %', current_user_id, current_role_id;
-            RAISE LOG 'Current database user: %', current_user;
-            RAISE LOG 'Current role: %', current_role;
-            RAISE LOG 'Problematic item: %', item;
-        END;
+        END LOOP;
 
-        RAISE LOG 'Finished processing item';
-    END LOOP;
+    EXCEPTION WHEN OTHERS THEN
+        v_error_messages := v_error_messages || 'Error processing batch: ' || SQLERRM || E'\n';
+        RAISE LOG 'Error processing batch: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+    END;
 
-    RAISE LOG 'insert_mrl_line_items completed successfully';
+    -- Log the final results
+    RAISE LOG 'insert_mrl_line_items completed. Total: %, Success: %, Errors: %', v_record_count, v_success_count, v_error_count;
+    IF v_error_count > 0 THEN
+        RAISE LOG 'Error messages: %', v_error_messages;
+    END IF;
+
+    -- Raise an exception if there were any errors, but include the success count in the message
+    IF v_error_count > 0 THEN
+        RAISE EXCEPTION 'Some records failed to insert. Total: %, Success: %, Errors: %. Error messages: %', 
+                        v_record_count, v_success_count, v_error_count, v_error_messages;
+    END IF;
+
 EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Unhandled exception in insert_mrl_line_items: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-    RAISE LOG 'Current user ID: %, Current role ID: %', current_user_id, current_role_id;
-    RAISE LOG 'Current database user: %', current_user;
-    RAISE LOG 'Current role: %', current_role;
+    RAISE;
 END;
 $$;
+
  
  
