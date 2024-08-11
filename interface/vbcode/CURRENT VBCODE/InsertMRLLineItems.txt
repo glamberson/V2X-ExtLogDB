@@ -1,38 +1,51 @@
-
-
 ' insert mrl line items
-' version 0.8.12
+' version 0.8.14
 
 Public Sub InsertMRLLineItems()
-    Dim jsonData As String
+    Dim jsonData As Variant
     Dim updateSource As String
-    Dim result As Boolean
+    Dim success As Boolean
+    Dim errorMessage As String
+    Dim jsonString As String
+    Dim errorLog As String
     
     Set frm = Forms!frMRL
     jsonData = ConvertToJSON()
+    jsonString = jsonData(0)
+    errorLog = jsonData(1)
     updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
     
     ' Debugging output
-    Debug.Print "JSON Data: " & jsonData
+    Debug.Print "JSON Data (first 1000 characters): " & Left(jsonString, 1000) & "..."
     Debug.Print "Update Source: " & updateSource
+    Debug.Print "Pre-insert Error Log: " & errorLog
     
     ' Call the protected function
-    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonData, updateSource)
+    success = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource, errorMessage)
     
-    ' Check the result
-    If result Then
-        MsgBox "Data inserted successfully", vbInformation
+    ' Parse the results
+    Dim totalCount As Integer, successCount As Integer, errorCount As Integer
+    ParseResults errorMessage, totalCount, successCount, errorCount
+    
+    ' Display results
+    If success Then
+        MsgBox "All records processed successfully." & vbNewLine & _
+               "Total Records: " & totalCount, vbInformation
     Else
-        MsgBox "Failed to insert data. Check the Immediate window for details.", vbExclamation
-        
-        ' Additional error reporting
-        Debug.Print "--- Error Details ---"
-        Debug.Print "JSON Data Length: " & Len(jsonData)
-        Debug.Print "First 1000 characters of JSON Data:"
-        Debug.Print Left(jsonData, 1000)
-        Debug.Print "Last 1000 characters of JSON Data:"
-        Debug.Print Right(jsonData, 1000)
-        Debug.Print "Update Source: " & updateSource
-        Debug.Print "--------------------"
+        MsgBox "Process completed with some errors." & vbNewLine & _
+               "Total Records: " & totalCount & vbNewLine & _
+               "Successful Inserts: " & successCount & vbNewLine & _
+               "Failed Inserts: " & errorCount & vbNewLine & _
+               "See error log for details.", vbExclamation
     End If
+    
+    ' Save error logs to a file
+    Dim fso As Object
+    Dim fileName As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
+                                       "PostgreSQL Errors:" & vbNewLine & errorMessage
+    MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
+

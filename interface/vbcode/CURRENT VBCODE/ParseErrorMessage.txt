@@ -1,0 +1,24 @@
+
+' version 0.8.14
+
+Private Sub ParseResults(errorMessage As String, ByRef totalCount As Integer, ByRef successCount As Integer, ByRef errorCount As Integer)
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Dim matches As Object
+    Set matches = regex.Execute(errorMessage)
+    
+    If matches.Count > 0 Then
+        totalCount = CInt(matches(0).SubMatches(0))
+        successCount = CInt(matches(0).SubMatches(1))
+        errorCount = CInt(matches(0).SubMatches(2))
+    Else
+        totalCount = 0
+        successCount = 0
+        errorCount = 0
+    End If
+End Sub
+
+
