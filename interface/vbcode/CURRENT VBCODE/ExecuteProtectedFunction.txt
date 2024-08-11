@@ -1,6 +1,6 @@
 
 ' execute protected (postgres) function or procedure
-' version 0.7.14.31
+' version 0.8.12
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmd As ADODB.Command
@@ -18,13 +18,6 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     
     Dim isValid As Boolean
     If Not rs.EOF Then
-        ' Debug information
-        Debug.Print "Number of fields: " & rs.Fields.Count
-        Dim i As Integer
-        For i = 0 To rs.Fields.Count - 1
-            Debug.Print "Field " & i & ": " & rs.Fields(i).Name & " = " & rs.Fields(i).Value
-        Next i
-        
         isValid = rs.Fields("is_valid").Value
     Else
         isValid = False
@@ -35,12 +28,11 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     
     If Not isValid Then
         MsgBox "You don't have permission to perform this action.", vbExclamation
+        ExecuteProtectedFunction = False
         Exit Function
     End If
     
-    ' If we get here, the session is valid and the user has permission
-    ' Now we can execute the actual function or procedure
-    
+    ' Execute the actual function or procedure
     Set cmd = New ADODB.Command
     With cmd
         .ActiveConnection = g_conn
@@ -52,7 +44,19 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         For j = LBound(args) To UBound(args)
             If j > LBound(args) Then .CommandText = .CommandText & ", "
             .CommandText = .CommandText & "?"
+            On Error Resume Next
             .Parameters.Append .CreateParameter("param" & (j + 1), adVarChar, adParamInput, 8000, args(j))
+            If Err.Number <> 0 Then
+                Dim errMsg As String
+                errMsg = "Error adding parameter " & j + 1 & " to command:" & vbNewLine & _
+                         "Value: " & args(j) & vbNewLine & _
+                         "Error: " & Err.Description
+                Debug.Print errMsg
+                MsgBox errMsg, vbExclamation, "Parameter Error"
+                ExecuteProtectedFunction = False
+                Exit Function
+            End If
+            On Error GoTo 0
         Next j
         
         .CommandText = .CommandText & ")"
@@ -61,6 +65,29 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     On Error GoTo ErrorHandler
     
     cmd.Execute
+    
+    ' Call renew_session after successful execution
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandType = adCmdText
+        .CommandText = "SELECT renew_session(?, ?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
+    End With
+    
+    Set rs = cmd.Execute
+    
+    If Not rs.EOF Then
+        Dim renewSuccess As Boolean
+        renewSuccess = rs.Fields(0).Value
+        If Not renewSuccess Then
+            Debug.Print "Failed to renew session"
+        End If
+    End If
+    
+    rs.Close
+    Set rs = Nothing
     
     ExecuteProtectedFunction = True ' Indicate success
     
@@ -71,10 +98,19 @@ ErrorHandler:
     Debug.Print "Error in ExecuteProtectedFunction: " & Err.Description
     Debug.Print "Error Number: " & Err.Number
     Debug.Print "Command Text: " & cmd.CommandText
+    
+    ' Print out all parameter values for debugging
+    For j = LBound(args) To UBound(args)
+        Debug.Print "Parameter " & j + 1 & ": " & args(j)
+    Next j
+    
     ExecuteProtectedFunction = False ' Indicate failure
     If Err.Number = 42883 Then  ' Function does not exist
         MsgBox "Function or procedure '" & functionName & "' does not exist.", vbExclamation
     Else
-        MsgBox "An error occurred: " & Err.Description, vbExclamation
+        MsgBox "An error occurred: " & Err.Description & vbNewLine & _
+               "See Immediate window for more details.", vbExclamation
     End If
 End Function
+
+

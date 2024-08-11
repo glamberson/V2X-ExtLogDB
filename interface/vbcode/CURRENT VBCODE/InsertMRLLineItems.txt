@@ -1,7 +1,7 @@
 
 
 ' insert mrl line items
-' version 0.7.14.29
+' version 0.8.12
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As String
@@ -23,6 +23,16 @@ Public Sub InsertMRLLineItems()
     If result Then
         MsgBox "Data inserted successfully", vbInformation
     Else
-        MsgBox "Failed to insert data", vbExclamation
+        MsgBox "Failed to insert data. Check the Immediate window for details.", vbExclamation
+        
+        ' Additional error reporting
+        Debug.Print "--- Error Details ---"
+        Debug.Print "JSON Data Length: " & Len(jsonData)
+        Debug.Print "First 1000 characters of JSON Data:"
+        Debug.Print Left(jsonData, 1000)
+        Debug.Print "Last 1000 characters of JSON Data:"
+        Debug.Print Right(jsonData, 1000)
+        Debug.Print "Update Source: " & updateSource
+        Debug.Print "--------------------"
     End If
 End Sub
