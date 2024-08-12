@@ -2172,6 +2172,18 @@ $$ LANGUAGE plpgsql;
 
  
  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\99_trigger_code.sql  
+-- version 0.8.31
+
+
+CREATE TRIGGER trg_create_fulfillment_on_mrl_insert
+AFTER INSERT ON MRL_line_items
+FOR EACH ROW
+EXECUTE FUNCTION trigger_create_fulfillment_record();
+
+
+ 
+ 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\001_roles_creation.sql  
 -- version 0.7.14.39
 
