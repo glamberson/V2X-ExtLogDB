@@ -58,24 +58,3 @@ Public Sub InsertMRLLineItems()
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
 
-' Helper function to log errors and duplicates
-Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
-    Dim db As DAO.Database
-    Dim rst As DAO.Recordset
-    
-    Set db = CurrentDb()
-    Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
-    
-    rst.AddNew
-    rst!LogDate = Now()
-    rst!TotalCount = totalCount
-    rst!SuccessCount = successCount
-    rst!DuplicateCount = duplicateCount
-    rst!ErrorCount = errorCount
-    rst!ErrorDetails = errorLog
-    rst.Update
-    
-    rst.Close
-    Set rst = Nothing
-    Set db = Nothing
-End Sub

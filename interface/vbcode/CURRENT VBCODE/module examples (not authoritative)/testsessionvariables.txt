@@ -1,5 +1,0 @@
-Public Sub TestSessionVariables()
-    Debug.Print "Session Token: " & g_sessionToken
-    Debug.Print "User ID: " & g_userId
-    Debug.Print "Role ID: " & g_roleId
-End Sub
