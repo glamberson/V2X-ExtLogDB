@@ -13,7 +13,8 @@ Sub ImportAndInsertMRLLineItems()
 End Sub
 
 ' import excel to access
-' version 0.8.32
+' version 0.8.42
+
 Sub ImportExcelToAccess()
     Dim originalFilePath As String
     Dim tempFilePath As String
@@ -42,9 +43,9 @@ Sub ImportExcelToAccess()
     ' Set the worksheet
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     
-    ' Clean up field names in the first row
+    ' Clean up field names in the first row: trim and convert to lowercase
     For col = 1 To xlSheet.UsedRange.Columns.count
-        xlSheet.Cells(1, col).Value = Trim(xlSheet.Cells(1, col).Value)
+        xlSheet.Cells(1, col).Value = LCase(Trim(xlSheet.Cells(1, col).Value))
     Next col
     
     ' Save and close the workbook
@@ -66,7 +67,6 @@ Sub ImportExcelToAccess()
     
     Set db = Nothing
 End Sub
-
 'Convert to JSON
 'version 0.8.39
 
