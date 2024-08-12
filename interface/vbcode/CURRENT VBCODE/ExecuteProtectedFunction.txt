@@ -1,5 +1,5 @@
 ' execute protected (postgres) function or procedure
-' version 0.8.40
+' version 0.8.45
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -54,23 +54,31 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     With cmdExecute
         .ActiveConnection = g_conn
         .CommandType = adCmdText
-        commandText = "CALL " & functionName & "("
         
-        ' Add parameters
-        For i = LBound(functionArgs) To UBound(functionArgs)
-            If i > LBound(functionArgs) Then commandText = commandText & ", "
-            If i = LBound(functionArgs) And functionName = "insert_mrl_line_items" Then
-                commandText = commandText & "?::jsonb"
-            ElseIf i = LBound(functionArgs) + 1 And functionName = "insert_mrl_line_items" Then
-                commandText = commandText & "?::text"
-            Else
+        If functionName = "insert_mrl_line_items" Then
+            commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?::text)"
+            .CommandText = commandText
+            
+            ' Add input parameters
+            .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, -1, functionArgs(0))
+            .Parameters.Append .CreateParameter("param2", adVarChar, adParamInput, 255, functionArgs(1))
+            
+            ' Add output parameter for summary
+            .Parameters.Append .CreateParameter("summary", adVarChar, adParamOutput, 1000)
+        Else
+            ' Handle other functions/procedures as before
+            commandText = "CALL " & functionName & "("
+            
+            ' Add parameters
+            For i = LBound(functionArgs) To UBound(functionArgs)
+                If i > LBound(functionArgs) Then commandText = commandText & ", "
                 commandText = commandText & "?"
-            End If
-            .Parameters.Append .CreateParameter("param" & (i + 1), adLongVarChar, adParamInput, -1, functionArgs(i))
-        Next i
-        
-        commandText = commandText & ")"
-        .CommandText = commandText
+                .Parameters.Append .CreateParameter("param" & (i + 1), adLongVarChar, adParamInput, -1, functionArgs(i))
+            Next i
+            
+            commandText = commandText & ")"
+            .CommandText = commandText
+        End If
         
         ' Debug print
         Debug.Print "Command text: " & commandText
@@ -79,19 +87,13 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     
     On Error GoTo ErrorHandler
     
-    Dim result As ADODB.Recordset
-    Set result = cmdExecute.Execute
+    cmdExecute.Execute
     
-    ' Check for NOTICE messages
-    Dim noticeMessage As String
-    noticeMessage = GetNoticeMessage(g_conn)
-    
-    If Len(noticeMessage) > 0 Then
-        Debug.Print "NOTICE: " & noticeMessage
-        ' Here you can parse the notice message to get detailed results
-        ExecuteProtectedFunction = ParseNoticeMessage(noticeMessage)
+    ' For insert_mrl_line_items, retrieve the summary from the output parameter
+    If functionName = "insert_mrl_line_items" Then
+        ExecuteProtectedFunction = cmdExecute.Parameters("summary").Value
     Else
-        ExecuteProtectedFunction = True ' Indicate success
+        ExecuteProtectedFunction = True ' Indicate success for other procedures
     End If
     
     ' Renew session
@@ -127,7 +129,7 @@ ErrorHandler:
         Debug.Print "Parameter " & i + 1 & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100) & "..."
     Next i
     
-    ExecuteProtectedFunction = False ' Indicate failure
+    ExecuteProtectedFunction = "Error: " & Err.Description ' Return error message
     If Err.Number = 42883 Then  ' Function does not exist
         MsgBox "Function or procedure '" & functionName & "' does not exist.", vbExclamation
     Else
@@ -144,4 +146,3 @@ CleanUp:
     Set cmdExecute = Nothing
     Set cmdRenew = Nothing
 End Function
-

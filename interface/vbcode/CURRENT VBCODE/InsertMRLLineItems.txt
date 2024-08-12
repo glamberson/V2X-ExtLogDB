@@ -1,5 +1,5 @@
 ' insert mrl line items
-' version 0.8.40
+' version 0.8.44
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -7,6 +7,7 @@ Public Sub InsertMRLLineItems()
     Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
+    Dim summary As String
     
     Set frm = Forms!frMRL
     jsonData = ConvertToJSON()
@@ -20,16 +21,19 @@ Public Sub InsertMRLLineItems()
     Debug.Print "Update Source: " & updateSource
     Debug.Print "Pre-insert Error Log: " & errorLog
     
-    ' Call the protected function with correct number of parameters
-    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    ' Call the protected function with correct number of parameters, including the output parameter
+    summary = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource, "")
     
     ' Parse the results
     Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
-    If IsArray(result) Then
-        totalCount = result(0)
-        successCount = result(1)
-        duplicateCount = result(2)
-        errorCount = result(3)
+    Dim parsedResult As Variant
+    parsedResult = ParseNoticeMessage(summary)
+    
+    If IsArray(parsedResult) Then
+        totalCount = parsedResult(0)
+        successCount = parsedResult(1)
+        duplicateCount = parsedResult(2)
+        errorCount = parsedResult(3)
         
         ' Log errors and duplicates for later processing
         LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
@@ -52,9 +56,6 @@ Public Sub InsertMRLLineItems()
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "Insert Process Results:" & vbNewLine & _
-                                       "Total: " & totalCount & ", Success: " & successCount & _
-                                       ", Duplicates: " & duplicateCount & ", Errors: " & errorCount
+                                       "Insert Process Results:" & vbNewLine & summary
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
-
