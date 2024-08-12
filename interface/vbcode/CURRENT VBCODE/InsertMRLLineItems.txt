@@ -1,43 +1,50 @@
 ' insert mrl line items
-' version 0.8.14
+' version 0.8.40
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
     Dim updateSource As String
-    Dim success As Boolean
-    Dim errorMessage As String
+    Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
     
     Set frm = Forms!frMRL
     jsonData = ConvertToJSON()
-    jsonString = jsonData(0)
-    errorLog = jsonData(1)
+    jsonString = CStr(jsonData(0))
+    errorLog = CStr(jsonData(1))
     updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
     
     ' Debugging output
-    Debug.Print "JSON Data (first 1000 characters): " & Left(jsonString, 1000) & "..."
+    Debug.Print "Function name: insert_mrl_line_items"
+    Debug.Print "JSON Data length: " & Len(jsonString)
     Debug.Print "Update Source: " & updateSource
     Debug.Print "Pre-insert Error Log: " & errorLog
     
-    ' Call the protected function
-    success = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource, errorMessage)
+    ' Call the protected function with correct number of parameters
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
     
     ' Parse the results
-    Dim totalCount As Integer, successCount As Integer, errorCount As Integer
-    ParseResults errorMessage, totalCount, successCount, errorCount
+    Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+    If IsArray(result) Then
+        totalCount = result(0)
+        successCount = result(1)
+        duplicateCount = result(2)
+        errorCount = result(3)
+        
+        ' Log errors and duplicates for later processing
+        LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+    Else
+        MsgBox "Unexpected result from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+        Exit Sub
+    End If
     
     ' Display results
-    If success Then
-        MsgBox "All records processed successfully." & vbNewLine & _
-               "Total Records: " & totalCount, vbInformation
-    Else
-        MsgBox "Process completed with some errors." & vbNewLine & _
-               "Total Records: " & totalCount & vbNewLine & _
-               "Successful Inserts: " & successCount & vbNewLine & _
-               "Failed Inserts: " & errorCount & vbNewLine & _
-               "See error log for details.", vbExclamation
-    End If
+    MsgBox "Process completed." & vbNewLine & _
+           "Total Records: " & totalCount & vbNewLine & _
+           "Successful Inserts: " & successCount & vbNewLine & _
+           "Duplicate Records: " & duplicateCount & vbNewLine & _
+           "Failed Inserts: " & errorCount & vbNewLine & _
+           "See error log for details.", vbInformation
     
     ' Save error logs to a file
     Dim fso As Object
@@ -45,7 +52,30 @@ Public Sub InsertMRLLineItems()
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "PostgreSQL Errors:" & vbNewLine & errorMessage
+                                       "Insert Process Results:" & vbNewLine & _
+                                       "Total: " & totalCount & ", Success: " & successCount & _
+                                       ", Duplicates: " & duplicateCount & ", Errors: " & errorCount
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
 
+' Helper function to log errors and duplicates
+Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
+    Dim db As DAO.Database
+    Dim rst As DAO.Recordset
+    
+    Set db = CurrentDb()
+    Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
+    
+    rst.AddNew
+    rst!LogDate = Now()
+    rst!TotalCount = totalCount
+    rst!SuccessCount = successCount
+    rst!DuplicateCount = duplicateCount
+    rst!ErrorCount = errorCount
+    rst!ErrorDetails = errorLog
+    rst.Update
+    
+    rst.Close
+    Set rst = Nothing
+    Set db = Nothing
+End Sub

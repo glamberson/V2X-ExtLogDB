@@ -1,5 +1,6 @@
 'Convert to JSON
-'version 0.8.15
+'version 0.8.39
+
 Public Function ConvertToJSON() As Variant
     Dim db As DAO.Database
     Dim rs As DAO.Recordset
@@ -59,16 +60,16 @@ Public Function ConvertToJSON() As Variant
             json = json & "{"
             For Each f In rs.Fields
                 trimmedFieldName = Trim(f.Name)
-                json = json & """" & trimmedFieldName & """:"
+                json = json & """" & EscapeJSON(trimmedFieldName) & """:"
                 On Error Resume Next
                 If IsNull(f.Value) Then
                     json = json & "null"
                 ElseIf f.Type = dbText Then
-                    json = json & """" & Replace(Replace(f.Value, "\", "\\"), """", "\""") & """"
+                    json = json & """" & EscapeJSON(CStr(f.Value)) & """"
                 ElseIf f.Type = dbDate Then
                     json = json & """" & Format(f.Value, "yyyy-mm-ddThh:nn:ss") & """"
                 Else
-                    json = json & f.Value
+                    json = json & EscapeJSON(CStr(f.Value))
                 End If
                 If Err.Number <> 0 Then
                     errorLog = errorLog & "Record " & recordCount & ": Error in field " & trimmedFieldName & " - " & Err.Description & vbCrLf
@@ -99,4 +100,30 @@ Public Function ConvertToJSON() As Variant
                "Records with Errors: " & errorCount & vbCrLf & vbCrLf & errorLog
     
     ConvertToJSON = Array(json, errorLog)
+End Function
+
+' Helper function to escape JSON
+Private Function EscapeJSON(ByVal text As String) As String
+    Dim i As Integer
+    Dim char As String
+    Dim result As String
+    
+    For i = 1 To Len(text)
+        char = Mid(text, i, 1)
+        Select Case AscW(char)
+            Case 8:  result = result & "\b"
+            Case 9:  result = result & "\t"
+            Case 10: result = result & "\n"
+            Case 12: result = result & "\f"
+            Case 13: result = result & "\r"
+            Case 34: result = result & "\"""
+            Case 92: result = result & "\\"
+            Case 0 To 31
+                result = result & "\u" & Right("0000" & Hex(AscW(char)), 4)
+            Case Else
+                result = result & char
+        End Select
+    Next i
+    
+    EscapeJSON = result
 End Function

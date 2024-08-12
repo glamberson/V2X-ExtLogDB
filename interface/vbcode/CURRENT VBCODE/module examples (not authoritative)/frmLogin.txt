@@ -1,56 +1,63 @@
-' Version 0.7.14.22
+
+' btnLogin
+' version 0.8.05
 Private Sub btnLogin_Click()
     Dim username As String
     Dim password As String
-    
+
     username = Nz(Me.txtusername.Value, "")
     password = Nz(Me.txtPassword.Value, "")
-    
+
     If Trim(username) = "" Or Trim(password) = "" Then
         MsgBox "Username and password cannot be empty.", vbExclamation
         Exit Sub
     End If
-    
+
+    ' Ensure connection is initialized
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
+
     If ValidateUser(username, password) Then
         MsgBox "Login successful! Session token: " & g_sessionToken
-        ' Here you would typically open your main form or navigate to the main part of your application
+        ' Open your main form or navigate to the main part of your application here
     Else
         MsgBox "Login failed. Please check your username and password."
-        
-           ExecutePostgresCommand "INSERT INTO audit_trail (action, changed_by, details, changed_at) " & _
-                               "VALUES ('failed_login', '" & username & "', 'Failed login.', NOW())"
     End If
 End Sub
-' version 0.7.6.1
+
+
+'cmdLogout
+' Version 0.8.05
+
 Private Sub cmdLogout_Click()
-    Dim conn As ADODB.Connection
     Dim cmd As ADODB.Command
-    
+
     If g_sessionToken = "" Then
         MsgBox "No active session. You may already be logged out."
         Exit Sub
     End If
-    
-    Set conn = CreatePostgresConnection()
-    
+
+    On Error GoTo ErrorHandler
+
+    ' Use the global connection directly
     Set cmd = New ADODB.Command
     With cmd
-        .ActiveConnection = conn
+        .ActiveConnection = g_conn
         .CommandType = adCmdText
-        .CommandText = "SELECT user_logout(?)"
+        .commandText = "SELECT user_logout(?)"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
     End With
-    
-    On Error GoTo ErrorHandler
-    
+
     cmd.Execute
-    
-    conn.Close
-    
-    g_sessionToken = ""  ' Clear the session token
-    
+
+    ' Clear session token and related variables
+    g_sessionToken = ""
+    g_userId = 0
+    g_roleId = 0
+
     MsgBox "You have been logged out successfully."
-    
+
     ' Here you would typically close the current form and return to the login form
     ' DoCmd.Close acForm, "YourMainFormName"
     ' DoCmd.OpenForm "LoginForm"

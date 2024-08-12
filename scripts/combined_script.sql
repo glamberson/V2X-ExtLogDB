@@ -2497,15 +2497,15 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.8.15
+-- version 0.8.36
+
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
-    batch_data text,
+    batch_data jsonb,
     update_source TEXT
 )
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    parsed_data jsonb;
     item jsonb;
     current_user_id INT;
     current_role_id INT;
@@ -2524,25 +2524,18 @@ BEGIN
 
     RAISE LOG 'Current user ID from session: %, Current role ID from session: %', current_user_id, current_role_id;
 
-    -- Safely parse the JSON data
-    BEGIN
-        parsed_data := batch_data::jsonb;
-    EXCEPTION WHEN OTHERS THEN
-        RAISE EXCEPTION 'Invalid JSON data: %', SQLERRM;
-    END;
-
     -- Validate batch_data
-    IF parsed_data IS NULL OR jsonb_typeof(parsed_data) != 'array' THEN
+    IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
         RAISE EXCEPTION 'Invalid batch_data: not a JSON array or is NULL';
     END IF;
 
     -- Log the number of records in the JSON data
-    RAISE LOG 'Number of records in JSON data: %', jsonb_array_length(parsed_data);
+    RAISE LOG 'Number of records in JSON data: %', jsonb_array_length(batch_data);
 
     -- Start a subtransaction
     BEGIN
         -- Loop through each item in the JSONB array
-        FOR item IN SELECT * FROM jsonb_array_elements(parsed_data)
+        FOR item IN SELECT * FROM jsonb_array_elements(batch_data)
         LOOP
             v_record_count := v_record_count + 1;
             BEGIN
@@ -2619,6 +2612,5 @@ EXCEPTION WHEN OTHERS THEN
     RAISE;
 END;
 $$;
-
  
  
