@@ -13,25 +13,37 @@ Sub ImportAndInsertMRLLineItems()
 End Sub
 
 ' import excel to access
-' version 0.7.12
+' version 0.8.32
 Sub ImportExcelToAccess()
-    Dim filePath As String
+    Dim originalFilePath As String
+    Dim tempFilePath As String
     Dim xlApp As Object
     Dim xlWorkbook As Object
     Dim xlSheet As Object
     Dim col As Integer
+    Dim db As DAO.Database
     
-    filePath = "C:\Beta_003\MRL.xlsx"
+    originalFilePath = "C:\Beta_003\MRL.xlsx"
+    tempFilePath = "C:\Beta_003\TempMRL.xlsx"
+    
+    ' Delete TempTable if it exists
+    Set db = CurrentDb()
+    On Error Resume Next
+    db.Execute "DROP TABLE TempTable"
+    On Error GoTo 0
+    
+    ' Create a copy of the original file
+    FileCopy originalFilePath, tempFilePath
     
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
-    ' Open the workbook
-    Set xlWorkbook = xlApp.Workbooks.Open(filePath)
+    ' Open the temp workbook
+    Set xlWorkbook = xlApp.Workbooks.Open(tempFilePath)
     ' Set the worksheet
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     
     ' Clean up field names in the first row
-    For col = 1 To xlSheet.UsedRange.Columns.Count
+    For col = 1 To xlSheet.UsedRange.Columns.count
         xlSheet.Cells(1, col).Value = Trim(xlSheet.Cells(1, col).Value)
     Next col
     
@@ -47,12 +59,17 @@ Sub ImportExcelToAccess()
     Set xlApp = Nothing
 
     ' Import the cleaned Excel file into Access
-    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", filePath, True
+    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", tempFilePath, True
+    
+    ' Delete the temporary file
+    Kill tempFilePath
+    
+    Set db = Nothing
 End Sub
 
 'Convert to JSON
-'version 0.7.12
-Public Function ConvertToJSON() As String
+'version 0.8.15
+Public Function ConvertToJSON() As Variant
     Dim db As DAO.Database
     Dim rs As DAO.Recordset
     Dim json As String
@@ -61,6 +78,9 @@ Public Function ConvertToJSON() As String
     Dim keyField As Variant
     Dim isEmptyRecord As Boolean
     Dim trimmedFieldName As String
+    Dim errorLog As String
+    Dim recordCount As Long
+    Dim errorCount As Long
     
     ' Define the key fields to check
     Set keyFields = New Collection
@@ -74,31 +94,32 @@ Public Function ConvertToJSON() As String
     Set rs = db.OpenRecordset("SELECT * FROM TempTable")
 
     If rs.EOF Then
-        ConvertToJSON = "[]"
+        ConvertToJSON = Array("[]", "No records found.")
         Exit Function
     End If
 
-    ' Debug: Print all field names in the Recordset
-    Debug.Print "Field names in TempTable:"
-    For Each f In rs.Fields
-        Debug.Print "[" & Trim(f.Name) & "]"
-    Next f
-
     json = "["
+    errorLog = ""
+    recordCount = 0
+    errorCount = 0
     
     Do While Not rs.EOF
+        recordCount = recordCount + 1
         isEmptyRecord = True
         
         ' Check if key fields are empty
         For Each keyField In keyFields
             On Error Resume Next
-            ' Trim the field name to remove any leading/trailing spaces
             trimmedFieldName = Trim(keyField)
             If IsNull(rs.Fields(trimmedFieldName)) Or rs.Fields(trimmedFieldName).Value = "" Then
-                Debug.Print "Field not found or empty: " & "[" & trimmedFieldName & "]"
+                If Err.Number = 0 Then
+                    errorLog = errorLog & "Record " & recordCount & ": Empty " & trimmedFieldName & vbCrLf
+                Else
+                    errorLog = errorLog & "Record " & recordCount & ": Missing field " & trimmedFieldName & vbCrLf
+                End If
+                errorCount = errorCount + 1
             Else
                 isEmptyRecord = False
-                Exit For
             End If
             On Error GoTo 0
         Next keyField
@@ -108,6 +129,7 @@ Public Function ConvertToJSON() As String
             For Each f In rs.Fields
                 trimmedFieldName = Trim(f.Name)
                 json = json & """" & trimmedFieldName & """:"
+                On Error Resume Next
                 If IsNull(f.Value) Then
                     json = json & "null"
                 ElseIf f.Type = dbText Then
@@ -117,6 +139,12 @@ Public Function ConvertToJSON() As String
                 Else
                     json = json & f.Value
                 End If
+                If Err.Number <> 0 Then
+                    errorLog = errorLog & "Record " & recordCount & ": Error in field " & trimmedFieldName & " - " & Err.Description & vbCrLf
+                    errorCount = errorCount + 1
+                    Err.Clear
+                End If
+                On Error GoTo 0
                 json = json & ","
             Next f
             json = Left(json, Len(json) - 1) ' Remove trailing comma
@@ -136,36 +164,115 @@ Public Function ConvertToJSON() As String
     Set rs = Nothing
     Set db = Nothing
     
-    ConvertToJSON = json
+    errorLog = "Total Records: " & recordCount & vbCrLf & _
+               "Records with Errors: " & errorCount & vbCrLf & vbCrLf & errorLog
+    
+    ConvertToJSON = Array(json, errorLog)
 End Function
 
-
 ' insert mrl line items
-' version 0.7.14.29
+' version 0.8.35
 
 Public Sub InsertMRLLineItems()
-    Dim jsonData As String
+    Dim jsonData As Variant
     Dim updateSource As String
-    Dim result As Boolean
+    Dim success As Boolean
+    Dim errorMessage As String
+    Dim jsonString As String
+    Dim errorLog As String
     
     Set frm = Forms!frMRL
     jsonData = ConvertToJSON()
+    jsonString = CStr(jsonData(0))
+    errorLog = CStr(jsonData(1))
     updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
     
     ' Debugging output
-    Debug.Print "JSON Data: " & jsonData
+    Debug.Print "Function name: insert_mrl_line_items"
+    Debug.Print "JSON Data length: " & Len(jsonString)
     Debug.Print "Update Source: " & updateSource
+    Debug.Print "Pre-insert Error Log: " & errorLog
     
-    ' Call the protected function
-    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonData, updateSource)
+    ' Call the protected function with correct number of parameters
+    success = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
     
-    ' Check the result
-    If result Then
-        MsgBox "Data inserted successfully", vbInformation
+    ' Check for errors returned by the procedure
+    If Not success Then
+        errorMessage = "Procedure execution failed. Check the database logs for details."
+    End If
+    
+    ' Parse the results if there's an error message
+    Dim totalCount As Long, successCount As Long, errorCount As Long
+    If Len(errorMessage) > 0 Then
+        ParseResults errorMessage, totalCount, successCount, errorCount
     Else
-        MsgBox "Failed to insert data", vbExclamation
+        ' If no error message, assume all records were processed successfully
+        totalCount = GetJSONRecordCount(jsonString)
+        successCount = totalCount
+        errorCount = 0
+    End If
+    
+    ' Display results
+    If success And errorCount = 0 Then
+        MsgBox "All records processed successfully." & vbNewLine & _
+               "Total Records: " & totalCount, vbInformation
+    Else
+        MsgBox "Process completed with some errors." & vbNewLine & _
+               "Total Records: " & totalCount & vbNewLine & _
+               "Successful Inserts: " & successCount & vbNewLine & _
+               "Failed Inserts: " & errorCount & vbNewLine & _
+               "See error log for details.", vbExclamation
+    End If
+    
+    ' Save error logs to a file
+    Dim fso As Object
+    Dim fileName As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
+                                       "PostgreSQL Errors:" & vbNewLine & errorMessage
+    MsgBox "Error log has been saved to " & fileName, vbInformation
+End Sub
+
+
+' version 0.8.34
+' Helper function to get the number of records in the JSON string
+
+Private Function GetJSONRecordCount(jsonString As String) As Long
+    Dim count As Long
+    Dim i As Long
+    count = 0
+    For i = 1 To Len(jsonString)
+        If Mid(jsonString, i, 1) = "{" Then
+            count = count + 1
+        End If
+    Next i
+    GetJSONRecordCount = count
+End Function
+
+' Parse results from error message
+' version 0.8.35
+
+Private Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef successCount As Long, ByRef errorCount As Long)
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Dim matches As Object
+    Set matches = regex.Execute(errorMessage)
+    
+    If matches.count > 0 Then
+        totalCount = CLng(matches(0).SubMatches(0))
+        successCount = CLng(matches(0).SubMatches(1))
+        errorCount = CLng(matches(0).SubMatches(2))
+    Else
+        totalCount = 0
+        successCount = 0
+        errorCount = 0
     End If
 End Sub
+
 
 
 ' validate excel data
@@ -185,7 +292,7 @@ Public Function ValidateExcelData() As Boolean
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     isValid = True
     
-    For row = 2 To xlSheet.Cells(xlSheet.Rows.Count, "A").End(-4162).row ' Assuming row 1 is the header row
+    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, "A").End(-4162).row ' Assuming row 1 is the header row
         If IsEmpty(xlSheet.Cells(row, 1)) Then ' Validate jcn
             MsgBox "Error: jcn is required at row " & row
             isValid = False
@@ -237,7 +344,7 @@ Public Sub ExecutePostgresCommand(cmdText As String, ParamArray params() As Vari
     Set conn = CreatePostgresConnection()
     Set cmd = New ADODB.Command
     cmd.ActiveConnection = conn
-    cmd.CommandText = cmdText
+    cmd.commandText = cmdText
 
     For i = LBound(params) To UBound(params)
         cmd.Parameters.Append cmd.CreateParameter("@param" & i + 1, adVarChar, adParamInput, 255, params(i))

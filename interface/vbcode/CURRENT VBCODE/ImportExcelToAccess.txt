@@ -1,18 +1,31 @@
 ' import excel to access
-' version 0.7.12
+' version 0.8.32
+
 Sub ImportExcelToAccess()
-    Dim filePath As String
+    Dim originalFilePath As String
+    Dim tempFilePath As String
     Dim xlApp As Object
     Dim xlWorkbook As Object
     Dim xlSheet As Object
     Dim col As Integer
+    Dim db As DAO.Database
     
-    filePath = "C:\Beta_003\MRL.xlsx"
+    originalFilePath = "C:\Beta_003\MRL.xlsx"
+    tempFilePath = "C:\Beta_003\TempMRL.xlsx"
+    
+    ' Delete TempTable if it exists
+    Set db = CurrentDb()
+    On Error Resume Next
+    db.Execute "DROP TABLE TempTable"
+    On Error GoTo 0
+    
+    ' Create a copy of the original file
+    FileCopy originalFilePath, tempFilePath
     
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
-    ' Open the workbook
-    Set xlWorkbook = xlApp.Workbooks.Open(filePath)
+    ' Open the temp workbook
+    Set xlWorkbook = xlApp.Workbooks.Open(tempFilePath)
     ' Set the worksheet
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     
@@ -33,5 +46,10 @@ Sub ImportExcelToAccess()
     Set xlApp = Nothing
 
     ' Import the cleaned Excel file into Access
-    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", filePath, True
+    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", tempFilePath, True
+    
+    ' Delete the temporary file
+    Kill tempFilePath
+    
+    Set db = Nothing
 End Sub

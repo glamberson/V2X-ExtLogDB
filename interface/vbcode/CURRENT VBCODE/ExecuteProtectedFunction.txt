@@ -1,5 +1,5 @@
 ' execute protected (postgres) function or procedure
-' version 0.8.31
+' version 0.8.40
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -14,6 +14,11 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     ReDim functionArgs(LBound(args) To UBound(args))
     For i = LBound(args) To UBound(args)
         functionArgs(i) = args(i)
+    Next i
+    
+    ' Debug print arguments
+    For i = LBound(functionArgs) To UBound(functionArgs)
+        Debug.Print "Argument " & i & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100)
     Next i
     
     ' Validate session and permission
@@ -54,29 +59,40 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         ' Add parameters
         For i = LBound(functionArgs) To UBound(functionArgs)
             If i > LBound(functionArgs) Then commandText = commandText & ", "
-            commandText = commandText & "?"
-            On Error Resume Next
-            .Parameters.Append .CreateParameter("param" & (i + 1), adVarChar, adParamInput, 8000, functionArgs(i))
-            If Err.Number <> 0 Then
-                Dim errMsg As String
-                errMsg = "Error adding parameter " & i + 1 & " to command:" & vbNewLine & _
-                         "Value: " & functionArgs(i) & vbNewLine & _
-                         "Error: " & Err.Description
-                Debug.Print errMsg
-                MsgBox errMsg, vbExclamation, "Parameter Error"
-                ExecuteProtectedFunction = False
-                Exit Function
+            If i = LBound(functionArgs) And functionName = "insert_mrl_line_items" Then
+                commandText = commandText & "?::jsonb"
+            ElseIf i = LBound(functionArgs) + 1 And functionName = "insert_mrl_line_items" Then
+                commandText = commandText & "?::text"
+            Else
+                commandText = commandText & "?"
             End If
-            On Error GoTo 0
+            .Parameters.Append .CreateParameter("param" & (i + 1), adLongVarChar, adParamInput, -1, functionArgs(i))
         Next i
         
         commandText = commandText & ")"
         .CommandText = commandText
+        
+        ' Debug print
+        Debug.Print "Command text: " & commandText
+        Debug.Print "Command text length: " & Len(commandText)
     End With
     
     On Error GoTo ErrorHandler
     
-    cmdExecute.Execute
+    Dim result As ADODB.Recordset
+    Set result = cmdExecute.Execute
+    
+    ' Check for NOTICE messages
+    Dim noticeMessage As String
+    noticeMessage = GetNoticeMessage(g_conn)
+    
+    If Len(noticeMessage) > 0 Then
+        Debug.Print "NOTICE: " & noticeMessage
+        ' Here you can parse the notice message to get detailed results
+        ExecuteProtectedFunction = ParseNoticeMessage(noticeMessage)
+    Else
+        ExecuteProtectedFunction = True ' Indicate success
+    End If
     
     ' Renew session
     Set cmdRenew = New ADODB.Command
@@ -98,18 +114,17 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         End If
     End If
     
-    ExecuteProtectedFunction = True ' Indicate success
-    
     Exit Function
 
 ErrorHandler:
     Debug.Print "Error in ExecuteProtectedFunction: " & Err.Description
     Debug.Print "Error Number: " & Err.Number
     Debug.Print "Command Text: " & commandText
+    Debug.Print "Command Text length: " & Len(commandText)
     
     ' Print out all parameter values for debugging
     For i = LBound(functionArgs) To UBound(functionArgs)
-        Debug.Print "Parameter " & i + 1 & ": " & functionArgs(i)
+        Debug.Print "Parameter " & i + 1 & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100) & "..."
     Next i
     
     ExecuteProtectedFunction = False ' Indicate failure
@@ -130,3 +145,48 @@ CleanUp:
     Set cmdRenew = Nothing
 End Function
 
+' Helper function to get NOTICE messages
+Private Function GetNoticeMessage(conn As ADODB.Connection) As String
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = conn
+        .CommandText = "SELECT pg_get_last_result_notices() AS notice"
+    End With
+    
+    Set rs = cmd.Execute
+    
+    If Not rs.EOF Then
+        GetNoticeMessage = rs.Fields("notice").Value
+    Else
+        GetNoticeMessage = ""
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    Set cmd = Nothing
+End Function
+
+' Helper function to parse NOTICE message
+Private Function ParseNoticeMessage(message As String) As Variant
+    Dim result(3) As Long
+    Dim matches As Object
+    Dim regex As Object
+    
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Duplicates: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Set matches = regex.Execute(message)
+    
+    If matches.Count > 0 Then
+        result(0) = CLng(matches(0).SubMatches(0)) ' Total
+        result(1) = CLng(matches(0).SubMatches(1)) ' Success
+        result(2) = CLng(matches(0).SubMatches(2)) ' Duplicates
+        result(3) = CLng(matches(0).SubMatches(3)) ' Errors
+    End If
+    
+    ParseNoticeMessage = result
+End Function
