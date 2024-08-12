@@ -68,7 +68,8 @@ Sub ImportExcelToAccess()
 End Sub
 
 'Convert to JSON
-'version 0.8.15
+'version 0.8.39
+
 Public Function ConvertToJSON() As Variant
     Dim db As DAO.Database
     Dim rs As DAO.Recordset
@@ -128,16 +129,16 @@ Public Function ConvertToJSON() As Variant
             json = json & "{"
             For Each f In rs.Fields
                 trimmedFieldName = Trim(f.Name)
-                json = json & """" & trimmedFieldName & """:"
+                json = json & """" & EscapeJSON(trimmedFieldName) & """:"
                 On Error Resume Next
                 If IsNull(f.Value) Then
                     json = json & "null"
                 ElseIf f.Type = dbText Then
-                    json = json & """" & Replace(Replace(f.Value, "\", "\\"), """", "\""") & """"
+                    json = json & """" & EscapeJSON(CStr(f.Value)) & """"
                 ElseIf f.Type = dbDate Then
                     json = json & """" & Format(f.Value, "yyyy-mm-ddThh:nn:ss") & """"
                 Else
-                    json = json & f.Value
+                    json = json & EscapeJSON(CStr(f.Value))
                 End If
                 If Err.Number <> 0 Then
                     errorLog = errorLog & "Record " & recordCount & ": Error in field " & trimmedFieldName & " - " & Err.Description & vbCrLf
@@ -170,14 +171,40 @@ Public Function ConvertToJSON() As Variant
     ConvertToJSON = Array(json, errorLog)
 End Function
 
+' version 0.8.39
+' Helper function to escape JSON
+Private Function EscapeJSON(ByVal text As String) As String
+    Dim i As Integer
+    Dim char As String
+    Dim result As String
+    
+    For i = 1 To Len(text)
+        char = Mid(text, i, 1)
+        Select Case AscW(char)
+            Case 8:  result = result & "\b"
+            Case 9:  result = result & "\t"
+            Case 10: result = result & "\n"
+            Case 12: result = result & "\f"
+            Case 13: result = result & "\r"
+            Case 34: result = result & "\"""
+            Case 92: result = result & "\\"
+            Case 0 To 31
+                result = result & "\u" & Right("0000" & Hex(AscW(char)), 4)
+            Case Else
+                result = result & char
+        End Select
+    Next i
+    
+    EscapeJSON = result
+End Function
+
 ' insert mrl line items
-' version 0.8.35
+' version 0.8.40
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
     Dim updateSource As String
-    Dim success As Boolean
-    Dim errorMessage As String
+    Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
     
@@ -194,35 +221,30 @@ Public Sub InsertMRLLineItems()
     Debug.Print "Pre-insert Error Log: " & errorLog
     
     ' Call the protected function with correct number of parameters
-    success = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
     
-    ' Check for errors returned by the procedure
-    If Not success Then
-        errorMessage = "Procedure execution failed. Check the database logs for details."
-    End If
-    
-    ' Parse the results if there's an error message
-    Dim totalCount As Long, successCount As Long, errorCount As Long
-    If Len(errorMessage) > 0 Then
-        ParseResults errorMessage, totalCount, successCount, errorCount
+    ' Parse the results
+    Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+    If IsArray(result) Then
+        totalCount = result(0)
+        successCount = result(1)
+        duplicateCount = result(2)
+        errorCount = result(3)
+        
+        ' Log errors and duplicates for later processing
+        LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
     Else
-        ' If no error message, assume all records were processed successfully
-        totalCount = GetJSONRecordCount(jsonString)
-        successCount = totalCount
-        errorCount = 0
+        MsgBox "Unexpected result from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+        Exit Sub
     End If
     
     ' Display results
-    If success And errorCount = 0 Then
-        MsgBox "All records processed successfully." & vbNewLine & _
-               "Total Records: " & totalCount, vbInformation
-    Else
-        MsgBox "Process completed with some errors." & vbNewLine & _
-               "Total Records: " & totalCount & vbNewLine & _
-               "Successful Inserts: " & successCount & vbNewLine & _
-               "Failed Inserts: " & errorCount & vbNewLine & _
-               "See error log for details.", vbExclamation
-    End If
+    MsgBox "Process completed." & vbNewLine & _
+           "Total Records: " & totalCount & vbNewLine & _
+           "Successful Inserts: " & successCount & vbNewLine & _
+           "Duplicate Records: " & duplicateCount & vbNewLine & _
+           "Failed Inserts: " & errorCount & vbNewLine & _
+           "See error log for details.", vbInformation
     
     ' Save error logs to a file
     Dim fso As Object
@@ -230,10 +252,34 @@ Public Sub InsertMRLLineItems()
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "PostgreSQL Errors:" & vbNewLine & errorMessage
+                                       "Insert Process Results:" & vbNewLine & _
+                                       "Total: " & totalCount & ", Success: " & successCount & _
+                                       ", Duplicates: " & duplicateCount & ", Errors: " & errorCount
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
 
+' version 0.8.40
+' Helper function to log errors and duplicates
+Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
+    Dim db As DAO.Database
+    Dim rst As DAO.Recordset
+    
+    Set db = CurrentDb()
+    Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
+    
+    rst.AddNew
+    rst!LogDate = Now()
+    rst!totalCount = totalCount
+    rst!successCount = successCount
+    rst!duplicateCount = duplicateCount
+    rst!errorCount = errorCount
+    rst!ErrorDetails = errorLog
+    rst.Update
+    
+    rst.Close
+    Set rst = Nothing
+    Set db = Nothing
+End Sub
 
 ' version 0.8.34
 ' Helper function to get the number of records in the JSON string
@@ -272,8 +318,6 @@ Private Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef
         errorCount = 0
     End If
 End Sub
-
-
 
 ' validate excel data
 ' version 0.7.12
