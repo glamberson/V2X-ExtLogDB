@@ -1,54 +1,9 @@
 ' execute protected (postgres) function or procedure
-' version 0.8.45
+' version 0.8.46
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
-    Dim cmdValidate As ADODB.Command
-    Dim cmdExecute As ADODB.Command
-    Dim cmdRenew As ADODB.Command
-    Dim rs As ADODB.Recordset
-    Dim functionArgs() As Variant
-    Dim i As Long
-    Dim commandText As String
-    
-    ' Store args in a separate array to ensure they're not lost
-    ReDim functionArgs(LBound(args) To UBound(args))
-    For i = LBound(args) To UBound(args)
-        functionArgs(i) = args(i)
-    Next i
-    
-    ' Debug print arguments
-    For i = LBound(functionArgs) To UBound(functionArgs)
-        Debug.Print "Argument " & i & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100)
-    Next i
-    
-    ' Validate session and permission
-    Set cmdValidate = New ADODB.Command
-    With cmdValidate
-        .ActiveConnection = g_conn
-        .CommandText = "SELECT (validate_session_and_permission(?, ?)).*"
-        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
-        .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
-    End With
-    
-    Set rs = cmdValidate.Execute
-    
-    Dim isValid As Boolean
-    If Not rs.EOF Then
-        isValid = rs.Fields("is_valid").Value
-    Else
-        isValid = False
-    End If
-    
-    rs.Close
-    Set rs = Nothing
-    Set cmdValidate = Nothing
-    
-    If Not isValid Then
-        MsgBox "You don't have permission to perform this action.", vbExclamation
-        ExecuteProtectedFunction = False
-        Exit Function
-    End If
-    
+    ' ... (keep the existing code up to the execution part)
+
     ' Execute the actual function or procedure
     Set cmdExecute = New ADODB.Command
     With cmdExecute
@@ -56,15 +11,15 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         .CommandType = adCmdText
         
         If functionName = "insert_mrl_line_items" Then
-            commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?::text)"
+            commandText = "{ ? = CALL " & functionName & "(?::jsonb, ?::text) }"
             .CommandText = commandText
+            
+            ' Add output parameter for summary
+            .Parameters.Append .CreateParameter("return_value", adVarChar, adParamOutput, 1000)
             
             ' Add input parameters
             .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, -1, functionArgs(0))
             .Parameters.Append .CreateParameter("param2", adVarChar, adParamInput, 255, functionArgs(1))
-            
-            ' Add output parameter for summary
-            .Parameters.Append .CreateParameter("summary", adVarChar, adParamOutput, 1000)
         Else
             ' Handle other functions/procedures as before
             commandText = "CALL " & functionName & "("
@@ -91,58 +46,10 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     
     ' For insert_mrl_line_items, retrieve the summary from the output parameter
     If functionName = "insert_mrl_line_items" Then
-        ExecuteProtectedFunction = cmdExecute.Parameters("summary").Value
+        ExecuteProtectedFunction = cmdExecute.Parameters("return_value").Value
     Else
         ExecuteProtectedFunction = True ' Indicate success for other procedures
     End If
     
-    ' Renew session
-    Set cmdRenew = New ADODB.Command
-    With cmdRenew
-        .ActiveConnection = g_conn
-        .CommandType = adCmdText
-        .CommandText = "SELECT renew_session(?, ?)"
-        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
-        .Parameters.Append .CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
-    End With
-    
-    Set rs = cmdRenew.Execute
-    
-    If Not rs.EOF Then
-        Dim renewSuccess As Boolean
-        renewSuccess = rs.Fields(0).Value
-        If Not renewSuccess Then
-            Debug.Print "Failed to renew session"
-        End If
-    End If
-    
-    Exit Function
-
-ErrorHandler:
-    Debug.Print "Error in ExecuteProtectedFunction: " & Err.Description
-    Debug.Print "Error Number: " & Err.Number
-    Debug.Print "Command Text: " & commandText
-    Debug.Print "Command Text length: " & Len(commandText)
-    
-    ' Print out all parameter values for debugging
-    For i = LBound(functionArgs) To UBound(functionArgs)
-        Debug.Print "Parameter " & i + 1 & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100) & "..."
-    Next i
-    
-    ExecuteProtectedFunction = "Error: " & Err.Description ' Return error message
-    If Err.Number = 42883 Then  ' Function does not exist
-        MsgBox "Function or procedure '" & functionName & "' does not exist.", vbExclamation
-    Else
-        MsgBox "An error occurred: " & Err.Description & vbNewLine & _
-               "See Immediate window for more details.", vbExclamation
-    End If
-
-CleanUp:
-    ' Clean up
-    If Not rs Is Nothing Then
-        rs.Close
-        Set rs = Nothing
-    End If
-    Set cmdExecute = Nothing
-    Set cmdRenew = Nothing
+    ' ... (keep the rest of the function as is)
 End Function
