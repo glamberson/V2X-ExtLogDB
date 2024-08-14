@@ -1,6 +1,6 @@
-' import excel to access
-' version 0.8.42
 
+' import excel to access
+' version 0.8.57
 Sub ImportExcelToAccess()
     Dim originalFilePath As String
     Dim tempFilePath As String
@@ -9,6 +9,7 @@ Sub ImportExcelToAccess()
     Dim xlSheet As Object
     Dim col As Integer
     Dim db As DAO.Database
+    Dim fso As Object
     
     originalFilePath = "C:\Beta_003\MRL.xlsx"
     tempFilePath = "C:\Beta_003\TempMRL.xlsx"
@@ -20,7 +21,24 @@ Sub ImportExcelToAccess()
     On Error GoTo 0
     
     ' Create a copy of the original file
+    On Error Resume Next
     FileCopy originalFilePath, tempFilePath
+    
+    If Err.Number <> 0 Then
+        ' If FileCopy fails, try using FileSystemObject
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        On Error Resume Next
+        fso.CopyFile originalFilePath, tempFilePath, True
+        
+        If Err.Number <> 0 Then
+            MsgBox "Error copying file: " & Err.Description, vbExclamation
+            Exit Sub
+        End If
+        On Error GoTo 0
+    End If
+    On Error GoTo 0
+    
+    ' Rest of your code...
     
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
@@ -30,7 +48,7 @@ Sub ImportExcelToAccess()
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     
     ' Clean up field names in the first row: trim and convert to lowercase
-    For col = 1 To xlSheet.UsedRange.Columns.Count
+    For col = 1 To xlSheet.UsedRange.Columns.count
         xlSheet.Cells(1, col).Value = LCase(Trim(xlSheet.Cells(1, col).Value))
     Next col
     
@@ -49,7 +67,13 @@ Sub ImportExcelToAccess()
     DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", tempFilePath, True
     
     ' Delete the temporary file
+    On Error Resume Next
     Kill tempFilePath
+    If Err.Number <> 0 Then
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.DeleteFile tempFilePath, True
+    End If
+    On Error GoTo 0
     
     Set db = Nothing
 End Sub

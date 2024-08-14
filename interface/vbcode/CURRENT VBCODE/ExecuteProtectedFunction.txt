@@ -1,5 +1,5 @@
 ' execute protected (postgres) function or procedure
-' version 0.8.52
+' version 0.8.58
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -57,6 +57,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     With cmdExecute
         .ActiveConnection = g_conn
         .CommandType = adCmdText
+        .CommandTimeout = 0 ' Set to 0 for no timeout, adjust as needed
         
         If functionName = "insert_mrl_line_items" Then
             commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?)"
