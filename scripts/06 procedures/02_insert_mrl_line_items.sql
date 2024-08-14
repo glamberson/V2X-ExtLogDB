@@ -1,4 +1,4 @@
--- version 0.8.42
+-- version 0.8.50
 
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
     batch_data jsonb,
@@ -103,8 +103,8 @@ BEGIN
         RAISE LOG 'Error messages: %', v_error_messages;
     END IF;
 
-    -- Set the summary output parameter
-    summary := format('Total: %s, Success: %s, Duplicates: %s, Errors: %s', 
+    -- Always set a summary, even if it's just a success message
+    summary := format('Operation completed. Total: %s, Success: %s, Duplicates: %s, Errors: %s', 
                       v_record_count, v_success_count, v_duplicate_count, v_error_count);
 
 EXCEPTION WHEN OTHERS THEN
@@ -112,3 +112,4 @@ EXCEPTION WHEN OTHERS THEN
     summary := 'Unhandled exception: ' || SQLERRM;
 END;
 $$;
+

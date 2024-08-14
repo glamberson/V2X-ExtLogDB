@@ -1,10 +1,10 @@
 ' insert mrl line items
-' version 0.8.46
+' version 0.8.53
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
     Dim updateSource As String
-    Dim summary As String
+    Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
     
@@ -21,23 +21,29 @@ Public Sub InsertMRLLineItems()
     Debug.Print "Pre-insert Error Log: " & errorLog
     
     ' Call the protected function with correct number of parameters
-    summary = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
     
-    ' Parse the results
-    Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
-    Dim parsedResult As Variant
-    parsedResult = ParseNoticeMessage(summary)
-    
-    If IsArray(parsedResult) Then
-        totalCount = parsedResult(0)
-        successCount = parsedResult(1)
-        duplicateCount = parsedResult(2)
-        errorCount = parsedResult(3)
+    ' Check the result
+    If Not IsNull(result) Then
+        ' Parse the results
+        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+        Dim parsedResult As Variant
+        parsedResult = ParseNoticeMessage(CStr(result))
         
-        ' Log errors and duplicates for later processing
-        LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        If IsArray(parsedResult) Then
+            totalCount = parsedResult(0)
+            successCount = parsedResult(1)
+            duplicateCount = parsedResult(2)
+            errorCount = parsedResult(3)
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        Else
+            MsgBox "Unexpected result format from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+            Exit Sub
+        End If
     Else
-        MsgBox "Unexpected result from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+        MsgBox "Unexpected result type from insert_mrl_line_items. Check the database logs for details.", vbExclamation
         Exit Sub
     End If
     
@@ -55,7 +61,6 @@ Public Sub InsertMRLLineItems()
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "Insert Process Results:" & vbNewLine & summary
+                                       "Insert Process Results:" & vbNewLine & CStr(result)
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
-

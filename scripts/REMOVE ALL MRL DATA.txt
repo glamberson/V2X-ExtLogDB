@@ -1,0 +1,2 @@
+TRUNCATE TABLE mrl_line_items CASCADE;
+

@@ -1,4 +1,4 @@
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql  
 -- version 0.5.1
 
 
@@ -6,7 +6,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\01 initialization\02_create_roles.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\02_create_roles.sql  
 -- Create roles table and predefined roles
 -- version 0.7.9
 
@@ -27,7 +27,7 @@ INSERT INTO roles (role_name, db_role_name) VALUES
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\01 initialization\03_create_users.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\03_create_users.sql  
 -- version 0.7
 -- create users table and initial users with assigned roles
 
@@ -53,7 +53,7 @@ INSERT INTO users (username, password_hash, role_id) VALUES
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\01_create_statuses.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\01_create_statuses.sql  
 -- version 0.5.1
 
 
@@ -82,7 +82,7 @@ INSERT INTO statuses (status_name, status_value) VALUES
     ('ON HAND EGYPT', 110);
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\02_availability_events.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\02_availability_events.sql  
 -- version 0.7.14.8
 
 
@@ -100,7 +100,7 @@ CREATE TABLE availability_events (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\02_create_MRL_line_items.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\02_create_MRL_line_items.sql  
  -- version 0.7.14.9
 
 
@@ -150,7 +150,7 @@ CREATE TABLE MRL_line_items (
 );
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\03_create_fulfillment_items.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\03_create_fulfillment_items.sql  
 -- version 0.7.4
 
 -- Create fulfillment items table (added MILSTRIP/req field)(added carrier field)
@@ -185,7 +185,7 @@ CREATE TABLE fulfillment_items (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql  
 -- version 0.7.14.5
 
 
@@ -208,7 +208,7 @@ CREATE TABLE audit_trail (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\05_create_line_item_comments.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\05_create_line_item_comments.sql  
 -- version 0.6
 
 
@@ -228,7 +228,7 @@ CREATE TABLE line_item_comments (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\06_create_line_item_inquiry.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\06_create_line_item_inquiry.sql  
 -- version 0.6
 
 
@@ -247,7 +247,7 @@ CREATE TABLE line_item_inquiry (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\06_create_user_sessions.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\06_create_user_sessions.sql  
 -- version 0.7.2
 
 
@@ -261,7 +261,7 @@ CREATE TABLE user_sessions (
     expires_at TIMESTAMPTZ
 ); 
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\07_create_function_permissions.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\07_create_function_permissions.sql  
 -- Create Function permissions table
 
 -- version 0.7.14.22
@@ -275,7 +275,7 @@ CREATE TABLE function_permissions (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\07_create_user_activity.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\07_create_user_activity.sql  
 -- version 0.6
 
 
@@ -292,7 +292,7 @@ CREATE TABLE user_activity (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\09_temp_bulk_update.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\09_temp_bulk_update.sql  
 -- version 0.7.4
 
 
@@ -323,7 +323,7 @@ CREATE TABLE temp_bulk_update (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\10_create_failed_logins.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\10_create_failed_logins.sql  
 -- version 0.6
 
 -- Create failed logins table
@@ -337,7 +337,7 @@ CREATE TABLE failed_logins (
 );
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\11_create_archived_MRL_line_items.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\11_create_archived_MRL_line_items.sql  
 -- version 0.7.14.9
 
 -- Create archived MRL line items table
@@ -387,7 +387,7 @@ CREATE TABLE archived_MRL_line_items (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\12_create_archived_fulfillment_items.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\12_create_archived_fulfillment_items.sql  
 -- version 0.6
 
 -- Create archived fulfillment items table
@@ -424,10 +424,10 @@ CREATE TABLE archived_fulfillment_items (
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\20_create_constraints.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\20_create_constraints.sql  
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\30_create_indexes.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\30_create_indexes.sql  
 -- version 0.5.1
 
 
@@ -444,7 +444,7 @@ CREATE INDEX idx_audit_trail_changed_at ON audit_trail(changed_at);
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\01_create_functions-01.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\01_create_functions-01.sql  
 -- version 0.7.4
 
 -- functions included are: audit_fulfillment_update, update_mrl_status, log_inquiry_status_change, add_line_item_comment, 
@@ -600,7 +600,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\01_create_functions-02.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\01_create_functions-02.sql  
 -- version 0.6
 
 -- functions included: bulk_update_fulfillment_items,
@@ -715,7 +715,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_archive_fulfillment_item.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_archive_fulfillment_item.sql  
 -- version 0.6
 
 -- archive fulfillment item
@@ -822,7 +822,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_archive_line_item.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_archive_line_item.sql  
 -- version 0.6.2
 
 -- archive line item
@@ -988,7 +988,7 @@ END;
 $$ LANGUAGE plpgsql;
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_cascade_status_to_mrl.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_cascade_status_to_mrl.sql  
 -- version 0.6.3
 
 -- cascade_status_to_mrl
@@ -1016,7 +1016,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_combined_status_audit_update.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_combined_status_audit_update.sql  
 -- version 0.7
 
 
@@ -1095,7 +1095,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_compare_and_update_line_items.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_compare_and_update_line_items.sql  
 -- version 0.6
 
 -- compare and update line items function
@@ -1246,7 +1246,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_create_fulfillment_record.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_create_fulfillment_record.sql  
 -- version 0.8.10
 
 
@@ -1285,7 +1285,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_all_changes.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_all_changes.sql  
 -- version 0.6
 
 
@@ -1376,7 +1376,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql  
 -- version 0.7.14.39 Adding more detailed logging and error handling
 
 CREATE OR REPLACE FUNCTION log_audit(
@@ -1453,7 +1453,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_failed_login_attempt.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_failed_login_attempt.sql  
 -- version 0.6
 
 
@@ -1477,7 +1477,7 @@ END;
 $$ LANGUAGE plpgsql;
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_user_activity.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_user_activity.sql  
 -- version 0.7.6.2
 
 
@@ -1540,7 +1540,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql; 
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status.sql  
 -- version 0.6.5
 
 -- update fulfillment status
@@ -1577,7 +1577,28 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_update_inquiry_status_with_reason.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status-simple.sql-notused  
+-- version 0.6.5_simple
+
+-- Function to Update Fulfillment Status
+
+CREATE OR REPLACE FUNCTION update_fulfillment_status(order_line_item_id INT, fulfillment_item_id INT, status_id INT, updated_by INT, update_source TEXT)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE fulfillment_items
+    SET status_id = status_id, updated_by = updated_by, update_source = update_source, updated_at = CURRENT_TIMESTAMP
+    WHERE fulfillment_item_id = fulfillment_item_id;
+
+    -- Log status change in audit trail
+    PERFORM log_audit('UPDATE', order_line_item_id, fulfillment_item_id, updated_by, 'Fulfillment status updated');
+
+    -- Cascade status to MRL line item
+    PERFORM cascade_status_to_mrl(order_line_item_id);
+END;
+$$ LANGUAGE plpgsql;
+ 
+ 
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_inquiry_status_with_reason.sql  
 -- version 0.6
 
 
@@ -1631,7 +1652,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_view_inquiry_status_items.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_view_inquiry_status_items.sql  
 -- version 0.6
 
 
@@ -1662,7 +1683,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_view_line_item_history_with_comments.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_view_line_item_history_with_comments.sql  
 -- version 0.6
 
 -- view line item history with comments
@@ -1717,7 +1738,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql  
 
 -- version 0.7.14.39
 
@@ -1767,7 +1788,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\03_user_logout.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_logout.sql  
 
 -- version 0.7.6.1
 
@@ -1801,7 +1822,7 @@ SECURITY DEFINER;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_fulfillment_bulk_update.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_fulfillment_bulk_update.sql  
 -- version 0.7.4
 
 
@@ -1870,7 +1891,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_login_wrapper.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_login_wrapper.sql  
 
 -- version 0.7.14.39
 
@@ -1901,7 +1922,7 @@ BEGIN
 END;
 $$; 
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_set_user_role.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_set_user_role.sql  
 
 -- version 0.7.14.39
 
@@ -1918,7 +1939,7 @@ $$;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_update_fulfillment_item.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_update_fulfillment_item.sql  
 -- version 0.7.4
 
 
@@ -1951,7 +1972,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_update_mrl_item.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_update_mrl_item.sql  
 -- version 0.7.4
 
 
@@ -1984,7 +2005,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_create_session.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_create_session.sql  
 -- version 0.7.14.28
 
 -- Function to create a session
@@ -2003,7 +2024,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_invalidate_session.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_invalidate_session.sql  
 -- version 0.7.14.28
 
 -- Function to invalidate a session
@@ -2016,7 +2037,7 @@ END;
 $$ LANGUAGE plpgsql;
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_renew_session.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_renew_session.sql  
 -- renew_session function
 -- version 0.8.08
 
@@ -2042,7 +2063,7 @@ END;
 $$ LANGUAGE plpgsql;
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_set_session_variables.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_set_session_variables.sql  
 -- version 0.7.14.17
 
 CREATE OR REPLACE FUNCTION set_session_variables(p_session_id UUID, p_user_id INT, p_role_id INT)
@@ -2056,7 +2077,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_validate_session.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session.sql  
 -- version 0.7.14.29
 
 CREATE OR REPLACE FUNCTION validate_session(p_session_id UUID)
@@ -2074,7 +2095,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_validate_session_and_permission.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session_and_permission.sql  
 -- validate session and permission (version checking new function permissions table)
 
 -- version 0.8.07
@@ -2123,7 +2144,7 @@ $$ LANGUAGE plpgsql
 SECURITY DEFINER;
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\06_trigger_create_fulfillment_record.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\06_trigger_create_fulfillment_record.sql  
 -- version 0.8.10
 
 CREATE OR REPLACE FUNCTION trigger_create_fulfillment_record()
@@ -2151,7 +2172,7 @@ $$ LANGUAGE plpgsql;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\99_trigger_code.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\99_trigger_code.sql  
 -- version 0.8.31
 
 
@@ -2163,7 +2184,7 @@ EXECUTE FUNCTION trigger_create_fulfillment_record();
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\04 data\001_roles_creation.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\001_roles_creation.sql  
 -- version 0.7.14.39
 
 -- create roles and grant pemissions
@@ -2225,7 +2246,7 @@ GRANT USAGE, SELECT ON SEQUENCE fulfillment_items_fulfillment_item_id_seq TO kpp
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql  
 -- version 0.8.06
 
 
@@ -2244,7 +2265,7 @@ VALUES ('insert_mrl_line_items', 1);
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\05 utilities\01_create_views.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\01_create_views.sql  
 -- version 0.7
 
 
@@ -2442,7 +2463,7 @@ ON
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\06 procedures\01_create_procedures.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\01_create_procedures.sql  
 -- version 0.5.1
 
 
@@ -2475,12 +2496,13 @@ $$;
 
  
  
--- Including C:\Users\lambe\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.8.36
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
+-- version 0.8.50
 
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
     batch_data jsonb,
-    update_source TEXT
+    update_source TEXT,
+    OUT summary TEXT
 )
 LANGUAGE plpgsql
 AS $$
@@ -2492,6 +2514,7 @@ DECLARE
     v_record_count INT := 0;
     v_success_count INT := 0;
     v_error_count INT := 0;
+    v_duplicate_count INT := 0;
     v_error_messages TEXT := '';
 BEGIN
     RAISE LOG 'insert_mrl_line_items started';
@@ -2505,91 +2528,89 @@ BEGIN
 
     -- Validate batch_data
     IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
-        RAISE EXCEPTION 'Invalid batch_data: not a JSON array or is NULL';
+        summary := 'Invalid batch_data: not a JSON array or is NULL';
+        RETURN;
     END IF;
 
     -- Log the number of records in the JSON data
     RAISE LOG 'Number of records in JSON data: %', jsonb_array_length(batch_data);
 
-    -- Start a subtransaction
-    BEGIN
-        -- Loop through each item in the JSONB array
-        FOR item IN SELECT * FROM jsonb_array_elements(batch_data)
-        LOOP
-            v_record_count := v_record_count + 1;
-            BEGIN
-                -- Insert into MRL_line_items table
-                INSERT INTO MRL_line_items (
-                    jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
-                    market_research_up, market_research_ep, availability_identifier,
-                    request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
-                    mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
-                    techmanual, dwg_pc, requestor_remarks, inquiry_status,
-                    created_by, update_source
-                ) VALUES (
-                    (item->>'jcn')::TEXT,
-                    (item->>'twcode')::TEXT,
-                    (item->>'nomenclature')::TEXT,
-                    (item->>'cog')::TEXT,
-                    (item->>'fsc')::TEXT,
-                    (item->>'niin')::TEXT,
-                    (item->>'part_no')::TEXT,
-                    (item->>'qty')::INT,
-                    (item->>'ui')::TEXT,
-                    (item->>'market_research_up')::NUMERIC,
-                    (item->>'market_research_ep')::NUMERIC,
-                    (item->>'availability_identifier')::INT,
-                    (item->>'request_date')::DATE,
-                    (item->>'rdd')::DATE,
-                    (item->>'pri')::TEXT,
-                    (item->>'swlin')::TEXT,
-                    (item->>'hull_or_shop')::TEXT,
-                    (item->>'suggested_source')::TEXT,
-                    (item->>'mfg_cage')::TEXT,
-                    (item->>'apl')::TEXT,
-                    (item->>'nha_equipment_system')::TEXT,
-                    (item->>'nha_model')::TEXT,
-                    (item->>'nha_serial')::TEXT,
-                    (item->>'techmanual')::TEXT,
-                    (item->>'dwg_pc')::TEXT,
-                    (item->>'requestor_remarks')::TEXT,
-                    (item->>'inquiry_status')::BOOLEAN,
-                    current_user_id,
-                    update_source
-                ) RETURNING order_line_item_id INTO new_order_line_item_id;
+    -- Loop through each item in the JSONB array
+    FOR item IN SELECT * FROM jsonb_array_elements(batch_data)
+    LOOP
+        v_record_count := v_record_count + 1;
+        BEGIN
+            -- Insert into MRL_line_items table
+            INSERT INTO MRL_line_items (
+                jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
+                market_research_up, market_research_ep, availability_identifier,
+                request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
+                mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
+                techmanual, dwg_pc, requestor_remarks, inquiry_status,
+                created_by, update_source
+            ) VALUES (
+                (item->>'jcn')::TEXT,
+                (item->>'twcode')::TEXT,
+                (item->>'nomenclature')::TEXT,
+                (item->>'cog')::TEXT,
+                (item->>'fsc')::TEXT,
+                (item->>'niin')::TEXT,
+                (item->>'part_no')::TEXT,
+                (item->>'qty')::INT,
+                (item->>'ui')::TEXT,
+                (item->>'market_research_up')::NUMERIC,
+                (item->>'market_research_ep')::NUMERIC,
+                (item->>'availability_identifier')::INT,
+                (item->>'request_date')::DATE,
+                (item->>'rdd')::DATE,
+                (item->>'pri')::TEXT,
+                (item->>'swlin')::TEXT,
+                (item->>'hull_or_shop')::TEXT,
+                (item->>'suggested_source')::TEXT,
+                (item->>'mfg_cage')::TEXT,
+                (item->>'apl')::TEXT,
+                (item->>'nha_equipment_system')::TEXT,
+                (item->>'nha_model')::TEXT,
+                (item->>'nha_serial')::TEXT,
+                (item->>'techmanual')::TEXT,
+                (item->>'dwg_pc')::TEXT,
+                (item->>'requestor_remarks')::TEXT,
+                (item->>'inquiry_status')::BOOLEAN,
+                current_user_id,
+                update_source
+            ) RETURNING order_line_item_id INTO new_order_line_item_id;
 
-                v_success_count := v_success_count + 1;
-                PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
+            v_success_count := v_success_count + 1;
+            PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
 
-            EXCEPTION WHEN OTHERS THEN
+        EXCEPTION 
+            WHEN unique_violation THEN
+                v_duplicate_count := v_duplicate_count + 1;
+                RAISE LOG 'Duplicate record found for JCN: %, TWCODE: %', item->>'jcn', item->>'twcode';
+            WHEN OTHERS THEN
                 v_error_count := v_error_count + 1;
                 v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
                 RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
                 RAISE LOG 'Problematic item: %', item;
-            END;
-        END LOOP;
-
-    EXCEPTION WHEN OTHERS THEN
-        v_error_messages := v_error_messages || 'Error processing batch: ' || SQLERRM || E'\n';
-        RAISE LOG 'Error processing batch: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-    END;
+        END;
+    END LOOP;
 
     -- Log the final results
-    RAISE LOG 'insert_mrl_line_items completed. Total: %, Success: %, Errors: %', v_record_count, v_success_count, v_error_count;
+    RAISE LOG 'insert_mrl_line_items completed. Total: %, Success: %, Duplicates: %, Errors: %', 
+              v_record_count, v_success_count, v_duplicate_count, v_error_count;
     IF v_error_count > 0 THEN
         RAISE LOG 'Error messages: %', v_error_messages;
     END IF;
 
-    -- Raise an exception if there were any errors, but include the success count in the message
-    IF v_error_count > 0 THEN
-        RAISE EXCEPTION 'Some records failed to insert. Total: %, Success: %, Errors: %. Error messages: %', 
-                        v_record_count, v_success_count, v_error_count, v_error_messages;
-    END IF;
+    -- Always set a summary, even if it's just a success message
+    summary := format('Operation completed. Total: %s, Success: %s, Duplicates: %s, Errors: %s', 
+                      v_record_count, v_success_count, v_duplicate_count, v_error_count);
 
 EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Unhandled exception in insert_mrl_line_items: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-    RAISE;
+    summary := 'Unhandled exception: ' || SQLERRM;
 END;
 $$;
+
  
  
