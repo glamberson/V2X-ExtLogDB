@@ -1,5 +1,5 @@
 'Convert to JSON
-'version 0.8.58
+'version 0.8.60 REVERTED 39
 
 Public Function ConvertToJSON() As Variant
     Dim db As DAO.Database
@@ -67,11 +67,9 @@ Public Function ConvertToJSON() As Variant
                 ElseIf f.Type = dbText Then
                     json = json & """" & EscapeJSON(CStr(f.Value)) & """"
                 ElseIf f.Type = dbDate Then
-                    json = json & """" & Format(f.Value, "yyyy-mm-dd") & """"
-                ElseIf IsNumeric(f.Value) Then
-                    json = json & f.Value
+                    json = json & """" & Format(f.Value, "yyyy-mm-ddThh:nn:ss") & """"
                 Else
-                    json = json & """" & EscapeJSON(CStr(f.Value)) & """"
+                    json = json & EscapeJSON(CStr(f.Value))
                 End If
                 If Err.Number <> 0 Then
                     errorLog = errorLog & "Record " & recordCount & ": Error in field " & trimmedFieldName & " - " & Err.Description & vbCrLf
@@ -103,4 +101,3 @@ Public Function ConvertToJSON() As Variant
     
     ConvertToJSON = Array(json, errorLog)
 End Function
-
