@@ -1,5 +1,5 @@
 ' insert mrl line items
-' version 0.8.53
+' version 0.8.58
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -7,6 +7,10 @@ Public Sub InsertMRLLineItems()
     Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
+    Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+    Dim maxLength As Long
+    Dim startPos As Long, endPos As Long
+    Dim batchJsonString As String
     
     Set frm = Forms!frMRL
     jsonData = ConvertToJSON()
@@ -20,32 +24,55 @@ Public Sub InsertMRLLineItems()
     Debug.Print "Update Source: " & updateSource
     Debug.Print "Pre-insert Error Log: " & errorLog
     
-    ' Call the protected function with correct number of parameters
-    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    ' Set maximum length for each batch (adjust as needed)
+    maxLength = 1000000 ' Process about 1MB at a time
     
-    ' Check the result
-    If Not IsNull(result) Then
-        ' Parse the results
-        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
-        Dim parsedResult As Variant
-        parsedResult = ParseNoticeMessage(CStr(result))
-        
-        If IsArray(parsedResult) Then
-            totalCount = parsedResult(0)
-            successCount = parsedResult(1)
-            duplicateCount = parsedResult(2)
-            errorCount = parsedResult(3)
-            
-            ' Log errors and duplicates for later processing
-            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+    ' Process data in batches
+    startPos = 2 ' Start after the opening '['
+    endPos = Len(jsonString) - 1 ' End before the closing ']'
+    
+    Do While startPos < endPos
+        ' Find the end of the current batch
+        Dim batchEndPos As Long
+        batchEndPos = InStr(startPos + maxLength, jsonString, "},{")
+        If batchEndPos = 0 Or batchEndPos > endPos Then
+            batchEndPos = endPos
         Else
-            MsgBox "Unexpected result format from insert_mrl_line_items. Check the database logs for details.", vbExclamation
-            Exit Sub
+            batchEndPos = batchEndPos + 1 ' Include the closing '}'
         End If
-    Else
-        MsgBox "Unexpected result type from insert_mrl_line_items. Check the database logs for details.", vbExclamation
-        Exit Sub
-    End If
+        
+        ' Extract the batch
+        batchJsonString = "[" & Mid(jsonString, startPos, batchEndPos - startPos) & "]"
+        
+        ' Call the protected function for this batch
+        result = ExecuteProtectedFunction("insert_mrl_line_items", batchJsonString, updateSource)
+        
+        ' Parse batch results
+        If Not IsNull(result) Then
+            Dim parsedResult As Variant
+            parsedResult = ParseNoticeMessage(CStr(result))
+            
+            If IsArray(parsedResult) Then
+                totalCount = totalCount + parsedResult(0)
+                successCount = successCount + parsedResult(1)
+                duplicateCount = duplicateCount + parsedResult(2)
+                errorCount = errorCount + parsedResult(3)
+            Else
+                MsgBox "Unexpected result format from insert_mrl_line_items for batch. Check the database logs for details.", vbExclamation
+            End If
+        Else
+            MsgBox "Unexpected result type from insert_mrl_line_items for batch. Check the database logs for details.", vbExclamation
+        End If
+        
+        ' Move to the next batch
+        startPos = batchEndPos + 2 ' Skip the "},{"
+        
+        ' Update progress
+        Debug.Print "Processed approximately " & startPos & " of " & endPos & " characters"
+    Loop
+    
+    ' Log errors and duplicates for later processing
+    LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
     
     ' Display results
     MsgBox "Process completed." & vbNewLine & _
@@ -61,6 +88,11 @@ Public Sub InsertMRLLineItems()
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "Insert Process Results:" & vbNewLine & CStr(result)
+                                       "Insert Process Results:" & vbNewLine & _
+                                       "Total Records: " & totalCount & vbNewLine & _
+                                       "Successful Inserts: " & successCount & vbNewLine & _
+                                       "Duplicate Records: " & duplicateCount & vbNewLine & _
+                                       "Failed Inserts: " & errorCount
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
+

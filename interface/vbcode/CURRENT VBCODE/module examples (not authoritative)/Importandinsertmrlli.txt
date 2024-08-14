@@ -67,6 +67,7 @@ Sub ImportExcelToAccess()
     
     Set db = Nothing
 End Sub
+
 'Convert to JSON
 'version 0.8.39
 
@@ -199,7 +200,7 @@ Private Function EscapeJSON(ByVal text As String) As String
 End Function
 
 ' insert mrl line items
-' version 0.8.40
+' version 0.8.53
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -223,18 +224,27 @@ Public Sub InsertMRLLineItems()
     ' Call the protected function with correct number of parameters
     result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
     
-    ' Parse the results
-    Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
-    If IsArray(result) Then
-        totalCount = result(0)
-        successCount = result(1)
-        duplicateCount = result(2)
-        errorCount = result(3)
+    ' Check the result
+    If Not IsNull(result) Then
+        ' Parse the results
+        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+        Dim parsedResult As Variant
+        parsedResult = ParseNoticeMessage(CStr(result))
         
-        ' Log errors and duplicates for later processing
-        LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        If IsArray(parsedResult) Then
+            totalCount = parsedResult(0)
+            successCount = parsedResult(1)
+            duplicateCount = parsedResult(2)
+            errorCount = parsedResult(3)
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        Else
+            MsgBox "Unexpected result format from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+            Exit Sub
+        End If
     Else
-        MsgBox "Unexpected result from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+        MsgBox "Unexpected result type from insert_mrl_line_items. Check the database logs for details.", vbExclamation
         Exit Sub
     End If
     
@@ -252,11 +262,11 @@ Public Sub InsertMRLLineItems()
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "Insert Process Results:" & vbNewLine & _
-                                       "Total: " & totalCount & ", Success: " & successCount & _
-                                       ", Duplicates: " & duplicateCount & ", Errors: " & errorCount
+                                       "Insert Process Results:" & vbNewLine & CStr(result)
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
+
+
 
 ' version 0.8.40
 ' Helper function to log errors and duplicates
@@ -320,14 +330,16 @@ Private Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef
 End Sub
 
 ' validate excel data
-' version 0.7.12
+' version 0.8.55
 Public Function ValidateExcelData() As Boolean
     Dim xlApp As Object
     Dim xlWorkbook As Object
     Dim xlSheet As Object
     Dim row As Integer
     Dim isValid As Boolean
-    
+    Dim colJCN As Integer, colQty As Integer, colRequestDate As Integer, colCreatedBy As Integer
+    Dim headerRow As Integer
+
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
     ' Open the workbook
@@ -335,29 +347,40 @@ Public Function ValidateExcelData() As Boolean
     ' Set the worksheet
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     isValid = True
-    
-    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, "A").End(-4162).row ' Assuming row 1 is the header row
-        If IsEmpty(xlSheet.Cells(row, 1)) Then ' Validate jcn
+    headerRow = 1 ' Assuming row 1 is the header row
+
+    ' Find the column numbers based on the header names
+    colJCN = FindColumnByName(xlSheet, "jcn", headerRow)
+    colQty = FindColumnByName(xlSheet, "qty", headerRow)
+    colRequestDate = FindColumnByName(xlSheet, "request_date", headerRow)
+    colCreatedBy = FindColumnByName(xlSheet, "created_by", headerRow)
+
+    If colJCN = 0 Or colQty = 0 Or colRequestDate = 0 Or colCreatedBy = 0 Then
+        MsgBox "Error: One or more required columns are missing."
+        ValidateExcelData = False
+        Exit Function
+    End If
+
+    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, colJCN).End(-4162).row
+        If IsEmpty(xlSheet.Cells(row, colJCN)) Then ' Validate jcn
             MsgBox "Error: jcn is required at row " & row
             isValid = False
         End If
         
-        If Not IsNumeric(xlSheet.Cells(row, 8)) Or xlSheet.Cells(row, 8).Value <= 0 Then ' Validate qty
+        If Not IsNumeric(xlSheet.Cells(row, colQty)) Or xlSheet.Cells(row, colQty).Value <= 0 Then ' Validate qty
             MsgBox "Error: qty must be a positive number at row " & row
             isValid = False
         End If
         
-        If Not IsDate(xlSheet.Cells(row, 13)) Then ' Validate request_date
+        If Not IsDate(xlSheet.Cells(row, colRequestDate)) Then ' Validate request_date
             MsgBox "Error: request_date must be a valid date at row " & row
             isValid = False
         End If
         
-        If Not IsNumeric(xlSheet.Cells(row, 28)) Then ' Validate created_by
+        If Not IsNumeric(xlSheet.Cells(row, colCreatedBy)) Then ' Validate created_by
             MsgBox "Error: created_by must be a number at row " & row
             isValid = False
         End If
-        
-        ' Additional validation rules can be added here...
         
         If Not isValid Then Exit For
     Next row
@@ -373,6 +396,19 @@ Public Function ValidateExcelData() As Boolean
     Set xlApp = Nothing
     
     ValidateExcelData = isValid
+End Function
+
+' version 0.8.55
+' Helper function to find the column number based on the header name
+Private Function FindColumnByName(sheet As Object, columnName As String, headerRow As Integer) As Integer
+    Dim col As Integer
+    For col = 1 To sheet.Cells(headerRow, sheet.Columns.count).End(-4159).Column
+        If sheet.Cells(headerRow, col).Value = columnName Then
+            FindColumnByName = col
+            Exit Function
+        End If
+    Next col
+    FindColumnByName = 0 ' Return 0 if not found
 End Function
         
 ' execute postgres command
@@ -402,9 +438,34 @@ ErrorHandler:
     Exit Sub
 End Sub
 
+' Helper function to parse NOTICE message
+' version 0.8.53
 
-
-
-
+Private Function ParseNoticeMessage(message As String) As Variant
+    Dim result(3) As Long
+    Dim matches As Object
+    Dim regex As Object
+    
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Duplicates: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Set matches = regex.Execute(message)
+    
+    If matches.count > 0 Then
+        result(0) = CLng(matches(0).SubMatches(0)) ' Total
+        result(1) = CLng(matches(0).SubMatches(1)) ' Success
+        result(2) = CLng(matches(0).SubMatches(2)) ' Duplicates
+        result(3) = CLng(matches(0).SubMatches(3)) ' Errors
+    Else
+        ' If no match is found, set all values to -1 to indicate an error
+        result(0) = -1
+        result(1) = -1
+        result(2) = -1
+        result(3) = -1
+    End If
+    
+    ParseNoticeMessage = result
+End Function
 
 
