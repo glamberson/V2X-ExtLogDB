@@ -1,5 +1,5 @@
 ' execute protected (postgres) function or procedure
-' version 0.8.58
+' version 0.8.60 (REVERTED TO about 56)
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -28,7 +28,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     Set cmdValidate = New ADODB.Command
     With cmdValidate
         .ActiveConnection = g_conn
-        .CommandText = "SELECT (validate_session_and_permission(?, ?)).*"
+        .commandText = "SELECT (validate_session_and_permission(?, ?)).*"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
         .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
     End With
@@ -57,11 +57,10 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     With cmdExecute
         .ActiveConnection = g_conn
         .CommandType = adCmdText
-        .CommandTimeout = 0 ' Set to 0 for no timeout, adjust as needed
         
         If functionName = "insert_mrl_line_items" Then
             commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?)"
-            .CommandText = commandText
+            .commandText = commandText
             
             ' Add input parameters
             .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, -1, functionArgs(0))
@@ -82,7 +81,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
             Next i
             
             commandText = commandText & ")"
-            .CommandText = commandText
+            .commandText = commandText
         End If
         
         ' Debug print
@@ -122,7 +121,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     With cmdRenew
         .ActiveConnection = g_conn
         .CommandType = adCmdText
-        .CommandText = "SELECT renew_session(?, ?)"
+        .commandText = "SELECT renew_session(?, ?)"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
         .Parameters.Append .CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
     End With

@@ -1,8 +1,7 @@
-' version 0.8.58
+' version 0.8.60 REVERTED 39
 ' Helper function to escape JSON
-
 Private Function EscapeJSON(ByVal text As String) As String
-    Dim i As Long
+    Dim i As Integer
     Dim char As String
     Dim result As String
     
