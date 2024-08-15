@@ -1,0 +1,12 @@
+
+' version 0.8.64
+' Custom Min function
+
+Private Function Min(a As Long, b As Long) As Long
+    If a < b Then
+        Min = a
+    Else
+        Min = b
+    End If
+End Function
+
