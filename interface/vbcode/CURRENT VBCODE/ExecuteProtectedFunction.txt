@@ -1,5 +1,5 @@
 ' execute protected (postgres) function or procedure
-' version 0.8.60 (REVERTED TO about 56)
+' version 0.8.69
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -59,11 +59,12 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         .CommandType = adCmdText
         
         If functionName = "insert_mrl_line_items" Then
+            Debug.Print "JSON data size: " & Len(CStr(functionArgs(0))) & " bytes"
             commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?)"
             .commandText = commandText
             
-            ' Add input parameters
-            .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, -1, functionArgs(0))
+            ' Add input parameters with increased size
+            .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, 2147483647, functionArgs(0))
             .Parameters.Append .CreateParameter("param2", adVarChar, adParamInput, 255, functionArgs(1))
             
             ' Add output parameter for summary
