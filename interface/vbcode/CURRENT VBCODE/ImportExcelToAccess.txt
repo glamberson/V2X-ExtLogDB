@@ -38,8 +38,6 @@ Sub ImportExcelToAccess()
     End If
     On Error GoTo 0
     
-    ' Rest of your code...
-    
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
     ' Open the temp workbook
