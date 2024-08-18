@@ -1,6 +1,6 @@
-
+Option Compare Database
 ' import and insert mrl line items
-' 0.7.12
+' version 0.7.12
 Sub ImportAndInsertMRLLineItems()
     If Not ValidateExcelData() Then
         MsgBox "Data validation failed. Please correct the errors and try again."
@@ -9,7 +9,6 @@ Sub ImportAndInsertMRLLineItems()
     
     ImportExcelToAccess
     InsertMRLLineItems
-    
 End Sub
 
 ' import excel to access
@@ -68,8 +67,65 @@ Sub ImportExcelToAccess()
     Set db = Nothing
 End Sub
 
+' validate excel data
+' version 0.7.12 (reverted)
+Public Function ValidateExcelData() As Boolean
+    Dim xlApp As Object
+    Dim xlWorkbook As Object
+    Dim xlSheet As Object
+    Dim row As Integer
+    Dim isValid As Boolean
+    
+    ' Create a new Excel application instance
+    Set xlApp = CreateObject("Excel.Application")
+    ' Open the workbook
+    Set xlWorkbook = xlApp.Workbooks.Open("C:\Beta_003\MRL.xlsx")
+    ' Set the worksheet
+    Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
+    isValid = True
+    
+    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, "A").End(-4162).row ' Assuming row 1 is the header row
+        If IsEmpty(xlSheet.Cells(row, 1)) Then ' Validate jcn
+            MsgBox "Error: jcn is required at row " & row
+            isValid = False
+        End If
+        
+        If Not IsNumeric(xlSheet.Cells(row, 8)) Or xlSheet.Cells(row, 8).Value <= 0 Then ' Validate qty
+            MsgBox "Error: qty must be a positive number at row " & row
+            isValid = False
+        End If
+        
+        If Not IsDate(xlSheet.Cells(row, 13)) Then ' Validate request_date
+            MsgBox "Error: request_date must be a valid date at row " & row
+            isValid = False
+        End If
+        
+        If Not IsNumeric(xlSheet.Cells(row, 28)) Then ' Validate created_by
+            MsgBox "Error: created_by must be a number at row " & row
+            isValid = False
+        End If
+        
+        ' Additional validation rules can be added here...
+        
+        If Not isValid Then Exit For
+    Next row
+    
+    ' Close the workbook without saving
+    xlWorkbook.Close False
+    ' Quit Excel application
+    xlApp.Quit
+    
+    ' Clean up
+    Set xlSheet = Nothing
+    Set xlWorkbook = Nothing
+    Set xlApp = Nothing
+    
+    ValidateExcelData = isValid
+End Function
+
+
 'Convert to JSON
-'version 0.8.39
+'version 0.8.60 REVERTED 39
 
 Public Function ConvertToJSON() As Variant
     Dim db As DAO.Database
@@ -172,35 +228,8 @@ Public Function ConvertToJSON() As Variant
     ConvertToJSON = Array(json, errorLog)
 End Function
 
-' version 0.8.39
-' Helper function to escape JSON
-Private Function EscapeJSON(ByVal text As String) As String
-    Dim i As Integer
-    Dim char As String
-    Dim result As String
-    
-    For i = 1 To Len(text)
-        char = Mid(text, i, 1)
-        Select Case AscW(char)
-            Case 8:  result = result & "\b"
-            Case 9:  result = result & "\t"
-            Case 10: result = result & "\n"
-            Case 12: result = result & "\f"
-            Case 13: result = result & "\r"
-            Case 34: result = result & "\"""
-            Case 92: result = result & "\\"
-            Case 0 To 31
-                result = result & "\u" & Right("0000" & Hex(AscW(char)), 4)
-            Case Else
-                result = result & char
-        End Select
-    Next i
-    
-    EscapeJSON = result
-End Function
-
 ' insert mrl line items
-' version 0.8.53
+' version 0.8.53 (reverted)
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -266,30 +295,33 @@ Public Sub InsertMRLLineItems()
     MsgBox "Error log has been saved to " & fileName, vbInformation
 End Sub
 
+' version 0.8.60 REVERTED 39
+' Helper function to escape JSON
+Private Function EscapeJSON(ByVal text As String) As String
+    Dim i As Integer
+    Dim char As String
+    Dim result As String
+    
+    For i = 1 To Len(text)
+        char = Mid(text, i, 1)
+        Select Case AscW(char)
+            Case 8:  result = result & "\b"
+            Case 9:  result = result & "\t"
+            Case 10: result = result & "\n"
+            Case 12: result = result & "\f"
+            Case 13: result = result & "\r"
+            Case 34: result = result & "\"""
+            Case 92: result = result & "\\"
+            Case 0 To 31
+                result = result & "\u" & Right("0000" & Hex(AscW(char)), 4)
+            Case Else
+                result = result & char
+        End Select
+    Next i
+    
+    EscapeJSON = result
+End Function
 
-
-' version 0.8.40
-' Helper function to log errors and duplicates
-Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
-    Dim db As DAO.Database
-    Dim rst As DAO.Recordset
-    
-    Set db = CurrentDb()
-    Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
-    
-    rst.AddNew
-    rst!LogDate = Now()
-    rst!totalCount = totalCount
-    rst!successCount = successCount
-    rst!duplicateCount = duplicateCount
-    rst!errorCount = errorCount
-    rst!ErrorDetails = errorLog
-    rst.Update
-    
-    rst.Close
-    Set rst = Nothing
-    Set db = Nothing
-End Sub
 
 ' version 0.8.34
 ' Helper function to get the number of records in the JSON string
@@ -306,140 +338,5 @@ Private Function GetJSONRecordCount(jsonString As String) As Long
     GetJSONRecordCount = count
 End Function
 
-' Parse results from error message
-' version 0.8.35
-
-Private Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef successCount As Long, ByRef errorCount As Long)
-    Dim regex As Object
-    Set regex = CreateObject("VBScript.RegExp")
-    regex.Pattern = "Total: (\d+), Success: (\d+), Errors: (\d+)"
-    regex.Global = False
-    
-    Dim matches As Object
-    Set matches = regex.Execute(errorMessage)
-    
-    If matches.count > 0 Then
-        totalCount = CLng(matches(0).SubMatches(0))
-        successCount = CLng(matches(0).SubMatches(1))
-        errorCount = CLng(matches(0).SubMatches(2))
-    Else
-        totalCount = 0
-        successCount = 0
-        errorCount = 0
-    End If
-End Sub
-
-' validate excel data
-' version 0.7.12
-Public Function ValidateExcelData() As Boolean
-    Dim xlApp As Object
-    Dim xlWorkbook As Object
-    Dim xlSheet As Object
-    Dim row As Integer
-    Dim isValid As Boolean
-    
-    ' Create a new Excel application instance
-    Set xlApp = CreateObject("Excel.Application")
-    ' Open the workbook
-    Set xlWorkbook = xlApp.Workbooks.Open("C:\Beta_003\MRL.xlsx")
-    ' Set the worksheet
-    Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
-    isValid = True
-    
-    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, "A").End(-4162).row ' Assuming row 1 is the header row
-        If IsEmpty(xlSheet.Cells(row, 1)) Then ' Validate jcn
-            MsgBox "Error: jcn is required at row " & row
-            isValid = False
-        End If
-        
-        If Not IsNumeric(xlSheet.Cells(row, 8)) Or xlSheet.Cells(row, 8).Value <= 0 Then ' Validate qty
-            MsgBox "Error: qty must be a positive number at row " & row
-            isValid = False
-        End If
-        
-        If Not IsDate(xlSheet.Cells(row, 13)) Then ' Validate request_date
-            MsgBox "Error: request_date must be a valid date at row " & row
-            isValid = False
-        End If
-        
-        If Not IsNumeric(xlSheet.Cells(row, 28)) Then ' Validate created_by
-            MsgBox "Error: created_by must be a number at row " & row
-            isValid = False
-        End If
-        
-        ' Additional validation rules can be added here...
-        
-        If Not isValid Then Exit For
-    Next row
-    
-    ' Close the workbook without saving
-    xlWorkbook.Close False
-    ' Quit Excel application
-    xlApp.Quit
-    
-    ' Clean up
-    Set xlSheet = Nothing
-    Set xlWorkbook = Nothing
-    Set xlApp = Nothing
-    
-    ValidateExcelData = isValid
-End Function
-        
-' execute postgres command
-' version 0.7.14.22
-
-Public Sub ExecutePostgresCommand(cmdText As String, ParamArray params() As Variant)
-    On Error GoTo ErrorHandler
-    
-    Dim conn As ADODB.Connection
-    Dim cmd As ADODB.Command
-    Dim i As Integer
-
-    Set conn = CreatePostgresConnection()
-    Set cmd = New ADODB.Command
-    cmd.ActiveConnection = conn
-    cmd.commandText = cmdText
-
-    For i = LBound(params) To UBound(params)
-        cmd.Parameters.Append cmd.CreateParameter("@param" & i + 1, adVarChar, adParamInput, 255, params(i))
-    Next i
-
-    cmd.Execute
-    Exit Sub
-
-ErrorHandler:
-    MsgBox "Error: " & Err.Description, vbCritical
-    Exit Sub
-End Sub
-
-' Helper function to parse NOTICE message
-' version 0.8.53
-
-Private Function ParseNoticeMessage(message As String) As Variant
-    Dim result(3) As Long
-    Dim matches As Object
-    Dim regex As Object
-    
-    Set regex = CreateObject("VBScript.RegExp")
-    regex.Pattern = "Total: (\d+), Success: (\d+), Duplicates: (\d+), Errors: (\d+)"
-    regex.Global = False
-    
-    Set matches = regex.Execute(message)
-    
-    If matches.count > 0 Then
-        result(0) = CLng(matches(0).SubMatches(0)) ' Total
-        result(1) = CLng(matches(0).SubMatches(1)) ' Success
-        result(2) = CLng(matches(0).SubMatches(2)) ' Duplicates
-        result(3) = CLng(matches(0).SubMatches(3)) ' Errors
-    Else
-        ' If no match is found, set all values to -1 to indicate an error
-        result(0) = -1
-        result(1) = -1
-        result(2) = -1
-        result(3) = -1
-    End If
-    
-    ParseNoticeMessage = result
-End Function
 
 

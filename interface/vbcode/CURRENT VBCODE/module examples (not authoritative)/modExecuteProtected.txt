@@ -1,39 +1,5 @@
 Option Compare Database
 
-'   version 0.7.14.22
-' Function to check session and permission
-
-Public Function CheckSessionAndPermission(requiredRoleId As Long) As Boolean
-    Dim cmd As ADODB.Command
-    Dim rs As ADODB.Recordset
-    Dim isValid As Boolean
-    
-    Set cmd = New ADODB.Command
-    With cmd
-        .ActiveConnection = g_conn
-        .commandText = "SELECT * FROM validate_session_and_permission(?, ?)"
-        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
-        .Parameters.Append .CreateParameter("@p_required_role_id", adInteger, adParamInput, , requiredRoleId)
-    End With
-    
-    Set rs = cmd.Execute
-    
-    If Not rs.EOF Then
-        isValid = rs.Fields("is_valid").Value
-        If isValid Then
-            g_userId = rs.Fields("user_id").Value
-            g_roleId = rs.Fields("role_id").Value
-        End If
-    Else
-        isValid = False
-    
-    rs.Close
-    Set rs = Nothing
-    Set cmd = Nothing
-    
-    CheckSessionAndPermission = isValid
-End Function
-
 ' execute protected (postgres) function or procedure
 ' version 0.8.72
 
@@ -202,7 +168,31 @@ ErrorHandler:
     Resume Next
 End Function
 
+'GLOBALERRORHANDLER goes here
 
+' version 0.8.40
+' Helper function to log errors and duplicates
+
+Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
+    Dim db As DAO.Database
+    Dim rst As DAO.Recordset
+    
+    Set db = CurrentDb()
+    Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
+    
+    rst.AddNew
+    rst!LogDate = Now()
+    rst!totalCount = totalCount
+    rst!successCount = successCount
+    rst!duplicateCount = duplicateCount
+    rst!errorCount = errorCount
+    rst!ErrorDetails = errorLog
+    rst.Update
+    
+    rst.Close
+    Set rst = Nothing
+    Set db = Nothing
+End Sub
 
 ' Helper function to parse NOTICE message
 ' version 0.8.53
@@ -233,5 +223,31 @@ Private Function ParseNoticeMessage(message As String) As Variant
     
     ParseNoticeMessage = result
 End Function
+
+
+' Parse results from error message
+' version 0.8.35
+
+Private Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef successCount As Long, ByRef errorCount As Long)
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Dim matches As Object
+    Set matches = regex.Execute(errorMessage)
+    
+    If matches.count > 0 Then
+        totalCount = CLng(matches(0).SubMatches(0))
+        successCount = CLng(matches(0).SubMatches(1))
+        errorCount = CLng(matches(0).SubMatches(2))
+    Else
+        totalCount = 0
+        successCount = 0
+        errorCount = 0
+    End If
+End Sub
+
+
 
 
