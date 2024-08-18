@@ -7,7 +7,7 @@ Public Sub InitializePostgresConnection()
         g_connString = "Driver={PostgreSQL Unicode};" & _
                        "Server=localhost;" & _
                        "Port=5432;" & _
-                       "Database=Beta_003;" & _
+                       "Database=Beta_004;" & _
                        "Uid=login;" & _
                        "Pwd=FOTS-Egypt;"
         Set g_conn = New ADODB.Connection

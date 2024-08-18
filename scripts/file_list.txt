@@ -54,3 +54,4 @@ C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repositor
 C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\01_create_views.sql 
 C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\01_create_procedures.sql 
 C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql 
+C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\03_insert_fulfillment_items.sql 
