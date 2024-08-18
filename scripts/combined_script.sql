@@ -2247,11 +2247,14 @@ GRANT USAGE, SELECT ON SEQUENCE fulfillment_items_fulfillment_item_id_seq TO kpp
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql  
--- version 0.8.06
+-- version 0.8.62
 
 
 INSERT INTO availability_events (availability_identifier, availability_name, start_date, end_date, description, created_by)
 VALUES ('41', 'Sadeeq', '2024-01-01', '202-01-02', 'This is a dummy description', 1);
+INSERT INTO availability_events (availability_identifier, availability_name, start_date, end_date, description, created_by)
+VALUES ('66', 'Alexandria', '2024-03-01', '2024-11-11', 'This is a dummy description also', 1);
+
 
 
 
@@ -2497,7 +2500,7 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.8.50
+-- version 0.8.69
 
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
     batch_data jsonb,
@@ -2516,9 +2519,16 @@ DECLARE
     v_error_count INT := 0;
     v_duplicate_count INT := 0;
     v_error_messages TEXT := '';
+    v_batch_size INT := 1000; -- Process in batches of 1000 records
+    v_total_records INT;
+    v_batch_start INT;
+    v_batch_end INT;
 BEGIN
     RAISE LOG 'insert_mrl_line_items started';
     RAISE LOG 'Update source: %', update_source;
+    RAISE LOG 'batch_data type: %', pg_typeof(batch_data);
+    RAISE LOG 'batch_data size: % bytes', octet_length(batch_data::text);
+    RAISE LOG 'First 1000 characters of batch_data: %', left(batch_data::text, 1000);
     
     -- Get session variables
     current_user_id := current_setting('myapp.user_id', true)::INT;
@@ -2528,70 +2538,91 @@ BEGIN
 
     -- Validate batch_data
     IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
+        RAISE LOG 'Invalid batch_data: not a JSON array or is NULL. Data: %', batch_data;
         summary := 'Invalid batch_data: not a JSON array or is NULL';
         RETURN;
     END IF;
 
-    -- Log the number of records in the JSON data
-    RAISE LOG 'Number of records in JSON data: %', jsonb_array_length(batch_data);
+    -- Log the number of records and a sample in the JSON data
+    v_total_records := jsonb_array_length(batch_data);
+    RAISE LOG 'Number of records in JSON data: %', v_total_records;
+    RAISE LOG 'Sample of batch_data (first 3 elements): %', (SELECT jsonb_pretty(jsonb_agg(e)) FROM (SELECT e FROM jsonb_array_elements(batch_data) e LIMIT 3) s);
 
-    -- Loop through each item in the JSONB array
-    FOR item IN SELECT * FROM jsonb_array_elements(batch_data)
-    LOOP
-        v_record_count := v_record_count + 1;
+    -- Process records in batches
+    FOR v_batch_start IN 0..v_total_records-1 BY v_batch_size LOOP
+        v_batch_end := LEAST(v_batch_start + v_batch_size - 1, v_total_records - 1);
+        
+        RAISE LOG 'Starting batch %-%', v_batch_start, v_batch_end;
+
+        -- Start a subtransaction for each batch
         BEGIN
-            -- Insert into MRL_line_items table
-            INSERT INTO MRL_line_items (
-                jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
-                market_research_up, market_research_ep, availability_identifier,
-                request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
-                mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
-                techmanual, dwg_pc, requestor_remarks, inquiry_status,
-                created_by, update_source
-            ) VALUES (
-                (item->>'jcn')::TEXT,
-                (item->>'twcode')::TEXT,
-                (item->>'nomenclature')::TEXT,
-                (item->>'cog')::TEXT,
-                (item->>'fsc')::TEXT,
-                (item->>'niin')::TEXT,
-                (item->>'part_no')::TEXT,
-                (item->>'qty')::INT,
-                (item->>'ui')::TEXT,
-                (item->>'market_research_up')::NUMERIC,
-                (item->>'market_research_ep')::NUMERIC,
-                (item->>'availability_identifier')::INT,
-                (item->>'request_date')::DATE,
-                (item->>'rdd')::DATE,
-                (item->>'pri')::TEXT,
-                (item->>'swlin')::TEXT,
-                (item->>'hull_or_shop')::TEXT,
-                (item->>'suggested_source')::TEXT,
-                (item->>'mfg_cage')::TEXT,
-                (item->>'apl')::TEXT,
-                (item->>'nha_equipment_system')::TEXT,
-                (item->>'nha_model')::TEXT,
-                (item->>'nha_serial')::TEXT,
-                (item->>'techmanual')::TEXT,
-                (item->>'dwg_pc')::TEXT,
-                (item->>'requestor_remarks')::TEXT,
-                (item->>'inquiry_status')::BOOLEAN,
-                current_user_id,
-                update_source
-            ) RETURNING order_line_item_id INTO new_order_line_item_id;
+            FOR i IN v_batch_start..v_batch_end LOOP
+                item := batch_data->i;
+                v_record_count := v_record_count + 1;
+                BEGIN
+                    -- Insert into MRL_line_items table
+                    INSERT INTO MRL_line_items (
+                        jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
+                        market_research_up, market_research_ep, availability_identifier,
+                        request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
+                        mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
+                        techmanual, dwg_pc, requestor_remarks, inquiry_status,
+                        created_by, update_source
+                    ) VALUES (
+                        (item->>'jcn')::TEXT,
+                        (item->>'twcode')::TEXT,
+                        (item->>'nomenclature')::TEXT,
+                        (item->>'cog')::TEXT,
+                        (item->>'fsc')::TEXT,
+                        (item->>'niin')::TEXT,
+                        (item->>'part_no')::TEXT,
+                        (item->>'qty')::INT,
+                        (item->>'ui')::TEXT,
+                        (item->>'market_research_up')::NUMERIC,
+                        (item->>'market_research_ep')::NUMERIC,
+                        (item->>'availability_identifier')::INT,
+                        (item->>'request_date')::DATE,
+                        (item->>'rdd')::DATE,
+                        (item->>'pri')::TEXT,
+                        (item->>'swlin')::TEXT,
+                        (item->>'hull_or_shop')::TEXT,
+                        (item->>'suggested_source')::TEXT,
+                        (item->>'mfg_cage')::TEXT,
+                        (item->>'apl')::TEXT,
+                        (item->>'nha_equipment_system')::TEXT,
+                        (item->>'nha_model')::TEXT,
+                        (item->>'nha_serial')::TEXT,
+                        (item->>'techmanual')::TEXT,
+                        (item->>'dwg_pc')::TEXT,
+                        (item->>'requestor_remarks')::TEXT,
+                        (item->>'inquiry_status')::BOOLEAN,
+                        current_user_id,
+                        update_source
+                    ) RETURNING order_line_item_id INTO new_order_line_item_id;
 
-            v_success_count := v_success_count + 1;
-            PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
+                    v_success_count := v_success_count + 1;
+                    PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
 
-        EXCEPTION 
-            WHEN unique_violation THEN
-                v_duplicate_count := v_duplicate_count + 1;
-                RAISE LOG 'Duplicate record found for JCN: %, TWCODE: %', item->>'jcn', item->>'twcode';
-            WHEN OTHERS THEN
-                v_error_count := v_error_count + 1;
-                v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
-                RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-                RAISE LOG 'Problematic item: %', item;
+                EXCEPTION 
+                    WHEN unique_violation THEN
+                        v_duplicate_count := v_duplicate_count + 1;
+                        RAISE LOG 'Duplicate record found for JCN: %, TWCODE: %', item->>'jcn', item->>'twcode';
+                    WHEN OTHERS THEN
+                        v_error_count := v_error_count + 1;
+                        v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
+                        RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+                        RAISE LOG 'Problematic item: %', item;
+                END;
+            END LOOP;
+            
+            -- Commit the batch
+            COMMIT;
+            RAISE LOG 'Batch %-% completed. Successes: %, Duplicates: %, Errors: %', 
+                      v_batch_start, v_batch_end, v_success_count, v_duplicate_count, v_error_count;
+        EXCEPTION WHEN OTHERS THEN
+            -- If there's an error in the batch, rollback the entire batch
+            ROLLBACK;
+            RAISE LOG 'Error processing batch %-%: %', v_batch_start, v_batch_end, SQLERRM;
         END;
     END LOOP;
 
@@ -2606,11 +2637,13 @@ BEGIN
     summary := format('Operation completed. Total: %s, Success: %s, Duplicates: %s, Errors: %s', 
                       v_record_count, v_success_count, v_duplicate_count, v_error_count);
 
+    -- Renew the session after all processing is complete
+    PERFORM renew_session(current_setting('myapp.session_id')::uuid, '1 hour'::interval);
+
 EXCEPTION WHEN OTHERS THEN
-    RAISE LOG 'Unhandled exception in insert_mrl_line_items: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+    RAISE LOG 'Unhandled exception in insert_mrl_line_items: %, SQLSTATE: %, batch_data sample: %', SQLERRM, SQLSTATE, (SELECT jsonb_pretty(jsonb_agg(e)) FROM (SELECT e FROM jsonb_array_elements(batch_data) e LIMIT 5) s);
     summary := 'Unhandled exception: ' || SQLERRM;
 END;
 $$;
-
  
  

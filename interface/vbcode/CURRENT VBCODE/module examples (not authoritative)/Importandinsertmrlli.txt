@@ -330,16 +330,14 @@ Private Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef
 End Sub
 
 ' validate excel data
-' version 0.8.55
+' version 0.7.12
 Public Function ValidateExcelData() As Boolean
     Dim xlApp As Object
     Dim xlWorkbook As Object
     Dim xlSheet As Object
     Dim row As Integer
     Dim isValid As Boolean
-    Dim colJCN As Integer, colQty As Integer, colRequestDate As Integer, colCreatedBy As Integer
-    Dim headerRow As Integer
-
+    
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
     ' Open the workbook
@@ -347,40 +345,29 @@ Public Function ValidateExcelData() As Boolean
     ' Set the worksheet
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     isValid = True
-    headerRow = 1 ' Assuming row 1 is the header row
-
-    ' Find the column numbers based on the header names
-    colJCN = FindColumnByName(xlSheet, "jcn", headerRow)
-    colQty = FindColumnByName(xlSheet, "qty", headerRow)
-    colRequestDate = FindColumnByName(xlSheet, "request_date", headerRow)
-    colCreatedBy = FindColumnByName(xlSheet, "created_by", headerRow)
-
-    If colJCN = 0 Or colQty = 0 Or colRequestDate = 0 Or colCreatedBy = 0 Then
-        MsgBox "Error: One or more required columns are missing."
-        ValidateExcelData = False
-        Exit Function
-    End If
-
-    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, colJCN).End(-4162).row
-        If IsEmpty(xlSheet.Cells(row, colJCN)) Then ' Validate jcn
+    
+    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, "A").End(-4162).row ' Assuming row 1 is the header row
+        If IsEmpty(xlSheet.Cells(row, 1)) Then ' Validate jcn
             MsgBox "Error: jcn is required at row " & row
             isValid = False
         End If
         
-        If Not IsNumeric(xlSheet.Cells(row, colQty)) Or xlSheet.Cells(row, colQty).Value <= 0 Then ' Validate qty
+        If Not IsNumeric(xlSheet.Cells(row, 8)) Or xlSheet.Cells(row, 8).Value <= 0 Then ' Validate qty
             MsgBox "Error: qty must be a positive number at row " & row
             isValid = False
         End If
         
-        If Not IsDate(xlSheet.Cells(row, colRequestDate)) Then ' Validate request_date
+        If Not IsDate(xlSheet.Cells(row, 13)) Then ' Validate request_date
             MsgBox "Error: request_date must be a valid date at row " & row
             isValid = False
         End If
         
-        If Not IsNumeric(xlSheet.Cells(row, colCreatedBy)) Then ' Validate created_by
+        If Not IsNumeric(xlSheet.Cells(row, 28)) Then ' Validate created_by
             MsgBox "Error: created_by must be a number at row " & row
             isValid = False
         End If
+        
+        ' Additional validation rules can be added here...
         
         If Not isValid Then Exit For
     Next row
@@ -396,19 +383,6 @@ Public Function ValidateExcelData() As Boolean
     Set xlApp = Nothing
     
     ValidateExcelData = isValid
-End Function
-
-' version 0.8.55
-' Helper function to find the column number based on the header name
-Private Function FindColumnByName(sheet As Object, columnName As String, headerRow As Integer) As Integer
-    Dim col As Integer
-    For col = 1 To sheet.Cells(headerRow, sheet.Columns.count).End(-4159).Column
-        If sheet.Cells(headerRow, col).Value = columnName Then
-            FindColumnByName = col
-            Exit Function
-        End If
-    Next col
-    FindColumnByName = 0 ' Return 0 if not found
 End Function
         
 ' execute postgres command
