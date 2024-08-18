@@ -1,70 +1,47 @@
+
 ' validate excel data
-' version 0.8.56
+' version 0.7.12 (reverted)
 Public Function ValidateExcelData() As Boolean
     Dim xlApp As Object
     Dim xlWorkbook As Object
     Dim xlSheet As Object
-    Dim row As Long
+    Dim row As Integer
     Dim isValid As Boolean
-    Dim colJCN As Long, colQty As Long, colRequestDate As Long, colCreatedBy As Long
-    Dim headerRow As Long
-    Dim lastRow As Long
-    Dim filePath As String
-
-    filePath = "C:\Beta_003\MRL.xlsx"
     
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
-    
-    On Error GoTo ErrorHandler
-    
     ' Open the workbook
-    Set xlWorkbook = xlApp.Workbooks.Open(filePath)
+    Set xlWorkbook = xlApp.Workbooks.Open("C:\Beta_003\MRL.xlsx")
     ' Set the worksheet
     Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
     isValid = True
-    headerRow = 1 ' Assuming row 1 is the header row
-
-    ' Find the column numbers based on the header names
-    colJCN = FindColumnByName(xlSheet, "jcn", headerRow)
-    colQty = FindColumnByName(xlSheet, "qty", headerRow)
-    colRequestDate = FindColumnByName(xlSheet, "request_date", headerRow)
-    colCreatedBy = FindColumnByName(xlSheet, "created_by", headerRow)
-
-    If colJCN = 0 Or colQty = 0 Or colRequestDate = 0 Or colCreatedBy = 0 Then
-        MsgBox "Error: One or more required columns are missing.", vbExclamation
-        isValid = False
-        GoTo CleanUp
-    End If
-
-    ' Find the last row with data
-    lastRow = xlSheet.Cells(xlSheet.Rows.Count, colJCN).End(xlUp).Row
-
-    For row = 2 To lastRow ' Start from row 2 to skip the header
-        If Trim(xlSheet.Cells(row, colJCN).Value) = "" Then ' Validate jcn
-            MsgBox "Error: JCN is required at row " & row, vbExclamation
+    
+    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, "A").End(-4162).row ' Assuming row 1 is the header row
+        If IsEmpty(xlSheet.Cells(row, 1)) Then ' Validate jcn
+            MsgBox "Error: jcn is required at row " & row
             isValid = False
         End If
         
-        If Not IsNumeric(xlSheet.Cells(row, colQty).Value) Or xlSheet.Cells(row, colQty).Value <= 0 Then ' Validate qty
-            MsgBox "Error: Quantity must be a positive number at row " & row, vbExclamation
+        If Not IsNumeric(xlSheet.Cells(row, 8)) Or xlSheet.Cells(row, 8).Value <= 0 Then ' Validate qty
+            MsgBox "Error: qty must be a positive number at row " & row
             isValid = False
         End If
         
-        If Not IsDate(xlSheet.Cells(row, colRequestDate).Value) Then ' Validate request_date
-            MsgBox "Error: Request Date must be a valid date at row " & row, vbExclamation
+        If Not IsDate(xlSheet.Cells(row, 13)) Then ' Validate request_date
+            MsgBox "Error: request_date must be a valid date at row " & row
             isValid = False
         End If
         
-        If Not IsNumeric(xlSheet.Cells(row, colCreatedBy).Value) Then ' Validate created_by
-            MsgBox "Error: Created By must be a number at row " & row, vbExclamation
+        If Not IsNumeric(xlSheet.Cells(row, 28)) Then ' Validate created_by
+            MsgBox "Error: created_by must be a number at row " & row
             isValid = False
         End If
+        
+        ' Additional validation rules can be added here...
         
         If Not isValid Then Exit For
     Next row
-
-CleanUp:
+    
     ' Close the workbook without saving
     xlWorkbook.Close False
     ' Quit Excel application
@@ -76,11 +53,4 @@ CleanUp:
     Set xlApp = Nothing
     
     ValidateExcelData = isValid
-    Exit Function
-
-ErrorHandler:
-    MsgBox "Error: " & Err.Description, vbExclamation
-    isValid = False
-    Resume CleanUp
 End Function
-

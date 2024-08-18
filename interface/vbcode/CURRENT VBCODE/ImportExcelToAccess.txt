@@ -1,6 +1,6 @@
-
 ' import excel to access
-' version 0.8.57
+' version 0.8.42
+
 Sub ImportExcelToAccess()
     Dim originalFilePath As String
     Dim tempFilePath As String
@@ -9,7 +9,6 @@ Sub ImportExcelToAccess()
     Dim xlSheet As Object
     Dim col As Integer
     Dim db As DAO.Database
-    Dim fso As Object
     
     originalFilePath = "C:\Beta_003\MRL.xlsx"
     tempFilePath = "C:\Beta_003\TempMRL.xlsx"
@@ -21,22 +20,7 @@ Sub ImportExcelToAccess()
     On Error GoTo 0
     
     ' Create a copy of the original file
-    On Error Resume Next
     FileCopy originalFilePath, tempFilePath
-    
-    If Err.Number <> 0 Then
-        ' If FileCopy fails, try using FileSystemObject
-        Set fso = CreateObject("Scripting.FileSystemObject")
-        On Error Resume Next
-        fso.CopyFile originalFilePath, tempFilePath, True
-        
-        If Err.Number <> 0 Then
-            MsgBox "Error copying file: " & Err.Description, vbExclamation
-            Exit Sub
-        End If
-        On Error GoTo 0
-    End If
-    On Error GoTo 0
     
     ' Create a new Excel application instance
     Set xlApp = CreateObject("Excel.Application")
@@ -65,13 +49,7 @@ Sub ImportExcelToAccess()
     DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", tempFilePath, True
     
     ' Delete the temporary file
-    On Error Resume Next
     Kill tempFilePath
-    If Err.Number <> 0 Then
-        Set fso = CreateObject("Scripting.FileSystemObject")
-        fso.DeleteFile tempFilePath, True
-    End If
-    On Error GoTo 0
     
     Set db = Nothing
 End Sub

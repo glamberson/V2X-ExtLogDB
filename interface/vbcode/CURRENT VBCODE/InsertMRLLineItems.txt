@@ -1,5 +1,6 @@
+
 ' insert mrl line items
-' version 0.8.69
+' version 0.8.53 (reverted)
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -7,11 +8,6 @@ Public Sub InsertMRLLineItems()
     Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
-    Dim chunks() As String
-    Dim i As Long
-    Dim chunkResult As Variant
-    Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
-    Dim parsedResult As Variant
     
     Set frm = Forms!frMRL
     jsonData = ConvertToJSON()
@@ -25,41 +21,14 @@ Public Sub InsertMRLLineItems()
     Debug.Print "Update Source: " & updateSource
     Debug.Print "Pre-insert Error Log: " & errorLog
     
-    ' Split the JSON data into chunks if it's too large
-    Const MAX_CHUNK_SIZE As Long = 100000 ' Adjust as needed
+    ' Call the protected function with correct number of parameters
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
     
-    If Len(jsonString) > MAX_CHUNK_SIZE Then
-        chunks = SplitJsonIntoChunks(jsonString, MAX_CHUNK_SIZE)
-        
-        For i = LBound(chunks) To UBound(chunks)
-            Debug.Print "Processing chunk " & i & " of " & UBound(chunks)
-            Debug.Print "Chunk length: " & Len(chunks(i))
-            
-            chunkResult = ExecuteProtectedFunction("insert_mrl_line_items", chunks(i), updateSource)
-            
-            ' Process result for each chunk
-            If Not IsNull(chunkResult) Then
-                parsedResult = ParseNoticeMessage(CStr(chunkResult))
-                
-                If IsArray(parsedResult) Then
-                    totalCount = totalCount + parsedResult(0)
-                    successCount = successCount + parsedResult(1)
-                    duplicateCount = duplicateCount + parsedResult(2)
-                    errorCount = errorCount + parsedResult(3)
-                Else
-                    MsgBox "Unexpected result format from insert_mrl_line_items for chunk " & i & ". Check the database logs for details.", vbExclamation
-                End If
-            Else
-                MsgBox "Unexpected result type from insert_mrl_line_items for chunk " & i & ". Check the database logs for details.", vbExclamation
-            End If
-        Next i
-        
-        ' Combine results from all chunks
-        result = "Total: " & totalCount & ", Success: " & successCount & ", Duplicates: " & duplicateCount & ", Errors: " & errorCount
-    Else
-        result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
-        
+    ' Check the result
+    If Not IsNull(result) Then
         ' Parse the results
+        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+        Dim parsedResult As Variant
         parsedResult = ParseNoticeMessage(CStr(result))
         
         If IsArray(parsedResult) Then
@@ -67,14 +36,17 @@ Public Sub InsertMRLLineItems()
             successCount = parsedResult(1)
             duplicateCount = parsedResult(2)
             errorCount = parsedResult(3)
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
         Else
             MsgBox "Unexpected result format from insert_mrl_line_items. Check the database logs for details.", vbExclamation
             Exit Sub
         End If
+    Else
+        MsgBox "Unexpected result type from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+        Exit Sub
     End If
-    
-    ' Log errors and duplicates for later processing
-    LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
     
     ' Display results
     MsgBox "Process completed." & vbNewLine & _
