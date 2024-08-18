@@ -1,4 +1,4 @@
--- version 0.7.14.39
+-- version 0.9
 
 -- create roles and grant pemissions
 
@@ -24,7 +24,7 @@ GRANT EXECUTE ON FUNCTION log_failed_login_attempt(username VARCHAR, reason TEXT
 GRANT EXECUTE ON FUNCTION set_user_role(p_db_role_name VARCHAR) TO "login";
 
 -- Grant database connection privilege
-GRANT CONNECT ON DATABASE "Beta_003" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
+GRANT CONNECT ON DATABASE "Beta_004" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
 
 -- Grant usage on schema
 GRANT USAGE ON SCHEMA public TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
