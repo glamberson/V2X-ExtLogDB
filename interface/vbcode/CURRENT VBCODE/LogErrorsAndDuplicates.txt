@@ -1,7 +1,8 @@
-' version 0.8.40
+
+' version 0.8.80
 ' Helper function to log errors and duplicates
 
-Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
+Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
     Dim db As DAO.Database
     Dim rst As DAO.Recordset
     
@@ -10,10 +11,10 @@ Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, dup
     
     rst.AddNew
     rst!LogDate = Now()
-    rst!TotalCount = totalCount
-    rst!SuccessCount = successCount
-    rst!DuplicateCount = duplicateCount
-    rst!ErrorCount = errorCount
+    rst!totalCount = totalCount
+    rst!successCount = successCount
+    rst!duplicateCount = duplicateCount
+    rst!errorCount = errorCount
     rst!ErrorDetails = errorLog
     rst.Update
     
@@ -21,4 +22,5 @@ Private Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, dup
     Set rst = Nothing
     Set db = Nothing
 End Sub
+
 

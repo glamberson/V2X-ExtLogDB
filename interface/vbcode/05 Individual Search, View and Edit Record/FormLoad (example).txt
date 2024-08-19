@@ -1,0 +1,9 @@
+Private Sub Form_Load()
+    Dim rs As ADODB.Recordset
+    Set rs = GetMRLFulfillmentView()
+    Set Me.Recordset = rs
+    
+    ' Set up the link between parent and child forms
+    Me.ChildForm.LinkMasterFields = "order_line_item_id"
+    Me.ChildForm.LinkChildFields = "order_line_item_id"
+End Sub

@@ -10,17 +10,19 @@ Public g_connString As String
 Public g_userId As Long
 Public g_roleId As Long
 
+
 ' Initialize Postgres Connection
-' version 0.7.14.4
+' version 0.9.04
 
 Public Sub InitializePostgresConnection()
     If g_conn Is Nothing Then
         g_connString = "Driver={PostgreSQL Unicode};" & _
                        "Server=localhost;" & _
                        "Port=5432;" & _
-                       "Database=Beta_003;" & _
+                       "Database=Beta_004;" & _
                        "Uid=login;" & _
-                       "Pwd=FOTS-Egypt;"
+                       "Pwd=FOTS-Egypt;" & _
+                       "AutoCommit=1;" ' added this line
         Set g_conn = New ADODB.Connection
         g_conn.ConnectionString = g_connString
         g_conn.Open

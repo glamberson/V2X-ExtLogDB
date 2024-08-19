@@ -1,6 +1,5 @@
-
 ' execute protected (postgres) function or procedure
-' version 0.9.02 (removing all vb transaction management)
+' version 0.8.72
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -164,5 +163,5 @@ ErrorHandler:
                "See Immediate window for more details.", vbExclamation
     End If
 
+    Resume Next
 End Function
-
