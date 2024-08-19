@@ -2500,7 +2500,7 @@ $$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql  
--- version 0.8.69
+-- version 0.9.05
 
 CREATE OR REPLACE PROCEDURE insert_mrl_line_items(
     batch_data jsonb,
@@ -2554,76 +2554,67 @@ BEGIN
         
         RAISE LOG 'Starting batch %-%', v_batch_start, v_batch_end;
 
-        -- Start a subtransaction for each batch
-        BEGIN
-            FOR i IN v_batch_start..v_batch_end LOOP
-                item := batch_data->i;
-                v_record_count := v_record_count + 1;
-                BEGIN
-                    -- Insert into MRL_line_items table
-                    INSERT INTO MRL_line_items (
-                        jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
-                        market_research_up, market_research_ep, availability_identifier,
-                        request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
-                        mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
-                        techmanual, dwg_pc, requestor_remarks, inquiry_status,
-                        created_by, update_source
-                    ) VALUES (
-                        (item->>'jcn')::TEXT,
-                        (item->>'twcode')::TEXT,
-                        (item->>'nomenclature')::TEXT,
-                        (item->>'cog')::TEXT,
-                        (item->>'fsc')::TEXT,
-                        (item->>'niin')::TEXT,
-                        (item->>'part_no')::TEXT,
-                        (item->>'qty')::INT,
-                        (item->>'ui')::TEXT,
-                        (item->>'market_research_up')::NUMERIC,
-                        (item->>'market_research_ep')::NUMERIC,
-                        (item->>'availability_identifier')::INT,
-                        (item->>'request_date')::DATE,
-                        (item->>'rdd')::DATE,
-                        (item->>'pri')::TEXT,
-                        (item->>'swlin')::TEXT,
-                        (item->>'hull_or_shop')::TEXT,
-                        (item->>'suggested_source')::TEXT,
-                        (item->>'mfg_cage')::TEXT,
-                        (item->>'apl')::TEXT,
-                        (item->>'nha_equipment_system')::TEXT,
-                        (item->>'nha_model')::TEXT,
-                        (item->>'nha_serial')::TEXT,
-                        (item->>'techmanual')::TEXT,
-                        (item->>'dwg_pc')::TEXT,
-                        (item->>'requestor_remarks')::TEXT,
-                        (item->>'inquiry_status')::BOOLEAN,
-                        current_user_id,
-                        update_source
-                    ) RETURNING order_line_item_id INTO new_order_line_item_id;
+        FOR i IN v_batch_start..v_batch_end LOOP
+            item := batch_data->i;
+            v_record_count := v_record_count + 1;
+            BEGIN
+                -- Insert into MRL_line_items table
+                INSERT INTO MRL_line_items (
+                    jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
+                    market_research_up, market_research_ep, availability_identifier,
+                    request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
+                    mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
+                    techmanual, dwg_pc, requestor_remarks, inquiry_status,
+                    created_by, update_source
+                ) VALUES (
+                    (item->>'jcn')::TEXT,
+                    (item->>'twcode')::TEXT,
+                    (item->>'nomenclature')::TEXT,
+                    (item->>'cog')::TEXT,
+                    (item->>'fsc')::TEXT,
+                    (item->>'niin')::TEXT,
+                    (item->>'part_no')::TEXT,
+                    (item->>'qty')::INT,
+                    (item->>'ui')::TEXT,
+                    (item->>'market_research_up')::NUMERIC,
+                    (item->>'market_research_ep')::NUMERIC,
+                    (item->>'availability_identifier')::INT,
+                    (item->>'request_date')::DATE,
+                    (item->>'rdd')::DATE,
+                    (item->>'pri')::TEXT,
+                    (item->>'swlin')::TEXT,
+                    (item->>'hull_or_shop')::TEXT,
+                    (item->>'suggested_source')::TEXT,
+                    (item->>'mfg_cage')::TEXT,
+                    (item->>'apl')::TEXT,
+                    (item->>'nha_equipment_system')::TEXT,
+                    (item->>'nha_model')::TEXT,
+                    (item->>'nha_serial')::TEXT,
+                    (item->>'techmanual')::TEXT,
+                    (item->>'dwg_pc')::TEXT,
+                    (item->>'requestor_remarks')::TEXT,
+                    (item->>'inquiry_status')::BOOLEAN,
+                    current_user_id,
+                    update_source
+                ) RETURNING order_line_item_id INTO new_order_line_item_id;
 
-                    v_success_count := v_success_count + 1;
-                    PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
+                v_success_count := v_success_count + 1;
+                PERFORM log_audit('INSERT'::TEXT, new_order_line_item_id, NULL::INT, 'Inserted new MRL line item'::TEXT, update_source);
 
-                EXCEPTION 
-                    WHEN unique_violation THEN
-                        v_duplicate_count := v_duplicate_count + 1;
-                        RAISE LOG 'Duplicate record found for JCN: %, TWCODE: %', item->>'jcn', item->>'twcode';
-                    WHEN OTHERS THEN
-                        v_error_count := v_error_count + 1;
-                        v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
-                        RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
-                        RAISE LOG 'Problematic item: %', item;
-                END;
-            END LOOP;
-            
-            -- Commit the batch
-            COMMIT;
-            RAISE LOG 'Batch %-% completed. Successes: %, Duplicates: %, Errors: %', 
-                      v_batch_start, v_batch_end, v_success_count, v_duplicate_count, v_error_count;
-        EXCEPTION WHEN OTHERS THEN
-            -- If there's an error in the batch, rollback the entire batch
-            ROLLBACK;
-            RAISE LOG 'Error processing batch %-%: %', v_batch_start, v_batch_end, SQLERRM;
-        END;
+            EXCEPTION 
+                WHEN unique_violation THEN
+                    v_duplicate_count := v_duplicate_count + 1;
+                    RAISE LOG 'Duplicate record found for JCN: %, TWCODE: %', item->>'jcn', item->>'twcode';
+                WHEN OTHERS THEN
+                    v_error_count := v_error_count + 1;
+                    v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
+                    RAISE LOG 'Error inserting MRL line item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+                    RAISE LOG 'Problematic item: %', item;
+            END;
+        END LOOP;
+
+        RAISE LOG 'Batch %-% completed. Successes: %, Duplicates: %, Errors: %', 
+                  v_batch_start, v_batch_end, v_success_count, v_duplicate_count, v_error_count;
     END LOOP;
 
     -- Log the final results

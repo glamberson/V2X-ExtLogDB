@@ -1,0 +1,4 @@
+
+SELECT name, setting, unit, context
+FROM pg_settings
+WHERE name LIKE '%mem%' OR name LIKE '%memory%';

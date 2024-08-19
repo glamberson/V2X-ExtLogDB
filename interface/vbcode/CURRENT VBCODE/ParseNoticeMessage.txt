@@ -1,7 +1,7 @@
 ' Helper function to parse NOTICE message
-' version 0.8.53
+' version 0.8.80
 
-Private Function ParseNoticeMessage(message As String) As Variant
+Public Function ParseNoticeMessage(message As String) As Variant
     Dim result(3) As Long
     Dim matches As Object
     Dim regex As Object
@@ -12,7 +12,7 @@ Private Function ParseNoticeMessage(message As String) As Variant
     
     Set matches = regex.Execute(message)
     
-    If matches.Count > 0 Then
+    If matches.count > 0 Then
         result(0) = CLng(matches(0).SubMatches(0)) ' Total
         result(1) = CLng(matches(0).SubMatches(1)) ' Success
         result(2) = CLng(matches(0).SubMatches(2)) ' Duplicates
@@ -27,4 +27,3 @@ Private Function ParseNoticeMessage(message As String) As Variant
     
     ParseNoticeMessage = result
 End Function
-

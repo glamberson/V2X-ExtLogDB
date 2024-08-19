@@ -1,0 +1,42 @@
+CREATE OR REPLACE FUNCTION get_fulfillment_history(p_fulfillment_item_id INT)
+RETURNS TABLE (
+    action_time TIMESTAMPTZ,
+    action VARCHAR,
+    changed_by VARCHAR,
+    details TEXT,
+    role_name VARCHAR,
+    comment TEXT,
+    comment_by VARCHAR,
+    comment_time TIMESTAMPTZ,
+    inquiry_status BOOLEAN,
+    inquiry_updated_by VARCHAR,
+    inquiry_updated_at TIMESTAMPTZ
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        at.changed_at AS action_time,
+        at.action,
+        at.changed_by,
+        at.details,
+        r.role_name,
+        lc.comment,
+        lc.commented_by AS comment_by,
+        lc.commented_at AS comment_time,
+        li.inquiry_status,
+        li.updated_by AS inquiry_updated_by,
+        li.updated_at AS inquiry_updated_at
+    FROM
+        audit_trail at
+    LEFT JOIN
+        line_item_comments lc ON at.fulfillment_item_id = lc.fulfillment_item_id
+    LEFT JOIN
+        roles r ON at.role_id = r.role_id
+    LEFT JOIN
+        line_item_inquiry li ON at.fulfillment_item_id = li.fulfillment_item_id
+    WHERE
+        at.fulfillment_item_id = p_fulfillment_item_id
+    ORDER BY
+        at.changed_at, lc.commented_at, li.updated_at;
+END;
+$$ LANGUAGE plpgsql;
