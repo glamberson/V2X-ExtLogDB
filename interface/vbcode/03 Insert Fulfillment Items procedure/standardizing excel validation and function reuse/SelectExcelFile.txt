@@ -1,0 +1,24 @@
+Public Function SelectExcelFile() As String
+    Dim fd As FileDialog
+    Dim selectedFile As String
+
+    ' Initialize the file dialog box
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    With fd
+        .Title = "Select the Excel File"
+        .Filters.Clear
+        .Filters.Add "Excel Files", "*.xlsx; *.xls"
+        .AllowMultiSelect = False
+        
+        ' Show the dialog box
+        If .Show = -1 Then ' User selected a file
+            selectedFile = .SelectedItems(1)
+        Else ' User canceled
+            selectedFile = ""
+        End If
+    End With
+    
+    Set fd = Nothing ' Clean up the file dialog object
+    
+    SelectExcelFile = selectedFile
+End Function

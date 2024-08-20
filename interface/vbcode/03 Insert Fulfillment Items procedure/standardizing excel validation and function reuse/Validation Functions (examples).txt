@@ -1,0 +1,39 @@
+' Validate if JCN is not empty
+Public Function ValidateJCN(xlSheet As Object, row As Integer, columnLookup As Object) As Boolean
+    Dim colJCN As Integer
+    If columnLookup.Exists("jcn") Then
+        colJCN = columnLookup("jcn")
+    Else
+        MsgBox "Error: JCN column not found."
+        ValidateJCN = False
+        Exit Function
+    End If
+    
+    If IsEmpty(xlSheet.Cells(row, colJCN)) Then
+        MsgBox "Error: jcn is required at row " & row
+        ValidateJCN = False
+    Else
+        ValidateJCN = True
+    End If
+End Function
+
+' Validate if TWCODE is not empty
+Public Function ValidateTWCODE(xlSheet As Object, row As Integer, columnLookup As Object) As Boolean
+    Dim colTWCODE As Integer
+    If columnLookup.Exists("twcode") Then
+        colTWCODE = columnLookup("twcode")
+    Else
+        MsgBox "Error: TWCODE column not found."
+        ValidateTWCODE = False
+        Exit Function
+    End If
+    
+    If IsEmpty(xlSheet.Cells(row, colTWCODE)) Then
+        MsgBox "Error: twcode is required at row " & row
+        ValidateTWCODE = False
+    Else
+        ValidateTWCODE = True
+    End If
+End Function
+
+' Additional validation functions can be implemented similarly

@@ -1,0 +1,25 @@
+Public Function ConvertToJSON(sheet As Object) As String
+    Dim jsonData As String
+    Dim row As Integer
+    Dim col As Integer
+    Dim lastRow As Integer
+    Dim lastCol As Integer
+    
+    ' Use last row and column identified during cleanup
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row
+    lastCol = sheet.Cells(1, sheet.Columns.Count).End(-4159).Column
+    
+    ' Process each cell (assuming data is already cleaned)
+    For row = 2 To lastRow
+        jsonData = jsonData & "{"
+        For col = 1 To lastCol
+            ' Simplified: Directly use cleaned data
+            jsonData = jsonData & """" & sheet.Cells(1, col).Value & """: """ & sheet.Cells(row, col).Value & ""","
+        Next col
+        jsonData = Left(jsonData, Len(jsonData) - 1) ' Remove last comma
+        jsonData = jsonData & "},"
+    Next row
+    
+    jsonData = "[" & Left(jsonData, Len(jsonData) - 1) & "]" ' Format JSON array
+    ConvertToJSON = jsonData
+End Function
