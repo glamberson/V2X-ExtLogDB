@@ -1,0 +1,73 @@
+Sub ImportAndInsertMRLLineItems()
+    Dim xlApp As Object
+    Dim xlWorkbook As Object
+    Dim xlSheet As Object
+    Dim columnLookup As Object
+    Dim validationRules As New Collection
+    Dim isValid As Boolean
+    Dim filePath As String
+    
+    On Error GoTo Cleanup ' Ensure cleanup even if an error occurs
+
+    ' Use the reusable function to select the input file
+    filePath = SelectExcelFile()
+    If filePath = "" Then
+        MsgBox "No file selected. Process aborted.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Create a new Excel application instance
+    Set xlApp = CreateObject("Excel.Application")
+    ' Open the workbook
+    Set xlWorkbook = xlApp.Workbooks.Open(filePath)
+    
+    ' Use the reusable function to select the worksheet
+    Set xlSheet = SelectWorksheet(xlWorkbook)
+    If xlSheet Is Nothing Then GoTo Cleanup ' If no valid sheet, exit the process
+    
+    ' Clean up the column names before proceeding
+    Call CleanUpColumnNames(xlSheet, 1) ' Assuming header row is 1
+    
+    ' Clean up the data before validation
+    Call CleanUpData(xlSheet, 1)
+    
+    ' Build the column lookup table
+    Set columnLookup = BuildColumnLookup(xlSheet, 1) ' Build lookup table after cleanup
+    
+    ' Add validation rules
+    validationRules.Add AddressOf ValidateJCN
+    validationRules.Add AddressOf ValidateTWCODE
+    validationRules.Add AddressOf ValidateQty
+    validationRules.Add AddressOf ValidateRequestDate
+    validationRules.Add AddressOf ValidateCreatedBy
+    
+    ' Validate the sheet
+    isValid = ValidateExcelData(xlSheet, validationRules, columnLookup)
+    
+    If isValid Then
+        MsgBox "MRL Data is valid. Proceeding to import..."
+        ' Proceed with importing the data
+        Call ImportExcelToAccess ' Assuming this handles the actual import
+        Call InsertMRLLineItems ' Further processing after import
+    Else
+        MsgBox "MRL Data validation failed. Import aborted."
+    End If
+    
+Cleanup:
+    ' Clean up the column lookup object
+    If Not columnLookup Is Nothing Then Set columnLookup = Nothing
+    
+    ' Close the workbook without saving any changes
+    If Not xlWorkbook Is Nothing Then xlWorkbook.Close False
+    ' Quit the Excel application
+    If Not xlApp Is Nothing Then xlApp.Quit
+    
+    ' Release other object references
+    Set xlSheet = Nothing
+    Set xlWorkbook = Nothing
+    Set xlApp = Nothing
+    
+    If Err.Number <> 0 Then
+        MsgBox "An error occurred: " & Err.Description, vbExclamation
+    End If
+End Sub

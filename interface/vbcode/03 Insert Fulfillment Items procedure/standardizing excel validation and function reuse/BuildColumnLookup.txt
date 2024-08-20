@@ -1,0 +1,16 @@
+
+
+' BuildColumnLookup function to dynamically create a dictionary of column names
+Public Function BuildColumnLookup(sheet As Object, headerRow As Integer) As Object
+    Dim col As Integer
+    Dim columnLookup As Object
+    Set columnLookup = CreateObject("Scripting.Dictionary")
+    
+    ' Search the first 200 columns
+    For col = 1 To 200
+        If IsEmpty(sheet.Cells(headerRow, col).Value) Then Exit For
+        columnLookup(LCase(Trim(sheet.Cells(headerRow, col).Value))) = col
+    Next col
+    
+    Set BuildColumnLookup = columnLookup
+End Function

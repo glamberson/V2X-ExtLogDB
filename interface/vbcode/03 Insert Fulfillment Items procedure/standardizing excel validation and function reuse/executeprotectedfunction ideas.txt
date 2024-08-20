@@ -1,0 +1,28 @@
+Public Function ExecuteProtectedFunction(funcName As String, ParamArray params() As Variant) As Variant
+    On Error GoTo ErrorHandler
+
+    Select Case funcName
+        Case "insert_mrl_line_items"
+            ExecuteProtectedFunction = HandleInsertMRLLineItems(params)
+        Case "another_specific_case"
+            ExecuteProtectedFunction = HandleAnotherSpecificCase(params)
+        ' Add more cases as needed
+        Case Else
+            MsgBox "Function not recognized."
+            Exit Function
+    End Select
+    
+    Exit Function
+
+ErrorHandler:
+    ' Handle errors
+    MsgBox "An error occurred: " & Err.Description
+End Function
+
+Private Function HandleInsertMRLLineItems(params() As Variant) As Variant
+    ' Specific logic for inserting MRL line items
+End Function
+
+Private Function HandleAnotherSpecificCase(params() As Variant) As Variant
+    ' Specific logic for another case
+End Function

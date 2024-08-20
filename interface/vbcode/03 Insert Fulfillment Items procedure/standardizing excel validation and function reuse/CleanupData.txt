@@ -1,0 +1,30 @@
+Public Sub CleanUpData(sheet As Object, headerRow As Integer)
+    Dim col As Integer
+    Dim row As Integer
+    Dim lastRow As Long
+    Dim lastCol As Long
+    Dim cellValue As Variant
+    
+    ' Find the last used row and column
+    lastRow = sheet.Cells(sheet.Rows.Count, 1).End(-4162).Row ' Find the last row with data in column 1
+    lastCol = sheet.Cells(headerRow, sheet.Columns.Count).End(-4159).Column ' Find the last column with data in the header row
+    
+    For col = 1 To lastCol ' Only iterate through the relevant columns
+        For row = headerRow + 1 To lastRow ' Only iterate through the relevant rows
+            cellValue = sheet.Cells(row, col).Value
+            
+            ' Check if cell is numeric text with leading apostrophe
+            If IsNumeric(cellValue) And Left(cellValue, 1) = "'" Then
+                sheet.Cells(row, col).Value = Val(cellValue)
+            ' Check if cell is numeric but stored as text
+            ElseIf IsNumeric(cellValue) And VarType(cellValue) = vbString Then
+                sheet.Cells(row, col).Value = Val(cellValue)
+            End If
+            
+            ' Trim leading and trailing spaces
+            If VarType(cellValue) = vbString Then
+                sheet.Cells(row, col).Value = Trim(cellValue)
+            End If
+        Next row
+    Next col
+End Sub
