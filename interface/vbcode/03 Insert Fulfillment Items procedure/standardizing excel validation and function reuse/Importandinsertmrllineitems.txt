@@ -39,7 +39,7 @@ Sub ImportAndInsertMRLLineItems()
     validationRules.Add AddressOf ValidateTWCODE
     validationRules.Add AddressOf ValidateQty
     validationRules.Add AddressOf ValidateRequestDate
-    validationRules.Add AddressOf ValidateCreatedBy
+    ' validationRules.Add AddressOf ValidateCreatedBy
     
     ' Validate the sheet
     isValid = ValidateExcelData(xlSheet, validationRules, columnLookup)
