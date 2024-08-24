@@ -1,39 +1,11 @@
-Sub ImportExcelToAccess(filePath As String)
-    Dim tempFilePath As String
-    Dim xlApp As Object
-    Dim xlWorkbook As Object
-    Dim xlSheet As Object
+' version 0.9.15
+
+Sub ImportExcelToAccess(xlSheet As Object)
     Dim db As DAO.Database
     
-    ' Use the same directory as the input file for the temp file
-    tempFilePath = Left(filePath, InStrRev(filePath, "\")) & "Tempfile.xlsx"
-    
-    ' Create a copy of the original file as the temp file
-    FileCopy filePath, tempFilePath
-    
-    ' Create a new Excel application instance
-    Set xlApp = CreateObject("Excel.Application")
-    ' Open the temp workbook
-    Set xlWorkbook = xlApp.Workbooks.Open(tempFilePath)
-    ' Set the worksheet
-    Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
-    
-    ' Clean up field names in the first row: trim and convert to lowercase
-    For col = 1 To xlSheet.UsedRange.Columns.Count
-        xlSheet.Cells(1, col).Value = LCase(Trim(xlSheet.Cells(1, col).Value))
-    Next col
-    
-    ' Save and close the workbook
-    xlWorkbook.Save
-    xlWorkbook.Close False
-    ' Quit Excel application
-    xlApp.Quit
-    
-    ' Import the cleaned Excel file into Access
-    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", tempFilePath, True
-    
-    ' Delete the temporary file
-    Kill tempFilePath
+    ' Import the Excel sheet data into the Access TempTable
+    ' This assumes that the sheet has been cleaned and validated before calling this function.
+    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", xlSheet.Parent.FullName, True, xlSheet.Name & "!"
     
     Set db = Nothing
 End Sub

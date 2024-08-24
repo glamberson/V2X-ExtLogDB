@@ -36,4 +36,29 @@ Public Function ValidateTWCODE(xlSheet As Object, row As Integer, columnLookup A
     End If
 End Function
 
-' Additional validation functions can be implemented similarly
+
+
+Function ValidateQty(qty As Variant) As Boolean
+    ' Initialize the result to False
+    ValidateQty = False
+    
+    ' Check if the qty is numeric and greater than zero
+    If IsNumeric(qty) Then
+        If qty > 0 Then
+            ValidateQty = True
+        End If
+    End If
+End Function
+
+Function ValidateRequestDate(requestDate As Variant) As Boolean
+    ' Initialize the result to False
+    ValidateRequestDate = False
+    
+    ' Check if the requestDate is populated and is a valid date
+    If Not IsNull(requestDate) Then
+        If IsDate(requestDate) Then
+            ValidateRequestDate = True
+        End If
+    End If
+End Function
+
