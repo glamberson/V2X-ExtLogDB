@@ -1,0 +1,58 @@
+Private Sub Form_Load()
+    On Error GoTo ErrorHandler
+
+    Dim rs As ADODB.Recordset
+    Dim sqlQuery As String
+    
+    ' Define the SQL query to select from the view
+    sqlQuery = "SELECT * FROM mrl_line_items WHERE order_line_item_id IS NOT NULL"
+    
+    ' Open the recordset using the global connection
+    Set rs = New ADODB.Recordset
+    rs.CursorLocation = adUseClient ' Use client-side cursor
+    rs.Open sqlQuery, g_conn, adOpenStatic, adLockReadOnly
+    
+    ' Bind the form's recordset to the view's data
+    Set Me.Recordset = rs
+
+    ' Load and link the subform
+    Call LoadSubForm
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.description, vbCritical, "Connection Error"
+End Sub
+
+Private Sub Form_Current()
+    ' Requery the subform to reflect the current record
+    Call LoadSubForm
+End Sub
+
+Private Sub LoadSubForm()
+    On Error GoTo ErrorHandler
+
+    Dim subformRs As ADODB.Recordset
+    Dim subformSqlQuery As String
+    
+    ' Get the current order_line_item_id from the main form
+    Dim currentOrderLineItemId As Long
+    currentOrderLineItemId = Nz(Me!order_line_item_id, 0)
+    
+    ' Define the SQL query for the subform
+    subformSqlQuery = "SELECT * FROM fulfillment_items WHERE order_line_item_id = " & currentOrderLineItemId
+    
+    ' Open the subform's recordset using the global connection
+    Set subformRs = New ADODB.Recordset
+    subformRs.CursorLocation = adUseClient ' Use client-side cursor
+    subformRs.Open subformSqlQuery, g_conn, adOpenStatic, adLockReadOnly
+    
+    ' Bind the subform's recordset to the data
+    Set Me.fulfillment_items_subform.Form.Recordset = subformRs
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.description, vbCritical, "Connection Error"
+End Sub
+
