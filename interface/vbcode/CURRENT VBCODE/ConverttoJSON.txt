@@ -1,30 +1,24 @@
-'Convert to JSON
-'version 0.8.60 REVERTED 39
+' version 0.9.15
 
-Public Function ConvertToJSON() As Variant
-    Dim db As DAO.Database
-    Dim rs As DAO.Recordset
+Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collection) As Variant
     Dim json As String
     Dim f As DAO.Field
-    Dim keyFields As Collection
     Dim keyField As Variant
     Dim isEmptyRecord As Boolean
-    Dim trimmedFieldName As String
-    Dim errorLog As String
     Dim recordCount As Long
     Dim errorCount As Long
+    Dim errorLog As String
     
-    ' Define the key fields to check
-    Set keyFields = New Collection
-    keyFields.Add "jcn"
-    keyFields.Add "twcode"
-    keyFields.Add "qty"
-    keyFields.Add "request_date"
-    ' Add other key fields as needed
-
-    Set db = CurrentDb()
-    Set rs = db.OpenRecordset("SELECT * FROM TempTable")
-
+    ' If keyFields is not provided, initialize it with default values
+    If keyFields Is Nothing Then
+        Set keyFields = New Collection
+        keyFields.Add "jcn"
+        keyFields.Add "twcode"
+        keyFields.Add "qty"
+        keyFields.Add "request_date"
+        ' Add other key fields as needed
+    End If
+    
     If rs.EOF Then
         ConvertToJSON = Array("[]", "No records found.")
         Exit Function
@@ -41,27 +35,18 @@ Public Function ConvertToJSON() As Variant
         
         ' Check if key fields are empty
         For Each keyField In keyFields
-            On Error Resume Next
-            trimmedFieldName = Trim(keyField)
-            If IsNull(rs.Fields(trimmedFieldName)) Or rs.Fields(trimmedFieldName).Value = "" Then
-                If Err.Number = 0 Then
-                    errorLog = errorLog & "Record " & recordCount & ": Empty " & trimmedFieldName & vbCrLf
-                Else
-                    errorLog = errorLog & "Record " & recordCount & ": Missing field " & trimmedFieldName & vbCrLf
-                End If
+            If IsNull(rs.Fields(keyField).Value) Or rs.Fields(keyField).Value = "" Then
+                errorLog = errorLog & "Record " & recordCount & ": Empty " & keyField & vbCrLf
                 errorCount = errorCount + 1
             Else
                 isEmptyRecord = False
             End If
-            On Error GoTo 0
         Next keyField
         
         If Not isEmptyRecord Then
             json = json & "{"
             For Each f In rs.Fields
-                trimmedFieldName = Trim(f.Name)
-                json = json & """" & EscapeJSON(trimmedFieldName) & """:"
-                On Error Resume Next
+                json = json & """" & EscapeJSON(f.Name) & """:"
                 If IsNull(f.Value) Then
                     json = json & "null"
                 ElseIf f.Type = dbText Then
@@ -71,12 +56,6 @@ Public Function ConvertToJSON() As Variant
                 Else
                     json = json & EscapeJSON(CStr(f.Value))
                 End If
-                If Err.Number <> 0 Then
-                    errorLog = errorLog & "Record " & recordCount & ": Error in field " & trimmedFieldName & " - " & Err.Description & vbCrLf
-                    errorCount = errorCount + 1
-                    Err.Clear
-                End If
-                On Error GoTo 0
                 json = json & ","
             Next f
             json = Left(json, Len(json) - 1) ' Remove trailing comma
@@ -87,17 +66,17 @@ Public Function ConvertToJSON() As Variant
     Loop
     
     If Right(json, 1) = "," Then
-        json = Left(json, Len(json) - 1) ' Remove trailing comma from the last record
+        json = Left(json, Len(json) - 1) ' Remove trailing comma
     End If
     
     json = json & "]"
     
     rs.Close
     Set rs = Nothing
-    Set db = Nothing
     
     errorLog = "Total Records: " & recordCount & vbCrLf & _
                "Records with Errors: " & errorCount & vbCrLf & vbCrLf & errorLog
     
     ConvertToJSON = Array(json, errorLog)
 End Function
+

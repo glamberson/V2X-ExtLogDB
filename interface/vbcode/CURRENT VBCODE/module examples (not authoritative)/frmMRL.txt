@@ -1,9 +1,19 @@
-Option Compare Database
 
-' version 0.8.40
+' version 0.9.05
 
 Private Sub btnCallImportAndInsertMRLLI_Click()
-    ' Call the ImportAndInsertMRLLineItems subroutine from modMRL module
+    ' Call the ImportAndInsertMRLLineItems subroutine
     Call ImportAndInsertMRLLineItems
 End Sub
 
+
+
+Private Sub btnCallImportAndUpdateFulfillment_Click()
+ ' Call the ImportAnd subroutine
+    Call ImportAndUpdateFulfillmentItems
+End Sub
+
+Private Sub Command3_Click()
+' Call the ImportAnd subroutine
+    Call ImportAndUpdateFulfillmentItems
+End Sub

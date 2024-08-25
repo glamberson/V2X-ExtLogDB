@@ -1,0 +1,13 @@
+
+' ImportAndUpdateFulfillmentItems
+' version 0.9.09
+Sub ImportAndUpdateFulfillmentItems()
+    If Not ValidateExcelData() Then
+        MsgBox "Data validation failed. Please correct the errors and try again."
+        Exit Sub
+    End If
+    
+    ImportExcelToAccess
+    UpdateFulfillmentItems
+End Sub
+

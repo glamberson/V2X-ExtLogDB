@@ -1,13 +1,100 @@
 ' import and insert mrl line items
-' version 0.7.12
+' version 0.9.20
+
 Sub ImportAndInsertMRLLineItems()
-    If Not ValidateExcelData() Then
-        MsgBox "Data validation failed. Please correct the errors and try again."
+    Dim xlApp As Object
+    Dim xlWorkbook As Object
+    Dim xlSheet As Object
+    Dim columnLookup As Object
+    Dim validationRules As New Collection
+    Dim isValid As Boolean
+    Dim filePath As String
+    
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting ImportAndInsertMRLLineItems"
+    
+    ' Use the SelectExcelFile function
+    filePath = SelectExcelFile()
+    Debug.Print "After SelectExcelFile, filePath = " & filePath
+    
+    If filePath = "" Then
+        MsgBox "No file selected. Process aborted.", vbExclamation
         Exit Sub
     End If
     
-    ImportExcelToAccess
-    InsertMRLLineItems
-End Sub
+    ' Create a new Excel application instance
+    Set xlApp = CreateObject("Excel.Application")
+    Debug.Print "Excel application created"
+    
+    ' Open the workbook
+    Set xlWorkbook = xlApp.Workbooks.Open(filePath)
+    Debug.Print "Workbook opened: " & xlWorkbook.Name
+    
+    ' Use the reusable function to select the worksheet
+    Set xlSheet = SelectWorksheet(xlWorkbook)
+    If xlSheet Is Nothing Then
+        Debug.Print "No worksheet selected"
+        GoTo Cleanup
+    End If
+    Debug.Print "Selected worksheet: " & xlSheet.Name
+    
+    ' Clean up the column names before proceeding
+    Call CleanUpColumnNames(xlSheet, 1) ' Assuming header row is 1
+    Debug.Print "Column names cleaned up"
+    
+    ' Clean up the data before validation
+    Call CleanUpData(xlSheet, 1)
+    Debug.Print "Data cleaned up"
+    
+    ' Build the column lookup table
+    Set columnLookup = BuildColumnLookup(xlSheet, 1) ' Build lookup table after cleanup
+    Debug.Print "Column lookup table built"
+    
+    ' Proceed with importing the data
+    Call ImportExcelToAccess(filePath) ' Pass the file path
+    Debug.Print "Excel data imported to Access"
+    
+    Call InsertMRLLineItems ' Further processing after import
+    Debug.Print "MRL Line Items inserted"
+    
+    MsgBox "Import and insert process completed successfully.", vbInformation
+    
+    GoTo Cleanup
 
+ErrorHandler:
+    Debug.Print "Error in ImportAndInsertMRLLineItems: " & Err.Description & " (Error " & Err.Number & ")"
+    Debug.Print "Error Source: " & Err.Source
+    MsgBox "An error occurred: " & Err.Description, vbExclamation
+
+Cleanup:
+    On Error Resume Next
+    Debug.Print "Starting cleanup"
+    
+    ' Clean up the column lookup object
+    If Not columnLookup Is Nothing Then
+        Set columnLookup = Nothing
+        Debug.Print "columnLookup cleared"
+    End If
+    
+    ' Close the workbook without saving any changes
+    If Not xlWorkbook Is Nothing Then
+        xlWorkbook.Close False
+        Debug.Print "Workbook closed"
+    End If
+    
+    ' Quit the Excel application
+    If Not xlApp Is Nothing Then
+        xlApp.Quit
+        Debug.Print "Excel application quit"
+    End If
+    
+    ' Release other object references
+    Set xlSheet = Nothing
+    Set xlWorkbook = Nothing
+    Set xlApp = Nothing
+    Debug.Print "Object references cleared"
+    
+    Debug.Print "ImportAndInsertMRLLineItems completed"
+End Sub
 

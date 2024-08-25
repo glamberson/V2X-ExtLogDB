@@ -1,0 +1,329 @@
+Option Compare Database
+
+' ImportAndUpdateFulfillmentItems
+' version 0.9.09
+Sub ImportAndUpdateFulfillmentItems()
+    If Not ValidateExcelData() Then
+        MsgBox "Data validation failed. Please correct the errors and try again."
+        Exit Sub
+    End If
+    
+    ImportExcelToAccess
+    UpdateFulfillmentItems
+End Sub
+
+' version 0.9.23
+
+Public Sub InsertMRLLineItems()
+    Dim jsonData As Variant
+    Dim updateSource As String
+    Dim result As Variant
+    Dim jsonString As String
+    Dim errorLog As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting InsertMRLLineItems"
+    
+    On Error Resume Next
+    Set frm = Forms!frMRL
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting form reference: " & Err.Description
+        Debug.Print "Variable: frm"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("TempTable", dbOpenSnapshot)
+    
+    On Error Resume Next
+    jsonData = ConvertToJSON(rs)
+    If Err.Number <> 0 Then
+        Debug.Print "Error in ConvertToJSON: " & Err.Description
+        Debug.Print "Variable: " & GetVariableName(rs)
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    On Error Resume Next
+    jsonString = CStr(jsonData(0))
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting jsonString: " & Err.Description
+        Debug.Print "Variable: jsonData"
+        Err.Clear
+    End If
+    
+    errorLog = CStr(jsonData(1))
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting errorLog: " & Err.Description
+        Debug.Print "Variable: jsonData"
+        Err.Clear
+    End If
+    
+    updateSource = frm.txtUpdateSource.Value
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting updateSource: " & Err.Description
+        Debug.Print "Variable: frm.txtUpdateSource"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "JSON string length: " & Len(jsonString)
+    Debug.Print "Update source: " & updateSource
+    
+    Debug.Print "Calling ExecuteProtectedFunction"
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    Debug.Print "ExecuteProtectedFunction completed"
+    
+    ' Check the result
+    If Not IsNull(result) Then
+        ' Parse the results
+        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+        Dim parsedResult As Variant
+        parsedResult = ParseNoticeMessage(CStr(result))
+        
+        If IsArray(parsedResult) Then
+            totalCount = parsedResult(0)
+            successCount = parsedResult(1)
+            duplicateCount = parsedResult(2)
+            errorCount = parsedResult(3)
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        Else
+            MsgBox "Unexpected result format from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+            Exit Sub
+        End If
+    Else
+        MsgBox "Unexpected result type from insert_mrl_line_items. Check the database logs for details.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Display results
+    MsgBox "Process completed." & vbNewLine & _
+           "Total Records: " & totalCount & vbNewLine & _
+           "Successful Inserts: " & successCount & vbNewLine & _
+           "Duplicate Records: " & duplicateCount & vbNewLine & _
+           "Failed Inserts: " & errorCount & vbNewLine & _
+           "See error log for details.", vbInformation
+    
+    ' Save error logs to a file
+    Dim fso As Object
+    Dim fileName As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    fileName = "C:\Temp\MRLInsertErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
+                                       "Insert Process Results:" & vbNewLine & CStr(result)
+    MsgBox "Error log has been saved to " & fileName, vbInformation
+
+    Exit Sub
+
+ErrorHandler:
+    Debug.Print "Error in InsertMRLLineItems: " & Err.Description
+    Debug.Print "Error Number: " & Err.Number
+    Debug.Print "Error Source: " & Err.Source
+    Debug.Print "Line: " & Erl
+    Resume Next
+End Sub
+
+' version 0.9.15
+
+Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collection) As Variant
+    Dim json As String
+    Dim f As DAO.Field
+    Dim keyField As Variant
+    Dim isEmptyRecord As Boolean
+    Dim recordCount As Long
+    Dim errorCount As Long
+    Dim errorLog As String
+    
+    ' If keyFields is not provided, initialize it with default values
+    If keyFields Is Nothing Then
+        Set keyFields = New Collection
+        keyFields.Add "jcn"
+        keyFields.Add "twcode"
+        keyFields.Add "qty"
+        keyFields.Add "request_date"
+        ' Add other key fields as needed
+    End If
+    
+    If rs.EOF Then
+        ConvertToJSON = Array("[]", "No records found.")
+        Exit Function
+    End If
+
+    json = "["
+    errorLog = ""
+    recordCount = 0
+    errorCount = 0
+    
+    Do While Not rs.EOF
+        recordCount = recordCount + 1
+        isEmptyRecord = True
+        
+        ' Check if key fields are empty
+        For Each keyField In keyFields
+            If IsNull(rs.Fields(keyField).Value) Or rs.Fields(keyField).Value = "" Then
+                errorLog = errorLog & "Record " & recordCount & ": Empty " & keyField & vbCrLf
+                errorCount = errorCount + 1
+            Else
+                isEmptyRecord = False
+            End If
+        Next keyField
+        
+        If Not isEmptyRecord Then
+            json = json & "{"
+            For Each f In rs.Fields
+                json = json & """" & EscapeJSON(f.Name) & """:"
+                If IsNull(f.Value) Then
+                    json = json & "null"
+                ElseIf f.Type = dbText Then
+                    json = json & """" & EscapeJSON(CStr(f.Value)) & """"
+                ElseIf f.Type = dbDate Then
+                    json = json & """" & Format(f.Value, "yyyy-mm-ddThh:nn:ss") & """"
+                Else
+                    json = json & EscapeJSON(CStr(f.Value))
+                End If
+                json = json & ","
+            Next f
+            json = Left(json, Len(json) - 1) ' Remove trailing comma
+            json = json & "},"
+        End If
+
+        rs.MoveNext
+    Loop
+    
+    If Right(json, 1) = "," Then
+        json = Left(json, Len(json) - 1) ' Remove trailing comma
+    End If
+    
+    json = json & "]"
+    
+    rs.Close
+    Set rs = Nothing
+    
+    errorLog = "Total Records: " & recordCount & vbCrLf & _
+               "Records with Errors: " & errorCount & vbCrLf & vbCrLf & errorLog
+    
+    ConvertToJSON = Array(json, errorLog)
+End Function
+
+
+' UpdateFulfillmentItems
+' version 0.9.09
+
+Public Sub UpdateFulfillmentItems()
+    Dim jsonData As Variant
+    Dim updateSource As String
+    Dim result As Variant
+    Dim jsonString As String
+    Dim errorLog As String
+    
+    Set frm = Forms!frMRL
+    jsonData = ConvertToJSON()
+    jsonString = CStr(jsonData(0))
+    errorLog = CStr(jsonData(1))
+    updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
+    
+    ' Debugging output
+    Debug.Print "Function name: insert_fulfillment_items"
+    Debug.Print "JSON Data length: " & Len(jsonString)
+    Debug.Print "Update Source: " & updateSource
+    Debug.Print "Pre-insert Error Log: " & errorLog
+    
+    ' Call the protected function with correct number of parameters
+    result = ExecuteProtectedFunction("insert_fulfillment_items", jsonString, updateSource)
+    
+    ' Check the result
+    If Not IsNull(result) Then
+        ' Parse the results
+        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+        Dim parsedResult As Variant
+        parsedResult = ParseNoticeMessage(CStr(result))
+        
+        If IsArray(parsedResult) Then
+            totalCount = parsedResult(0)
+            successCount = parsedResult(1)
+            duplicateCount = parsedResult(2)
+            errorCount = parsedResult(3)
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        Else
+            MsgBox "Unexpected result format from insert_fulfillment_items. Check the database logs for details.", vbExclamation
+            Exit Sub
+        End If
+    Else
+        MsgBox "Unexpected result type from insert_fulfillment_items. Check the database logs for details.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Display results
+    MsgBox "Process completed." & vbNewLine & _
+           "Total Records: " & totalCount & vbNewLine & _
+           "Successful Inserts: " & successCount & vbNewLine & _
+           "Duplicate Records: " & duplicateCount & vbNewLine & _
+           "Failed Inserts: " & errorCount & vbNewLine & _
+           "See error log for details.", vbInformation
+    
+    ' Save error logs to a file
+    Dim fso As Object
+    Dim fileName As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    fileName = "C:\Temp\FulfillmentUpdateErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
+                                       "Insert Process Results:" & vbNewLine & CStr(result)
+    MsgBox "Error log has been saved to " & fileName, vbInformation
+End Sub
+' version 0.8.60 REVERTED 39
+' Helper function to escape JSON
+Private Function EscapeJSON(ByVal text As String) As String
+    Dim i As Integer
+    Dim char As String
+    Dim result As String
+    
+    For i = 1 To Len(text)
+        char = Mid(text, i, 1)
+        Select Case AscW(char)
+            Case 8:  result = result & "\b"
+            Case 9:  result = result & "\t"
+            Case 10: result = result & "\n"
+            Case 12: result = result & "\f"
+            Case 13: result = result & "\r"
+            Case 34: result = result & "\"""
+            Case 92: result = result & "\\"
+            Case 0 To 31
+                result = result & "\u" & Right("0000" & Hex(AscW(char)), 4)
+            Case Else
+                result = result & char
+        End Select
+    Next i
+    
+    EscapeJSON = result
+End Function
+
+
+' version 0.8.34
+' Helper function to get the number of records in the JSON string
+
+Private Function GetJSONRecordCount(jsonString As String) As Long
+    Dim count As Long
+    Dim i As Long
+    count = 0
+    For i = 1 To Len(jsonString)
+        If Mid(jsonString, i, 1) = "{" Then
+            count = count + 1
+        End If
+    Next i
+    GetJSONRecordCount = count
+End Function
+
+
+
