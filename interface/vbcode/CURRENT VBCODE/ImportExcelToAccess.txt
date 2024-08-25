@@ -1,55 +1,30 @@
 ' import excel to access
-' version 0.8.42
+' version 0.9.21
 
-Sub ImportExcelToAccess()
-    Dim originalFilePath As String
-    Dim tempFilePath As String
-    Dim xlApp As Object
-    Dim xlWorkbook As Object
-    Dim xlSheet As Object
-    Dim col As Integer
+Sub ImportExcelToAccess(filePath As String)
     Dim db As DAO.Database
     
-    originalFilePath = "C:\Beta_003\MRL.xlsx"
-    tempFilePath = "C:\Beta_003\TempMRL.xlsx"
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting ImportExcelToAccess"
     
     ' Delete TempTable if it exists
     Set db = CurrentDb()
     On Error Resume Next
     db.Execute "DROP TABLE TempTable"
-    On Error GoTo 0
+    On Error GoTo ErrorHandler
     
-    ' Create a copy of the original file
-    FileCopy originalFilePath, tempFilePath
+    ' Import the Excel sheet data into the Access TempTable
+    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", filePath, True
+    Debug.Print "Data imported to TempTable from: " & filePath
     
-    ' Create a new Excel application instance
-    Set xlApp = CreateObject("Excel.Application")
-    ' Open the temp workbook
-    Set xlWorkbook = xlApp.Workbooks.Open(tempFilePath)
-    ' Set the worksheet
-    Set xlSheet = xlWorkbook.Sheets("Sheet1") ' Adjust to your sheet name
-    
-    ' Clean up field names in the first row: trim and convert to lowercase
-    For col = 1 To xlSheet.UsedRange.Columns.count
-        xlSheet.Cells(1, col).Value = LCase(Trim(xlSheet.Cells(1, col).Value))
-    Next col
-    
-    ' Save and close the workbook
-    xlWorkbook.Save
-    xlWorkbook.Close False
-    ' Quit Excel application
-    xlApp.Quit
-    
-    ' Clean up
-    Set xlSheet = Nothing
-    Set xlWorkbook = Nothing
-    Set xlApp = Nothing
+    GoTo Cleanup
 
-    ' Import the cleaned Excel file into Access
-    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", tempFilePath, True
-    
-    ' Delete the temporary file
-    Kill tempFilePath
-    
+ErrorHandler:
+    Debug.Print "Error in ImportExcelToAccess: " & Err.Description
+    MsgBox "An error occurred while importing the Excel data: " & Err.Description, vbExclamation
+
+Cleanup:
     Set db = Nothing
+    Debug.Print "ImportExcelToAccess completed"
 End Sub

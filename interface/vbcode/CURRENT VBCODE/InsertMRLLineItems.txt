@@ -1,6 +1,4 @@
-
-' insert mrl line items
-' version 0.8.53 (reverted)
+' version 0.9.23
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -8,21 +6,67 @@ Public Sub InsertMRLLineItems()
     Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
     
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting InsertMRLLineItems"
+    
+    On Error Resume Next
     Set frm = Forms!frMRL
-    jsonData = ConvertToJSON()
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting form reference: " & Err.Description
+        Debug.Print "Variable: frm"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("TempTable", dbOpenSnapshot)
+    
+    On Error Resume Next
+    jsonData = ConvertToJSON(rs)
+    If Err.Number <> 0 Then
+        Debug.Print "Error in ConvertToJSON: " & Err.Description
+        Debug.Print "Variable: " & GetVariableName(rs)
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    On Error Resume Next
     jsonString = CStr(jsonData(0))
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting jsonString: " & Err.Description
+        Debug.Print "Variable: jsonData"
+        Err.Clear
+    End If
+    
     errorLog = CStr(jsonData(1))
-    updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting errorLog: " & Err.Description
+        Debug.Print "Variable: jsonData"
+        Err.Clear
+    End If
     
-    ' Debugging output
-    Debug.Print "Function name: insert_mrl_line_items"
-    Debug.Print "JSON Data length: " & Len(jsonString)
-    Debug.Print "Update Source: " & updateSource
-    Debug.Print "Pre-insert Error Log: " & errorLog
+    updateSource = frm.txtUpdateSource.Value
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting updateSource: " & Err.Description
+        Debug.Print "Variable: frm.txtUpdateSource"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
     
-    ' Call the protected function with correct number of parameters
+    Debug.Print "JSON string length: " & Len(jsonString)
+    Debug.Print "Update source: " & updateSource
+    
+    Debug.Print "Calling ExecuteProtectedFunction"
     result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    Debug.Print "ExecuteProtectedFunction completed"
     
     ' Check the result
     If Not IsNull(result) Then
@@ -64,4 +108,14 @@ Public Sub InsertMRLLineItems()
     fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
                                        "Insert Process Results:" & vbNewLine & CStr(result)
     MsgBox "Error log has been saved to " & fileName, vbInformation
+
+    Exit Sub
+
+ErrorHandler:
+    Debug.Print "Error in InsertMRLLineItems: " & Err.Description
+    Debug.Print "Error Number: " & Err.Number
+    Debug.Print "Error Source: " & Err.Source
+    Debug.Print "Line: " & Erl
+    Resume Next
 End Sub
+

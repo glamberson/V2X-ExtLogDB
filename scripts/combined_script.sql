@@ -337,6 +337,60 @@ CREATE TABLE failed_logins (
 );
  
  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\100_roles_creation.sql  
+-- version 0.9.10
+
+-- Create roles and grant permissions
+
+-- Step 1: Create the "login" role with login capability and NOINHERIT
+CREATE ROLE "login" WITH LOGIN PASSWORD 'FOTS-Egypt' NOINHERIT;
+
+-- Create other roles without login capability and with NOINHERIT
+CREATE ROLE "kppo_admin_user" NOLOGIN NOINHERIT;
+CREATE ROLE "logistics_user" NOLOGIN NOINHERIT;
+CREATE ROLE "report_viewer_user" NOLOGIN NOINHERIT;
+
+-- Step 2: Set Default Privileges
+-- For Tables and Views
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT SELECT ON TABLES TO "report_viewer_user";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO "logistics_user";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL PRIVILEGES ON TABLES TO "kppo_admin_user";
+
+-- For Sequences
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT USAGE, SELECT ON SEQUENCES TO "kppo_admin_user", "logistics_user", "report_viewer_user";
+
+-- For Functions (Stored Procedures)
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT EXECUTE ON FUNCTIONS TO "kppo_admin_user", "logistics_user", "report_viewer_user";
+
+-- Step 3: Grant SELECT on the users table to validate credentials
+GRANT SELECT ON users TO "login";
+
+
+-- Step 5: Grant database connection privilege
+GRANT CONNECT ON DATABASE "Beta_004" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
+
+-- Step 6: Grant usage on schema
+GRANT USAGE ON SCHEMA public TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
+
+-- Step 7: Grant the ability to switch roles
+GRANT "kppo_admin_user" TO "login";
+GRANT "logistics_user" TO "login";
+GRANT "report_viewer_user" TO "login";
+
+-- Step 8: Grant specific privileges to each role
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "logistics_user";
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "kppo_admin_user";
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO "report_viewer_user";
+
+-- Step 9: Grant usage on sequences to roles
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO "kppo_admin_user", "logistics_user", "report_viewer_user";
+ 
+ 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\11_create_archived_MRL_line_items.sql  
 -- version 0.7.14.9
 
@@ -2039,13 +2093,15 @@ $$ LANGUAGE plpgsql;
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_renew_session.sql  
 -- renew_session function
--- version 0.8.08
+-- version 0.8.23
 
 CREATE OR REPLACE FUNCTION renew_session(
     p_session_id UUID,
     p_duration INTERVAL
 )
-RETURNS VOID AS $$
+RETURNS BOOLEAN AS $$
+DECLARE
+    rows_updated INT;
 BEGIN
     RAISE LOG 'Attempting to renew session: session_id = %, duration = %', p_session_id, p_duration;
 
@@ -2054,13 +2110,18 @@ BEGIN
     WHERE session_id = p_session_id
     AND expires_at > NOW(); -- Ensure we only renew active sessions
 
-    IF FOUND THEN
+    GET DIAGNOSTICS rows_updated = ROW_COUNT;
+
+    IF rows_updated > 0 THEN
         RAISE LOG 'Session renewed successfully: session_id %, new expires_at %', p_session_id, NOW() + p_duration;
+        RETURN TRUE;
     ELSE
         RAISE LOG 'Session not renewed: session_id %, duration %, expired or not found.', p_session_id, p_duration;
+        RETURN FALSE;
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_set_session_variables.sql  
@@ -2184,66 +2245,28 @@ EXECUTE FUNCTION trigger_create_fulfillment_record();
 
  
  
--- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\001_roles_creation.sql  
--- version 0.9
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\001_more_roles_creation.sql  
+-- version 0.9.10
 
--- create roles and grant pemissions
-
-
-
--- Create the "login" role with login capability and NOINHERIT
-CREATE ROLE "login" WITH LOGIN PASSWORD 'FOTS-Egypt' NOINHERIT;
-
--- Create other roles without login capability and with NOINHERIT
-CREATE ROLE "kppo_admin_user" NOLOGIN NOINHERIT;
-CREATE ROLE "logistics_user" NOLOGIN NOINHERIT;
-CREATE ROLE "report_viewer_user" NOLOGIN NOINHERIT;
+-- Create roles and grant permissions
 
 
--- Grant SELECT on the users table to validate credentials
-GRANT SELECT ON users TO "login";
-
--- Grant EXECUTE on necessary functions to the "login" role
+-- Step 4: Grant EXECUTE on necessary functions to the "login" role
 GRANT EXECUTE ON FUNCTION login_wrapper(p_username VARCHAR, p_password VARCHAR, p_duration INTERVAL) TO "login";
 GRANT EXECUTE ON FUNCTION create_session(user_id INT, role_id INT, duration INTERVAL) TO "login";
 GRANT EXECUTE ON FUNCTION log_user_activity(user_id INT, login_time TIMESTAMPTZ, logout_time TIMESTAMPTZ, activity TEXT) TO "login";
 GRANT EXECUTE ON FUNCTION log_failed_login_attempt(username VARCHAR, reason TEXT) TO "login";
 GRANT EXECUTE ON FUNCTION set_user_role(p_db_role_name VARCHAR) TO "login";
 
--- Grant database connection privilege
-GRANT CONNECT ON DATABASE "Beta_004" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
 
--- Grant usage on schema
-GRANT USAGE ON SCHEMA public TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
+-- Step 11: Specifically for the audit_trail table's sequence
+GRANT USAGE, SELECT ON SEQUENCE audit_trail_audit_id_seq TO "kppo_admin_user", "logistics_user", "report_viewer_user";
 
--- Grant the ability to switch roles
-GRANT "kppo_admin_user" TO "login";
-GRANT "logistics_user" TO "login";
-GRANT "report_viewer_user" TO "login";
+-- Step 12: For MRL_line_items table's sequence (if it exists)
+GRANT USAGE, SELECT ON SEQUENCE mrl_line_items_order_line_item_id_seq TO "kppo_admin_user", "logistics_user";
 
--- Grant specific privileges to each role
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "logistics_user";
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "kppo_admin_user";
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO "report_viewer_user";
-
--- Grant usage on sequences to roles
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO kppo_admin_user, logistics_user, report_viewer_user;
-
--- Grant select on sequences to roles (needed for some operations)
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO kppo_admin_user, logistics_user, report_viewer_user;
-
--- Specifically for the audit_trail table's sequence
-GRANT USAGE, SELECT ON SEQUENCE audit_trail_audit_id_seq TO kppo_admin_user, logistics_user, report_viewer_user;
-
--- For MRL_line_items table's sequence (if it exists)
-GRANT USAGE, SELECT ON SEQUENCE mrl_line_items_order_line_item_id_seq TO kppo_admin_user, logistics_user;
-
--- For fulfillment_items table's sequence (if it exists)
-GRANT USAGE, SELECT ON SEQUENCE fulfillment_items_fulfillment_item_id_seq TO kppo_admin_user, logistics_user;
-
-
-
-
+-- Step 13: For fulfillment_items table's sequence (if it exists)
+GRANT USAGE, SELECT ON SEQUENCE fulfillment_items_fulfillment_item_id_seq TO "kppo_admin_user", "logistics_user";
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql  
@@ -2466,6 +2489,49 @@ ON
 
  
  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\02_create_search_views.sql  
+-- version 0.9.24		Doc
+
+-- Creat Combined line items fulfillments for Search View
+
+
+CREATE OR REPLACE VIEW combined_line_items_fulfillments_Search_view AS
+SELECT
+    m.order_line_item_id,
+    m.jcn,
+    m.twcode,
+    m.nomenclature,
+    m.cog,
+    m.fsc,
+    m.niin,
+    m.part_no,
+    m.qty,
+    m.ui,
+    m.market_research_up,
+    m.market_research_ep,
+    m.availability_identifier,
+    m.request_date,
+    m.rdd,
+    m.pri,
+    m.swlin,
+    m.hull_or_shop,
+    m.suggested_source,
+    m.mfg_cage,
+    m.apl,
+    m.nha_equipment_system,
+    m.nha_model,
+    m.nha_serial,
+    m.techmanual,
+    m.dwg_pc
+FROM
+    MRL_line_items m
+LEFT JOIN
+    fulfillment_items f
+ON
+    m.order_line_item_id = f.order_line_item_id;
+
+ 
+ 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\01_create_procedures.sql  
 -- version 0.5.1
 
@@ -2638,80 +2704,128 @@ END;
 $$;
  
  
--- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\03_insert_fulfillment_items.sql  
--- version 0.9
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\03_update_fulfillment_items.sql  
+-- update fulfillment items procedure
+-- version 0.9.10
 
-CREATE OR REPLACE PROCEDURE insert_fulfillment_items(
-    IN json_data JSONB,
-    IN update_source TEXT,
+CREATE OR REPLACE PROCEDURE update_fulfillment_items(
+    batch_data jsonb,
+    update_source TEXT,
     OUT summary TEXT
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    -- Declare necessary variables
-    record JSONB;
-    record_summary TEXT;
-    error_log TEXT DEFAULT '';
-    total_count INT DEFAULT 0;
-    success_count INT DEFAULT 0;
-    duplicate_count INT DEFAULT 0;
-    error_count INT DEFAULT 0;
-    fulfillment_item_id INT;
+    item jsonb;
+    current_user_id INT;
+    current_role_id INT;
+    v_record_count INT := 0;
+    v_success_count INT := 0;
+    v_error_count INT := 0;
+    v_multiple_records_count INT := 0;
+    v_error_messages TEXT := '';
+    v_batch_size INT := 1000; -- Process in batches of 1000 records
+    v_total_records INT;
+    v_batch_start INT;
+    v_batch_end INT;
+    v_fulfillment_count INT;
 BEGIN
-    -- Start processing the JSON data
-    FOR record IN SELECT * FROM jsonb_array_elements(json_data)
-    LOOP
-        BEGIN
-            -- Validate the record
-            -- (Implement specific validation logic as needed)
-            IF record->>'order_line_item_id' IS NULL THEN
-                RAISE EXCEPTION 'Missing order_line_item_id in record: %', record;
-            END IF;
-            
-            -- Process the record (e.g., insert or update fulfillment items)
-            -- Check if the fulfillment item already exists
-            SELECT fulfillment_item_id INTO fulfillment_item_id
-            FROM fulfillment_items
-            WHERE order_line_item_id = (record->>'order_line_item_id')::INT
-              AND (record->>'status_id')::INT = status_id;
+    RAISE LOG 'update_fulfillment_items started';
+    RAISE LOG 'Update source: %', update_source;
+    RAISE LOG 'batch_data type: %', pg_typeof(batch_data);
+    RAISE LOG 'batch_data size: % bytes', octet_length(batch_data::text);
+    RAISE LOG 'First 1000 characters of batch_data: %', left(batch_data::text, 1000);
+    
+    -- Get session variables
+    current_user_id := current_setting('myapp.user_id', true)::INT;
+    current_role_id := current_setting('myapp.role_id', true)::INT;
 
-            IF NOT FOUND THEN
-                -- Insert new fulfillment item
-                INSERT INTO fulfillment_items (
-                    order_line_item_id,
-                    status_id,
-                    edd_to_ches,
-                    carrier,
-                    has_comments,
-                    status_value
-                )
-                VALUES (
-                    (record->>'order_line_item_id')::INT,
-                    (record->>'status_id')::INT,
-                    (record->>'edd_to_ches')::DATE,
-                    record->>'carrier',
-                    (record->>'has_comments')::BOOLEAN,
-                    (record->>'status_value')::INT
-                );
-                success_count := success_count + 1;
-            ELSE
-                -- Handle duplicate
-                duplicate_count := duplicate_count + 1;
-            END IF;
+    RAISE LOG 'Current user ID from session: %, Current role ID from session: %', current_user_id, current_role_id;
 
-        EXCEPTION
-            WHEN OTHERS THEN
-                -- Handle any errors and log them
-                error_log := error_log || 'Error processing record: ' || SQLERRM || E'\n';
-                error_count := error_count + 1;
-        END;
-        total_count := total_count + 1;
+    -- Validate batch_data
+    IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
+        RAISE LOG 'Invalid batch_data: not a JSON array or is NULL. Data: %', batch_data;
+        summary := 'Invalid batch_data: not a JSON array or is NULL';
+        RETURN;
+    END IF;
+
+    -- Log the number of records and a sample in the JSON data
+    v_total_records := jsonb_array_length(batch_data);
+    RAISE LOG 'Number of records in JSON data: %', v_total_records;
+    RAISE LOG 'Sample of batch_data (first 3 elements): %', (SELECT jsonb_pretty(jsonb_agg(e)) FROM (SELECT e FROM jsonb_array_elements(batch_data) e LIMIT 3) s);
+
+    -- Process records in batches
+    FOR v_batch_start IN 0..v_total_records-1 BY v_batch_size LOOP
+        v_batch_end := LEAST(v_batch_start + v_batch_size - 1, v_total_records - 1);
+        
+        RAISE LOG 'Starting batch %-%', v_batch_start, v_batch_end;
+
+        FOR i IN v_batch_start..v_batch_end LOOP
+            item := batch_data->i;
+            v_record_count := v_record_count + 1;
+            BEGIN
+                -- Check how many fulfillment records exist for this jcn/twcode combination
+                SELECT COUNT(*) INTO v_fulfillment_count
+                FROM fulfillment_items fi
+                JOIN MRL_line_items mli ON fi.order_line_item_id = mli.order_line_item_id
+                WHERE mli.jcn = (item->>'jcn')::TEXT AND mli.twcode = (item->>'twcode')::TEXT;
+
+                IF v_fulfillment_count = 0 THEN
+                    -- Log error if no fulfillment record found
+                    v_error_count := v_error_count + 1;
+                    v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': No fulfillment record found for JCN: ' || (item->>'jcn')::TEXT || ', TWCODE: ' || (item->>'twcode')::TEXT || E'\n';
+                ELSIF v_fulfillment_count = 1 THEN
+                    -- Update the single fulfillment record
+                    UPDATE fulfillment_items fi
+                    SET 
+                        status_id = (item->>'status_id')::INT,
+                        edd_to_ches = (item->>'edd_to_ches')::DATE,
+                        carrier = item->>'carrier',
+                        updated_by = current_user_id,
+                        updated_at = CURRENT_TIMESTAMP,
+                        update_source = update_source
+                    FROM MRL_line_items mli
+                    WHERE fi.order_line_item_id = mli.order_line_item_id
+                      AND mli.jcn = (item->>'jcn')::TEXT 
+                      AND mli.twcode = (item->>'twcode')::TEXT;
+
+                    v_success_count := v_success_count + 1;
+                    PERFORM log_audit('UPDATE'::TEXT, fi.order_line_item_id, fi.fulfillment_item_id, 'Updated fulfillment item'::TEXT, update_source);
+                ELSE
+                    -- Log if multiple fulfillment records found
+                    v_multiple_records_count := v_multiple_records_count + 1;
+                    v_error_messages := v_error_messages || 'Warning in record ' || v_record_count || ': Multiple fulfillment records (' || v_fulfillment_count || ') found for JCN: ' || (item->>'jcn')::TEXT || ', TWCODE: ' || (item->>'twcode')::TEXT || E'\n';
+                END IF;
+
+            EXCEPTION 
+                WHEN OTHERS THEN
+                    v_error_count := v_error_count + 1;
+                    v_error_messages := v_error_messages || 'Error in record ' || v_record_count || ': ' || SQLERRM || E'\n';
+                    RAISE LOG 'Error updating fulfillment item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+                    RAISE LOG 'Problematic item: %', item;
+            END;
+        END LOOP;
+
+        RAISE LOG 'Batch %-% completed. Successes: %, Errors: %, Multiple Records: %', 
+                  v_batch_start, v_batch_end, v_success_count, v_error_count, v_multiple_records_count;
     END LOOP;
 
-    -- Prepare the summary output
-    summary := 'Total: ' || total_count || ', Success: ' || success_count || 
-               ', Duplicates: ' || duplicate_count || ', Errors: ' || error_count;
+    -- Log the final results
+    RAISE LOG 'update_fulfillment_items completed. Total: %, Success: %, Errors: %, Multiple Records: %', 
+              v_record_count, v_success_count, v_error_count, v_multiple_records_count;
+    IF v_error_count > 0 OR v_multiple_records_count > 0 THEN
+        RAISE LOG 'Error and warning messages: %', v_error_messages;
+    END IF;
 
+    -- Set the summary
+    summary := format('Operation completed. Total: %s, Success: %s, Errors: %s, Multiple Records: %s', 
+                      v_record_count, v_success_count, v_error_count, v_multiple_records_count);
+
+    -- Renew the session after all processing is complete
+    PERFORM renew_session(current_setting('myapp.session_id')::uuid, '1 hour'::interval);
+
+EXCEPTION WHEN OTHERS THEN
+    RAISE LOG 'Unhandled exception in update_fulfillment_items: %, SQLSTATE: %, batch_data sample: %', SQLERRM, SQLSTATE, (SELECT jsonb_pretty(jsonb_agg(e)) FROM (SELECT e FROM jsonb_array_elements(batch_data) e LIMIT 5) s);
+    summary := 'Unhandled exception: ' || SQLERRM;
 END;
 $$;
 

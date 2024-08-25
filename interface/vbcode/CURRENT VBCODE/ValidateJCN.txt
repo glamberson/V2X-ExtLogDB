@@ -1,0 +1,19 @@
+' Validate if JCN is not empty
+' version 0.9.02
+Public Function ValidateJCN(xlSheet As Object, row As Integer, columnLookup As Object) As Boolean
+    Dim colJCN As Integer
+    If columnLookup.Exists("jcn") Then
+        colJCN = columnLookup("jcn")
+    Else
+        MsgBox "Error: JCN column not found."
+        ValidateJCN = False
+        Exit Function
+    End If
+    
+    If IsEmpty(xlSheet.Cells(row, colJCN)) Then
+        MsgBox "Error: jcn is required at row " & row
+        ValidateJCN = False
+    Else
+        ValidateJCN = True
+    End If
+End Function

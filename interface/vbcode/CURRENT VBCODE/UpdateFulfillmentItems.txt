@@ -1,0 +1,68 @@
+
+' UpdateFulfillmentItems
+' version 0.9.09
+
+Public Sub UpdateFulfillmentItems()
+    Dim jsonData As Variant
+    Dim updateSource As String
+    Dim result As Variant
+    Dim jsonString As String
+    Dim errorLog As String
+    
+    Set frm = Forms!frMRL
+    jsonData = ConvertToJSON()
+    jsonString = CStr(jsonData(0))
+    errorLog = CStr(jsonData(1))
+    updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
+    
+    ' Debugging output
+    Debug.Print "Function name: insert_fulfillment_items"
+    Debug.Print "JSON Data length: " & Len(jsonString)
+    Debug.Print "Update Source: " & updateSource
+    Debug.Print "Pre-insert Error Log: " & errorLog
+    
+    ' Call the protected function with correct number of parameters
+    result = ExecuteProtectedFunction("insert_fulfillment_items", jsonString, updateSource)
+    
+    ' Check the result
+    If Not IsNull(result) Then
+        ' Parse the results
+        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
+        Dim parsedResult As Variant
+        parsedResult = ParseNoticeMessage(CStr(result))
+        
+        If IsArray(parsedResult) Then
+            totalCount = parsedResult(0)
+            successCount = parsedResult(1)
+            duplicateCount = parsedResult(2)
+            errorCount = parsedResult(3)
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+        Else
+            MsgBox "Unexpected result format from insert_fulfillment_items. Check the database logs for details.", vbExclamation
+            Exit Sub
+        End If
+    Else
+        MsgBox "Unexpected result type from insert_fulfillment_items. Check the database logs for details.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Display results
+    MsgBox "Process completed." & vbNewLine & _
+           "Total Records: " & totalCount & vbNewLine & _
+           "Successful Inserts: " & successCount & vbNewLine & _
+           "Duplicate Records: " & duplicateCount & vbNewLine & _
+           "Failed Inserts: " & errorCount & vbNewLine & _
+           "See error log for details.", vbInformation
+    
+    ' Save error logs to a file
+    Dim fso As Object
+    Dim fileName As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    fileName = "C:\Temp\FulfillmentUpdateErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
+                                       "Insert Process Results:" & vbNewLine & CStr(result)
+    MsgBox "Error log has been saved to " & fileName, vbInformation
+End Sub
+

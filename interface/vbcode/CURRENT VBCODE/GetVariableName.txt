@@ -1,0 +1,12 @@
+' version 0.9.23
+
+Public Function GetVariableName(ByVal vbl As Variant) As String
+    On Error Resume Next
+    GetVariableName = vbl.Name
+    If Err.Number <> 0 Then
+        GetVariableName = TypeName(vbl)
+    End If
+    On Error GoTo 0
+End Function
+
+
