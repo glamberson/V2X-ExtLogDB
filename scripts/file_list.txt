@@ -1,59 +1,59 @@
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\02_create_roles.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\03_create_users.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\01_create_statuses.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\02_availability_events.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\02_create_MRL_line_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\03_create_fulfillment_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\05_create_line_item_comments.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\06_create_line_item_inquiry.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\06_create_user_sessions.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\07_create_function_permissions.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\07_create_user_activity.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\09_temp_bulk_update.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\10_create_failed_logins.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\100_roles_creation.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\11_create_archived_MRL_line_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\12_create_archived_fulfillment_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\20_create_constraints.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\30_create_indexes.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\01_create_functions-01.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\01_create_functions-02.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_archive_fulfillment_item.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_archive_line_item.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_cascade_status_to_mrl.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_combined_status_audit_update.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_compare_and_update_line_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_create_fulfillment_record.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_all_changes.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_failed_login_attempt.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_log_user_activity.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status-simple.sql-notused 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_inquiry_status_with_reason.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_view_inquiry_status_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_view_line_item_history_with_comments.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\03_user_logout.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_fulfillment_bulk_update.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_login_wrapper.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_set_user_role.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_update_fulfillment_item.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\04_update_mrl_item.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_create_session.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_invalidate_session.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_renew_session.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_set_session_variables.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\05_validate_session_and_permission.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\06_trigger_create_fulfillment_record.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\99_trigger_code.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\001_more_roles_creation.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\01_create_views.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\02_create_search_views.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\01_create_procedures.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql 
-C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\03_update_fulfillment_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\01 initialization\02_create_roles.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\01 initialization\03_create_users.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\01_create_statuses.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\02_availability_events.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\02_create_MRL_line_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\03_create_fulfillment_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\05_create_line_item_comments.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\06_create_line_item_inquiry.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\06_create_user_sessions.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\07_create_function_permissions.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\07_create_user_activity.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\09_temp_bulk_update.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\10_create_failed_logins.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\100_roles_creation.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\11_create_archived_MRL_line_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\12_create_archived_fulfillment_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\20_create_constraints.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\02 schema\30_create_indexes.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\01_create_functions-01.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\01_create_functions-02.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_archive_fulfillment_item.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_archive_line_item.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_cascade_status_to_mrl.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_combined_status_audit_update.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_compare_and_update_line_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_create_fulfillment_record.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_all_changes.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_audit.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_failed_login_attempt.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_log_user_activity.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_and_mrl_status.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_update_inquiry_status_with_reason.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_view_inquiry_status_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\02_view_line_item_history_with_comments.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\03_user_login.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\03_user_logout.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_fulfillment_bulk_update.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_login_wrapper.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_set_user_role.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_update_fulfillment_item.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\04_update_mrl_item.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_create_session.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_invalidate_session.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_renew_session.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_set_session_variables.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_validate_session.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\05_validate_session_and_permission.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\06_trigger_create_fulfillment_record.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\03 functions\99_trigger_code.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\04 data\001_more_roles_creation.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\04 data\01_insert_initial_data.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\05 utilities\01_create_views.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\05 utilities\02_create_search_views.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\06 procedures\01_create_procedures.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items.sql 
+C:\Users\lambe\V2X-ExtLogDB\scripts\06 procedures\03_update_fulfillment_items.sql 
