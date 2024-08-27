@@ -1,4 +1,5 @@
-' version 0.9.15
+' convert to JSON
+' version 0.9.33
 
 Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collection) As Variant
     Dim json As String
@@ -14,8 +15,8 @@ Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collect
         Set keyFields = New Collection
         keyFields.Add "jcn"
         keyFields.Add "twcode"
-        keyFields.Add "qty"
-        keyFields.Add "request_date"
+        'keyFields.Add "qty"
+        'keyFields.Add "request_date"
         ' Add other key fields as needed
     End If
     

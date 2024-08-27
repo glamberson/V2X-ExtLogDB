@@ -1,10 +1,10 @@
 -- update fulfillment items procedure
--- version 0.9.39
+-- version 0.9.43
 
 CREATE OR REPLACE PROCEDURE update_fulfillment_items(
     batch_data jsonb,
     update_source TEXT,
-    OUT summary TEXT
+    OUT summary JSONB
 )
 LANGUAGE plpgsql AS $$
 DECLARE
@@ -16,8 +16,6 @@ DECLARE
     v_error_count INT := 0;
     v_warning_count INT := 0;
     v_multiple_records_count INT := 0;
-    v_error_messages TEXT := '';
-    v_warning_messages TEXT := '';
     v_batch_size INT := 1000;
     v_total_records INT;
     v_batch_start INT;
@@ -35,12 +33,16 @@ DECLARE
         'lsc_on_hand_date', 'arr_lsc_egypt', 'milstrip_req_no', 'edd_egypt'
     ];
     v_update_query text;
+    v_batch_id UUID;
 BEGIN
     RAISE LOG 'update_fulfillment_items started';
     RAISE LOG 'Update source: %', update_source;
     RAISE LOG 'batch_data type: %', pg_typeof(batch_data);
     RAISE LOG 'batch_data size: % bytes', octet_length(batch_data::text);
     RAISE LOG 'First 1000 characters of batch_data: %', left(batch_data::text, 1000);
+    
+    -- Generate a unique batch ID
+    v_batch_id := gen_random_uuid();
     
     -- Get session variables
     current_user_id := current_setting('myapp.user_id', true)::INT;
@@ -51,7 +53,7 @@ BEGIN
     -- Validate batch_data
     IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
         RAISE LOG 'Invalid batch_data: not a JSON array or is NULL. Data: %', batch_data;
-        summary := 'Invalid batch_data: not a JSON array or is NULL';
+        summary := jsonb_build_object('status', 'error', 'message', 'Invalid batch_data: not a JSON array or is NULL');
         RETURN;
     END IF;
 
@@ -84,8 +86,13 @@ BEGIN
                 IF v_fulfillment_count = 0 THEN
                     -- Log error if no fulfillment record found
                     v_error_count := v_error_count + 1;
-                    v_error_messages := v_error_messages || format('Error in record %s: No fulfillment record found for JCN: %s, TWCODE: %s\n', 
-                                                                   v_record_count, (item->>'jcn')::TEXT, (item->>'twcode')::TEXT);
+                    INSERT INTO import_error_log (
+                        batch_id, operation_type, source_file_line_number, jcn, twcode,
+                        error_type, error_message, record_data
+                    ) VALUES (
+                        v_batch_id, 'FULFILLMENT_UPDATE', v_record_count, item->>'jcn', item->>'twcode',
+                        'ERROR', 'No fulfillment record found', item
+                    );
                 ELSIF v_fulfillment_count = 1 THEN
                     -- Fetch existing record
                     SELECT fi.* INTO v_existing_record
@@ -118,8 +125,15 @@ BEGIN
                     -- Log warnings for all changes
                     IF jsonb_typeof(v_changes) != 'null' AND v_changes != '{}'::jsonb THEN
                         v_warning_count := v_warning_count + 1;
-                        v_warning_messages := v_warning_messages || format('Warning in record %s (JCN: %s, TWCODE: %s): Data modified: %s\n', 
-                            v_record_count, (item->>'jcn')::TEXT, (item->>'twcode')::TEXT, v_changes::text);
+                        INSERT INTO import_error_log (
+                            batch_id, operation_type, source_file_line_number, jcn, twcode,
+                            order_line_item_id, fulfillment_item_id, error_type, error_message, record_data
+                        ) VALUES (
+                            v_batch_id, 'FULFILLMENT_UPDATE', v_record_count, item->>'jcn', item->>'twcode',
+                            v_existing_record.order_line_item_id, v_existing_record.fulfillment_item_id,
+                            'WARNING', 'Data modified', 
+                            jsonb_build_object('original', to_jsonb(v_existing_record), 'changes', v_changes, 'new', item)
+                        );
                     END IF;
 
                     -- Update the fulfillment record if there are changes
@@ -160,14 +174,25 @@ BEGIN
                 ELSE
                     -- Log if multiple fulfillment records found
                     v_multiple_records_count := v_multiple_records_count + 1;
-                    v_error_messages := v_error_messages || format('Warning in record %s: Multiple fulfillment records (%s) found for JCN: %s, TWCODE: %s\n', 
-                        v_record_count, v_fulfillment_count, (item->>'jcn')::TEXT, (item->>'twcode')::TEXT);
+                    INSERT INTO import_error_log (
+                        batch_id, operation_type, source_file_line_number, jcn, twcode,
+                        error_type, error_message, record_data
+                    ) VALUES (
+                        v_batch_id, 'FULFILLMENT_UPDATE', v_record_count, item->>'jcn', item->>'twcode',
+                        'WARNING', format('Multiple fulfillment records (%s) found', v_fulfillment_count), item
+                    );
                 END IF;
 
             EXCEPTION 
                 WHEN OTHERS THEN
                     v_error_count := v_error_count + 1;
-                    v_error_messages := v_error_messages || format('Error in record %s: %s\n', v_record_count, SQLERRM);
+                    INSERT INTO import_error_log (
+                        batch_id, operation_type, source_file_line_number, jcn, twcode,
+                        error_type, error_message, record_data
+                    ) VALUES (
+                        v_batch_id, 'FULFILLMENT_UPDATE', v_record_count, item->>'jcn', item->>'twcode',
+                        'ERROR', SQLERRM, item
+                    );
                     RAISE LOG 'Error updating fulfillment item: %, SQLSTATE: %', SQLERRM, SQLSTATE;
                     RAISE LOG 'Problematic item: %', jsonb_pretty(item);
             END;
@@ -180,21 +205,33 @@ BEGIN
     -- Log the final results
     RAISE LOG 'update_fulfillment_items completed. Total: %, Success: %, Errors: %, Warnings: %, Multiple Records: %', 
               v_record_count, v_success_count, v_error_count, v_warning_count, v_multiple_records_count;
-    IF v_error_count > 0 OR v_multiple_records_count > 0 OR v_warning_count > 0 THEN
-        RAISE LOG 'Error messages: %', v_error_messages;
-        RAISE LOG 'Warning messages: %', v_warning_messages;
-    END IF;
 
     -- Set the summary
-    summary := format('Operation completed. Total: %s, Success: %s, Errors: %s, Warnings: %s, Multiple Records: %s', 
-                      v_record_count, v_success_count, v_error_count, v_warning_count, v_multiple_records_count);
+    summary := jsonb_build_object(
+        'status', 'completed',
+        'batch_id', v_batch_id,
+        'total', v_record_count,
+        'success', v_success_count,
+        'errors', v_error_count,
+        'warnings', v_warning_count,
+        'multiple_records', v_multiple_records_count,
+        'operation', 'update_fulfillment_items',
+        'update_source', update_source,
+        'timestamp', current_timestamp
+    );
 
     -- Renew the session after all processing is complete
     PERFORM renew_session(current_setting('myapp.session_id')::uuid, '1 hour'::interval);
 
 EXCEPTION WHEN OTHERS THEN
     RAISE LOG 'Unhandled exception in update_fulfillment_items: %, SQLSTATE: %, batch_data sample: %', SQLERRM, SQLSTATE, (SELECT jsonb_pretty(jsonb_agg(e)) FROM (SELECT e FROM jsonb_array_elements(batch_data) e LIMIT 5) s);
-    summary := 'Unhandled exception: ' || SQLERRM;
+    summary := jsonb_build_object(
+        'status', 'error', 
+        'message', 'Unhandled exception: ' || SQLERRM,
+        'operation', 'update_fulfillment_items',
+        'update_source', update_source,
+        'timestamp', current_timestamp
+    );
 END;
 $$;
 

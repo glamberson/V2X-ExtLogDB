@@ -1,11 +1,11 @@
 
 ' Initialize Postgres Connection
-' version 0.9.04
+' version 0.9.45
 
 Public Sub InitializePostgresConnection()
     If g_conn Is Nothing Then
         g_connString = "Driver={PostgreSQL Unicode};" & _
-                       "Server=localhost;" & _
+                       "Server=CMMS-DB-01;" & _
                        "Port=5432;" & _
                        "Database=Beta_004;" & _
                        "Uid=login;" & _

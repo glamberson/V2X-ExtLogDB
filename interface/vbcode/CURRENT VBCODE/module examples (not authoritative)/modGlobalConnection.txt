@@ -12,12 +12,12 @@ Public g_roleId As Long
 
 
 ' Initialize Postgres Connection
-' version 0.9.04
+' version 0.9.45
 
 Public Sub InitializePostgresConnection()
     If g_conn Is Nothing Then
         g_connString = "Driver={PostgreSQL Unicode};" & _
-                       "Server=localhost;" & _
+                       "Server=CMMS-DB-01;" & _
                        "Port=5432;" & _
                        "Database=Beta_004;" & _
                        "Uid=login;" & _
@@ -37,7 +37,6 @@ Public Function CreatePostgresConnection() As ADODB.Connection
     ' Just return the existing connection as it's supposed to be initialized only once
     Set CreatePostgresConnection = g_conn
 End Function
-
 
 ' ValidateUser
 ' Version 0.8.02
@@ -120,12 +119,15 @@ Public Function ParseNoticeMessage(message As String) As Variant
     ParseNoticeMessage = result
 End Function
 
-' version 0.8.80
-' Helper function to log errors and duplicates
+' version 0.9.31
+' Helper function to log errors, duplicates, and warnings
 
-Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long, errorLog As String)
+Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateOrWarningCount As Long, errorCount As Long, errorLog As String, Optional isWarning As Boolean = False)
     Dim db As DAO.Database
     Dim rst As DAO.Recordset
+    Dim countType As String
+    
+    countType = IIf(isWarning, "Warning", "Duplicate")
     
     Set db = CurrentDb()
     Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
@@ -134,9 +136,10 @@ Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, dupl
     rst!LogDate = Now()
     rst!totalCount = totalCount
     rst!successCount = successCount
-    rst!duplicateCount = duplicateCount
+    rst!duplicateCount = duplicateOrWarningCount
     rst!errorCount = errorCount
     rst!ErrorDetails = errorLog
+    rst!LogType = IIf(isWarning, "Warning", "Duplicate")
     rst.Update
     
     rst.Close
@@ -144,5 +147,16 @@ Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, dupl
     Set db = Nothing
 End Sub
 
+' WRITE TO LOG FILE
+' version 0.9.44
+
+Public Sub WriteToLogFile(filePath As String, message As String)
+    Dim fileNum As Integer
+    fileNum = FreeFile
+    
+    Open filePath For Append As #fileNum
+    Print #fileNum, Format(Now, "yyyy-mm-dd hh:nn:ss") & " - " & message
+    Close #fileNum
+End Sub
 
 

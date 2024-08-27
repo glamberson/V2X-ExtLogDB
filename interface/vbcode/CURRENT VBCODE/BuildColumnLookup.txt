@@ -1,6 +1,6 @@
 
-' version 0.9.15
 ' BuildColumnLookup function to dynamically create a dictionary of column names
+' version 0.9.15
 
 Public Function BuildColumnLookup(sheet As Object, headerRow As Integer) As Object
     Dim col As Integer
@@ -15,3 +15,4 @@ Public Function BuildColumnLookup(sheet As Object, headerRow As Integer) As Obje
     
     Set BuildColumnLookup = columnLookup
 End Function
+

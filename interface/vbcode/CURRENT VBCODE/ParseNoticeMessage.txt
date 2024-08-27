@@ -1,3 +1,4 @@
+
 ' Helper function to parse NOTICE message
 ' version 0.8.80
 
@@ -27,3 +28,4 @@ Public Function ParseNoticeMessage(message As String) As Variant
     
     ParseNoticeMessage = result
 End Function
+

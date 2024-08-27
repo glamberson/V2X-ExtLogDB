@@ -1,7 +1,9 @@
 Option Compare Database
-' version 0.9.17
+' version 0.9.35
 ' Add these declarations at the top of your module
 Private Declare PtrSafe Function GetOpenFileName Lib "comdlg32.dll" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
+' Declare the Sleep function from Windows API
+Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Private Type OPENFILENAME
     lStructSize As Long
@@ -26,7 +28,8 @@ Private Type OPENFILENAME
     lpTemplateName As String
 End Type
 
-' version 0.9.20
+' Import And Insert MRL Line Items
+' version 0.9.34
 
 Sub ImportAndInsertMRLLineItems()
     Dim xlApp As Object
@@ -54,7 +57,7 @@ Sub ImportAndInsertMRLLineItems()
     Set xlApp = CreateObject("Excel.Application")
     Debug.Print "Excel application created"
     
-    ' Open the workbook
+    ' Open the workbook (writable mode to allow preprocessing)
     Set xlWorkbook = xlApp.Workbooks.Open(filePath)
     Debug.Print "Workbook opened: " & xlWorkbook.Name
     
@@ -67,7 +70,7 @@ Sub ImportAndInsertMRLLineItems()
     Debug.Print "Selected worksheet: " & xlSheet.Name
     
     ' Clean up the column names before proceeding
-    Call CleanUpColumnNames(xlSheet, 1) ' Assuming header row is 1
+    Call CleanUpColumnNames(xlSheet, 1)
     Debug.Print "Column names cleaned up"
     
     ' Clean up the data before validation
@@ -75,14 +78,14 @@ Sub ImportAndInsertMRLLineItems()
     Debug.Print "Data cleaned up"
     
     ' Build the column lookup table
-    Set columnLookup = BuildColumnLookup(xlSheet, 1) ' Build lookup table after cleanup
+    Set columnLookup = BuildColumnLookup(xlSheet, 1)
     Debug.Print "Column lookup table built"
     
     ' Proceed with importing the data
-    Call ImportExcelToAccess(filePath) ' Pass the file path
+    Call ImportExcelToAccess(filePath)
     Debug.Print "Excel data imported to Access"
     
-    Call InsertMRLLineItems ' Further processing after import
+    Call InsertMRLLineItems
     Debug.Print "MRL Line Items inserted"
     
     MsgBox "Import and insert process completed successfully.", vbInformation
@@ -90,25 +93,27 @@ Sub ImportAndInsertMRLLineItems()
     GoTo Cleanup
 
 ErrorHandler:
-    Debug.Print "Error in ImportAndInsertMRLLineItems: " & Err.description & " (Error " & Err.Number & ")"
+    Debug.Print "Error in ImportAndInsertMRLLineItems: " & Err.Description & " (Error " & Err.Number & ")"
     Debug.Print "Error Source: " & Err.Source
-    MsgBox "An error occurred: " & Err.description, vbExclamation
+    MsgBox "An error occurred: " & Err.Description, vbExclamation
 
 Cleanup:
     On Error Resume Next
     Debug.Print "Starting cleanup"
-    
-    ' Clean up the column lookup object
-    If Not columnLookup Is Nothing Then
-        Set columnLookup = Nothing
-        Debug.Print "columnLookup cleared"
-    End If
+
+    ' Explicitly set the sheet reference to Nothing
+    Set xlSheet = Nothing
+    Debug.Print "xlSheet reference cleared"
     
     ' Close the workbook without saving any changes
     If Not xlWorkbook Is Nothing Then
-        xlWorkbook.Close False
+        xlWorkbook.Close SaveChanges:=False ' Explicitly discard changes
         Debug.Print "Workbook closed"
     End If
+    
+    ' Explicitly set the workbook reference to Nothing
+    Set xlWorkbook = Nothing
+    Debug.Print "xlWorkbook reference cleared"
     
     ' Quit the Excel application
     If Not xlApp Is Nothing Then
@@ -116,16 +121,21 @@ Cleanup:
         Debug.Print "Excel application quit"
     End If
     
-    ' Release other object references
-    Set xlSheet = Nothing
-    Set xlWorkbook = Nothing
+    ' Explicitly set the application reference to Nothing
     Set xlApp = Nothing
-    Debug.Print "Object references cleared"
-    
-    Debug.Print "ImportAndInsertMRLLineItems completed"
+    Debug.Print "xlApp reference cleared"
+
+    ' Use the Sleep API to pause briefly, allowing Windows to release file handles
+    Sleep 1000 ' Wait for 1 second to allow the OS to release file locks
+
+    ' Optionally, kill any lingering Excel processes
+    KillExcelProcesses
+
+    Debug.Print "Cleanup completed"
 End Sub
+
 ' ImportAndUpdateFulfillmentItems
-' version 0.9.30
+' version 0.9.34
 Sub ImportAndUpdateFulfillmentItems()
     Dim xlApp As Object
     Dim xlWorkbook As Object
@@ -152,7 +162,7 @@ Sub ImportAndUpdateFulfillmentItems()
     Set xlApp = CreateObject("Excel.Application")
     Debug.Print "Excel application created"
     
-    ' Open the workbook
+    ' Open the workbook (writable mode to allow preprocessing)
     Set xlWorkbook = xlApp.Workbooks.Open(filePath)
     Debug.Print "Workbook opened: " & xlWorkbook.Name
     
@@ -165,7 +175,7 @@ Sub ImportAndUpdateFulfillmentItems()
     Debug.Print "Selected worksheet: " & xlSheet.Name
     
     ' Clean up the column names before proceeding
-    Call CleanUpColumnNames(xlSheet, 1) ' Assuming header row is 1
+    Call CleanUpColumnNames(xlSheet, 1)
     Debug.Print "Column names cleaned up"
     
     ' Clean up the data before validation
@@ -173,14 +183,14 @@ Sub ImportAndUpdateFulfillmentItems()
     Debug.Print "Data cleaned up"
     
     ' Build the column lookup table
-    Set columnLookup = BuildColumnLookup(xlSheet, 1) ' Build lookup table after cleanup
+    Set columnLookup = BuildColumnLookup(xlSheet, 1)
     Debug.Print "Column lookup table built"
     
     ' Proceed with importing the data
-    Call ImportExcelToAccess(filePath) ' Pass the file path
+    Call ImportExcelToAccess(filePath)
     Debug.Print "Excel data imported to Access"
     
-    Call UpdateFulfillmentItems ' Further processing after import
+    Call UpdateFulfillmentItems
     Debug.Print "Fulfillment records updated"
     
     MsgBox "Import and update process completed successfully.", vbInformation
@@ -188,25 +198,27 @@ Sub ImportAndUpdateFulfillmentItems()
     GoTo Cleanup
 
 ErrorHandler:
-    Debug.Print "Error in ImportAndUpdateFulfillmentItems: " & Err.description & " (Error " & Err.Number & ")"
+    Debug.Print "Error in ImportAndUpdateFulfillmentItems: " & Err.Description & " (Error " & Err.Number & ")"
     Debug.Print "Error Source: " & Err.Source
-    MsgBox "An error occurred: " & Err.description, vbExclamation
+    MsgBox "An error occurred: " & Err.Description, vbExclamation
 
 Cleanup:
     On Error Resume Next
     Debug.Print "Starting cleanup"
-    
-    ' Clean up the column lookup object
-    If Not columnLookup Is Nothing Then
-        Set columnLookup = Nothing
-        Debug.Print "columnLookup cleared"
-    End If
+
+    ' Explicitly set the sheet reference to Nothing
+    Set xlSheet = Nothing
+    Debug.Print "xlSheet reference cleared"
     
     ' Close the workbook without saving any changes
     If Not xlWorkbook Is Nothing Then
-        xlWorkbook.Close False
+        xlWorkbook.Close SaveChanges:=False ' Explicitly discard changes
         Debug.Print "Workbook closed"
     End If
+    
+    ' Explicitly set the workbook reference to Nothing
+    Set xlWorkbook = Nothing
+    Debug.Print "xlWorkbook reference cleared"
     
     ' Quit the Excel application
     If Not xlApp Is Nothing Then
@@ -214,15 +226,20 @@ Cleanup:
         Debug.Print "Excel application quit"
     End If
     
-    ' Release other object references
-    Set xlSheet = Nothing
-    Set xlWorkbook = Nothing
+    ' Explicitly set the application reference to Nothing
     Set xlApp = Nothing
-    Debug.Print "Object references cleared"
-    
-    Debug.Print "ImportAndUpdateFulfillmentItems completed"
+    Debug.Print "xlApp reference cleared"
+
+    ' Use the Sleep API to pause briefly, allowing Windows to release file handles
+    Sleep 1000 ' Wait for 1 second to allow the OS to release file locks
+
+    ' Optionally, kill any lingering Excel processes
+    KillExcelProcesses
+
+    Debug.Print "Cleanup completed"
 End Sub
 
+' Select Excel File (Windows API)
 ' version 0.9.10
 
 Public Function SelectExcelFile() As String
@@ -273,10 +290,11 @@ Public Function SelectExcelFile() As String
     Exit Function
 
 ErrorHandler:
-    Debug.Print "Error in SelectExcelFile: " & Err.description
+    Debug.Print "Error in SelectExcelFile: " & Err.Description
     SelectExcelFile = ""
 End Function
 
+' Select Worksheet
 ' verison 0.9.15
 
 Public Function SelectWorksheet(xlWorkbook As Object) As Object
@@ -298,6 +316,7 @@ Public Function SelectWorksheet(xlWorkbook As Object) As Object
     Set SelectWorksheet = xlSheet
 End Function
 
+' Clean Up Column Names
 ' version 0.9.15
 
 Public Sub CleanUpColumnNames(sheet As Object, headerRow As Integer)
@@ -329,6 +348,7 @@ Public Sub CleanUpColumnNames(sheet As Object, headerRow As Integer)
     Next col
 End Sub
 
+' Clean Up Data
 ' version 0.9.15
 
 Public Sub CleanUpData(sheet As Object, headerRow As Integer)
@@ -362,8 +382,8 @@ Public Sub CleanUpData(sheet As Object, headerRow As Integer)
     Next col
 End Sub
 
-' version 0.9.15
 ' BuildColumnLookup function to dynamically create a dictionary of column names
+' version 0.9.15
 
 Public Function BuildColumnLookup(sheet As Object, headerRow As Integer) As Object
     Dim col As Integer
@@ -419,6 +439,7 @@ Public Function ValidateTWCODE(xlSheet As Object, row As Integer, columnLookup A
     End If
 End Function
 
+' Validate qty field
 'version 0.9.02
 
 Function ValidateQty(qty As Variant) As Boolean
@@ -433,6 +454,7 @@ Function ValidateQty(qty As Variant) As Boolean
     End If
 End Function
 
+' Validate Request Date
 ' version 0.9.02
 
 Function ValidateRequestDate(requestDate As Variant) As Boolean
@@ -449,6 +471,7 @@ End Function
 
 ' Additional validation functions can be implemented similarly
 
+' Validate Excel Data
 ' version 0.9.15
 
 Public Function ValidateExcelData(xlSheet As Object, validationRules As Collection, columnLookup As Object) As Boolean
@@ -472,6 +495,7 @@ Public Function ValidateExcelData(xlSheet As Object, validationRules As Collecti
     ValidateExcelData = isValid
 End Function
 
+' Import Excel To Access
 ' version 0.9.21
 
 Sub ImportExcelToAccess(filePath As String)
@@ -494,10 +518,24 @@ Sub ImportExcelToAccess(filePath As String)
     GoTo Cleanup
 
 ErrorHandler:
-    Debug.Print "Error in ImportExcelToAccess: " & Err.description
-    MsgBox "An error occurred while importing the Excel data: " & Err.description, vbExclamation
+    Debug.Print "Error in ImportExcelToAccess: " & Err.Description
+    MsgBox "An error occurred while importing the Excel data: " & Err.Description, vbExclamation
 
 Cleanup:
     Set db = Nothing
     Debug.Print "ImportExcelToAccess completed"
 End Sub
+
+' Kill Excel Processes
+' version 0.9.34
+
+Sub KillExcelProcesses()
+    Dim objWMI As Object, colProcess As Object, objProcess As Object
+    Set objWMI = GetObject("winmgmts:\\.\root\cimv2")
+    Set colProcess = objWMI.ExecQuery("Select * from Win32_Process Where Name = 'EXCEL.EXE'")
+    
+    For Each objProcess In colProcess
+        objProcess.Terminate
+    Next objProcess
+End Sub
+

@@ -1,6 +1,5 @@
-
 ' UpdateFulfillmentItems
-' version 0.9.09
+' version 0.9.44
 
 Public Sub UpdateFulfillmentItems()
     Dim jsonData As Variant
@@ -8,61 +7,151 @@ Public Sub UpdateFulfillmentItems()
     Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Dim jsonObject As Object
+    Dim logFile As String
     
+    On Error GoTo ErrorHandler
+    
+    ' Initialize log file
+    logFile = "C:\Temp\FulfillmentUpdateLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    WriteToLogFile logFile, "Starting UpdateFulfillmentItems"
+    
+    On Error Resume Next
     Set frm = Forms!frMRL
-    jsonData = ConvertToJSON()
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting form reference: " & Err.Description
+        WriteToLogFile logFile, "Variable: frm"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("TempTable", dbOpenSnapshot)
+    
+    On Error Resume Next
+    jsonData = ConvertToJSON(rs)
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.Description
+        WriteToLogFile logFile, "Variable: " & GetVariableName(rs)
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    On Error Resume Next
     jsonString = CStr(jsonData(0))
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting jsonString: " & Err.Description
+        WriteToLogFile logFile, "Variable: jsonData"
+        Err.Clear
+    End If
+    
     errorLog = CStr(jsonData(1))
-    updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting errorLog: " & Err.Description
+        WriteToLogFile logFile, "Variable: jsonData"
+        Err.Clear
+    End If
     
-    ' Debugging output
-    Debug.Print "Function name: insert_fulfillment_items"
-    Debug.Print "JSON Data length: " & Len(jsonString)
-    Debug.Print "Update Source: " & updateSource
-    Debug.Print "Pre-insert Error Log: " & errorLog
+    updateSource = frm.txtUpdateSource.Value
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting updateSource: " & Err.Description
+        WriteToLogFile logFile, "Variable: frm.txtUpdateSource"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
     
-    ' Call the protected function with correct number of parameters
-    result = ExecuteProtectedFunction("insert_fulfillment_items", jsonString, updateSource)
+    WriteToLogFile logFile, "JSON string length: " & Len(jsonString)
+    WriteToLogFile logFile, "Update source: " & updateSource
+    
+    WriteToLogFile logFile, "Calling ExecuteProtectedFunction"
+    result = ExecuteProtectedFunction("update_fulfillment_items", jsonString, updateSource)
+    WriteToLogFile logFile, "ExecuteProtectedFunction completed"
     
     ' Check the result
     If Not IsNull(result) Then
-        ' Parse the results
-        Dim totalCount As Long, successCount As Long, duplicateCount As Long, errorCount As Long
-        Dim parsedResult As Variant
-        parsedResult = ParseNoticeMessage(CStr(result))
+        Set jsonObject = ParseJson(result)
         
-        If IsArray(parsedResult) Then
-            totalCount = parsedResult(0)
-            successCount = parsedResult(1)
-            duplicateCount = parsedResult(2)
-            errorCount = parsedResult(3)
+        If Not jsonObject Is Nothing Then
+            Dim status As String
+            Dim batchId As String
+            Dim totalCount As Long
+            Dim successCount As Long
+            Dim warningCount As Long
+            Dim errorCount As Long
+            Dim multipleRecordsCount As Long
+            Dim operationType As String
+            Dim timestamp As Date
             
-            ' Log errors and duplicates for later processing
-            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
+            status = jsonObject("status")
+            batchId = jsonObject("batch_id")
+            totalCount = CLng(jsonObject("total"))
+            successCount = CLng(jsonObject("success"))
+            warningCount = CLng(jsonObject("warnings"))
+            errorCount = CLng(jsonObject("errors"))
+            multipleRecordsCount = CLng(jsonObject("multiple_records"))
+            operationType = jsonObject("operation")
+            timestamp = CDate(jsonObject("timestamp"))
+            
+            ' Log errors and warnings for later processing
+            LogErrorsAndDuplicates totalCount, successCount, warningCount, errorCount, errorLog, True, batchId
+            
+            ' Log results
+            WriteToLogFile logFile, "Process completed."
+            WriteToLogFile logFile, "Status: " & status
+            WriteToLogFile logFile, "Batch ID: " & batchId
+            WriteToLogFile logFile, "Total Records: " & totalCount
+            WriteToLogFile logFile, "Successful Updates: " & successCount
+            WriteToLogFile logFile, "Warnings: " & warningCount
+            WriteToLogFile logFile, "Errors: " & errorCount
+            WriteToLogFile logFile, "Multiple Records: " & multipleRecordsCount
+            WriteToLogFile logFile, "Operation: " & operationType
+            WriteToLogFile logFile, "Timestamp: " & timestamp
+            
+            ' Display results
+            MsgBox "Process completed." & vbNewLine & _
+                   "Status: " & status & vbNewLine & _
+                   "Batch ID: " & batchId & vbNewLine & _
+                   "Total Records: " & totalCount & vbNewLine & _
+                   "Successful Updates: " & successCount & vbNewLine & _
+                   "Warnings: " & warningCount & vbNewLine & _
+                   "Errors: " & errorCount & vbNewLine & _
+                   "Multiple Records: " & multipleRecordsCount & vbNewLine & _
+                   "Operation: " & operationType & vbNewLine & _
+                   "Timestamp: " & timestamp & vbNewLine & _
+                   "See log file for details.", vbInformation
+            
+            ' Append error logs to the file
+            WriteToLogFile logFile, vbNewLine & "Pre-update Errors:"
+            WriteToLogFile logFile, errorLog
+            WriteToLogFile logFile, vbNewLine & "Update Process Results:"
+            WriteToLogFile logFile, result
+            
         Else
-            MsgBox "Unexpected result format from insert_fulfillment_items. Check the database logs for details.", vbExclamation
-            Exit Sub
+            WriteToLogFile logFile, "Failed to parse result JSON."
+            MsgBox "Failed to parse result JSON. Check the log file for details.", vbExclamation
         End If
     Else
-        MsgBox "Unexpected result type from insert_fulfillment_items. Check the database logs for details.", vbExclamation
-        Exit Sub
+        WriteToLogFile logFile, "Unexpected result type from update_fulfillment_items."
+        MsgBox "Unexpected result type from update_fulfillment_items. Check the log file for details.", vbExclamation
     End If
-    
-    ' Display results
-    MsgBox "Process completed." & vbNewLine & _
-           "Total Records: " & totalCount & vbNewLine & _
-           "Successful Inserts: " & successCount & vbNewLine & _
-           "Duplicate Records: " & duplicateCount & vbNewLine & _
-           "Failed Inserts: " & errorCount & vbNewLine & _
-           "See error log for details.", vbInformation
-    
-    ' Save error logs to a file
-    Dim fso As Object
-    Dim fileName As String
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    fileName = "C:\Temp\FulfillmentUpdateErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
-    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "Insert Process Results:" & vbNewLine & CStr(result)
-    MsgBox "Error log has been saved to " & fileName, vbInformation
+
+    WriteToLogFile logFile, "UpdateFulfillmentItems completed"
+    MsgBox "Process completed. Log file has been saved to " & logFile, vbInformation
+
+    Exit Sub
+
+ErrorHandler:
+    WriteToLogFile logFile, "Error in UpdateFulfillmentItems: " & Err.Description
+    WriteToLogFile logFile, "Error Number: " & Err.Number
+    WriteToLogFile logFile, "Error Source: " & Err.Source
+    WriteToLogFile logFile, "Line: " & Erl
+    MsgBox "An error occurred: " & Err.Description & vbNewLine & "See log file for details.", vbExclamation
+    Resume Next
 End Sub
 

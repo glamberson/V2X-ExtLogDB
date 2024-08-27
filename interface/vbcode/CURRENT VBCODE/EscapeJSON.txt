@@ -1,5 +1,6 @@
-' version 0.8.60 REVERTED 39
 ' Helper function to escape JSON
+' version 0.8.60 REVERTED 39
+
 Private Function EscapeJSON(ByVal text As String) As String
     Dim i As Integer
     Dim char As String

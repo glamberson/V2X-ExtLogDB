@@ -1,4 +1,5 @@
-' import excel to access
+
+' Import Excel To Access
 ' version 0.9.21
 
 Sub ImportExcelToAccess(filePath As String)
@@ -28,3 +29,4 @@ Cleanup:
     Set db = Nothing
     Debug.Print "ImportExcelToAccess completed"
 End Sub
+

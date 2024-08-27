@@ -1,5 +1,5 @@
 ' execute protected (postgres) function or procedure
-' version 0.9.23
+' version 0.9.32
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
@@ -58,7 +58,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         .ActiveConnection = g_conn
         .CommandType = adCmdText
         
-        If functionName = "insert_mrl_line_items" Then
+        If functionName = "insert_mrl_line_items" Or functionName = "update_fulfillment_items" Then
             Debug.Print "JSON data size: " & Len(CStr(functionArgs(0))) & " bytes"
             commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?)"
             .commandText = commandText
@@ -96,9 +96,9 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     
     Dim result As Variant
     
-    ' For insert_mrl_line_items, retrieve the summary from the output parameter
-    If functionName = "insert_mrl_line_items" Then
-        Debug.Print "Entering insert_mrl_line_items specific code"
+    ' For insert_mrl_line_items and update_fulfillment_items, retrieve the summary from the output parameter
+    If functionName = "insert_mrl_line_items" Or functionName = "update_fulfillment_items" Then
+        Debug.Print "Entering " & functionName & " specific code"
         Debug.Print "Output parameter exists: " & Not (outputParam Is Nothing)
         If Not outputParam Is Nothing Then
             Debug.Print "Output parameter value is null: " & IsNull(outputParam.Value)

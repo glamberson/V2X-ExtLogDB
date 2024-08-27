@@ -1,5 +1,6 @@
-' import and insert mrl line items
-' version 0.9.20
+
+' Import And Insert MRL Line Items
+' version 0.9.34
 
 Sub ImportAndInsertMRLLineItems()
     Dim xlApp As Object
@@ -27,7 +28,7 @@ Sub ImportAndInsertMRLLineItems()
     Set xlApp = CreateObject("Excel.Application")
     Debug.Print "Excel application created"
     
-    ' Open the workbook
+    ' Open the workbook (writable mode to allow preprocessing)
     Set xlWorkbook = xlApp.Workbooks.Open(filePath)
     Debug.Print "Workbook opened: " & xlWorkbook.Name
     
@@ -40,7 +41,7 @@ Sub ImportAndInsertMRLLineItems()
     Debug.Print "Selected worksheet: " & xlSheet.Name
     
     ' Clean up the column names before proceeding
-    Call CleanUpColumnNames(xlSheet, 1) ' Assuming header row is 1
+    Call CleanUpColumnNames(xlSheet, 1)
     Debug.Print "Column names cleaned up"
     
     ' Clean up the data before validation
@@ -48,14 +49,14 @@ Sub ImportAndInsertMRLLineItems()
     Debug.Print "Data cleaned up"
     
     ' Build the column lookup table
-    Set columnLookup = BuildColumnLookup(xlSheet, 1) ' Build lookup table after cleanup
+    Set columnLookup = BuildColumnLookup(xlSheet, 1)
     Debug.Print "Column lookup table built"
     
     ' Proceed with importing the data
-    Call ImportExcelToAccess(filePath) ' Pass the file path
+    Call ImportExcelToAccess(filePath)
     Debug.Print "Excel data imported to Access"
     
-    Call InsertMRLLineItems ' Further processing after import
+    Call InsertMRLLineItems
     Debug.Print "MRL Line Items inserted"
     
     MsgBox "Import and insert process completed successfully.", vbInformation
@@ -70,18 +71,20 @@ ErrorHandler:
 Cleanup:
     On Error Resume Next
     Debug.Print "Starting cleanup"
-    
-    ' Clean up the column lookup object
-    If Not columnLookup Is Nothing Then
-        Set columnLookup = Nothing
-        Debug.Print "columnLookup cleared"
-    End If
+
+    ' Explicitly set the sheet reference to Nothing
+    Set xlSheet = Nothing
+    Debug.Print "xlSheet reference cleared"
     
     ' Close the workbook without saving any changes
     If Not xlWorkbook Is Nothing Then
-        xlWorkbook.Close False
+        xlWorkbook.Close SaveChanges:=False ' Explicitly discard changes
         Debug.Print "Workbook closed"
     End If
+    
+    ' Explicitly set the workbook reference to Nothing
+    Set xlWorkbook = Nothing
+    Debug.Print "xlWorkbook reference cleared"
     
     ' Quit the Excel application
     If Not xlApp Is Nothing Then
@@ -89,12 +92,16 @@ Cleanup:
         Debug.Print "Excel application quit"
     End If
     
-    ' Release other object references
-    Set xlSheet = Nothing
-    Set xlWorkbook = Nothing
+    ' Explicitly set the application reference to Nothing
     Set xlApp = Nothing
-    Debug.Print "Object references cleared"
-    
-    Debug.Print "ImportAndInsertMRLLineItems completed"
+    Debug.Print "xlApp reference cleared"
+
+    ' Use the Sleep API to pause briefly, allowing Windows to release file handles
+    Sleep 1000 ' Wait for 1 second to allow the OS to release file locks
+
+    ' Optionally, kill any lingering Excel processes
+    KillExcelProcesses
+
+    Debug.Print "Cleanup completed"
 End Sub
 

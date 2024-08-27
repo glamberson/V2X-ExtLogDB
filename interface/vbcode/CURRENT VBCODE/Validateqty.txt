@@ -1,3 +1,5 @@
+
+' Validate qty field
 'version 0.9.02
 
 Function ValidateQty(qty As Variant) As Boolean
