@@ -1,6 +1,5 @@
-
-' version 0.8.34
 ' Helper function to get the number of records in the JSON string
+' version 0.8.34
 
 Private Function GetJSONRecordCount(jsonString As String) As Long
     Dim count As Long
@@ -13,4 +12,6 @@ Private Function GetJSONRecordCount(jsonString As String) As Long
     Next i
     GetJSONRecordCount = count
 End Function
+
+
 

@@ -1,7 +1,9 @@
 Option Compare Database
-' version 0.9.17
+' version 0.9.35
 ' Add these declarations at the top of your module
 Private Declare PtrSafe Function GetOpenFileName Lib "comdlg32.dll" Alias "GetOpenFileNameA" (pOpenfilename As OPENFILENAME) As Long
+' Declare the Sleep function from Windows API
+Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 Private Type OPENFILENAME
     lStructSize As Long
@@ -25,3 +27,4 @@ Private Type OPENFILENAME
     lpfnHook As LongPtr
     lpTemplateName As String
 End Type
+

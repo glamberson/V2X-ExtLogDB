@@ -1,3 +1,4 @@
+
 ' Validate if JCN is not empty
 ' version 0.9.02
 Public Function ValidateJCN(xlSheet As Object, row As Integer, columnLookup As Object) As Boolean
@@ -17,3 +18,4 @@ Public Function ValidateJCN(xlSheet As Object, row As Integer, columnLookup As O
         ValidateJCN = True
     End If
 End Function
+

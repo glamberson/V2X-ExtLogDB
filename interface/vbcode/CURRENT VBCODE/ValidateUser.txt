@@ -14,7 +14,7 @@ Public Function ValidateUser(username As String, password As String) As Boolean
 
     Set cmd = New ADODB.Command
     cmd.ActiveConnection = g_conn
-    cmd.CommandText = "SELECT * FROM login_wrapper(?, ?, ?)"
+    cmd.commandText = "SELECT * FROM login_wrapper(?, ?, ?)"
     cmd.Parameters.Append cmd.CreateParameter("@p_username", adVarChar, adParamInput, 255, username)
     cmd.Parameters.Append cmd.CreateParameter("@p_password", adVarChar, adParamInput, 255, password)
     cmd.Parameters.Append cmd.CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
@@ -32,7 +32,7 @@ Public Function ValidateUser(username As String, password As String) As Boolean
             ' Set the user role
             Set cmd = New ADODB.Command
             cmd.ActiveConnection = g_conn
-            cmd.CommandText = "SELECT set_user_role(?)"
+            cmd.commandText = "SELECT set_user_role(?)"
             cmd.Parameters.Append cmd.CreateParameter("@p_db_role_name", adVarChar, adParamInput, 255, dbRoleName)
             cmd.Execute
         Else

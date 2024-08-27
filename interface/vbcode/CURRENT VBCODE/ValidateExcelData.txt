@@ -1,4 +1,5 @@
 
+' Validate Excel Data
 ' version 0.9.15
 
 Public Function ValidateExcelData(xlSheet As Object, validationRules As Collection, columnLookup As Object) As Boolean
