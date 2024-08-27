@@ -1,17 +1,5 @@
 Option Compare Database
 
-' ImportAndUpdateFulfillmentItems
-' version 0.9.09
-Sub ImportAndUpdateFulfillmentItems()
-    If Not ValidateExcelData() Then
-        MsgBox "Data validation failed. Please correct the errors and try again."
-        Exit Sub
-    End If
-    
-    ImportExcelToAccess
-    UpdateFulfillmentItems
-End Sub
-
 ' version 0.9.23
 
 Public Sub InsertMRLLineItems()
@@ -30,7 +18,7 @@ Public Sub InsertMRLLineItems()
     On Error Resume Next
     Set frm = Forms!frMRL
     If Err.Number <> 0 Then
-        Debug.Print "Error setting form reference: " & Err.Description
+        Debug.Print "Error setting form reference: " & Err.description
         Debug.Print "Variable: frm"
         Err.Clear
     End If
@@ -42,7 +30,7 @@ Public Sub InsertMRLLineItems()
     On Error Resume Next
     jsonData = ConvertToJSON(rs)
     If Err.Number <> 0 Then
-        Debug.Print "Error in ConvertToJSON: " & Err.Description
+        Debug.Print "Error in ConvertToJSON: " & Err.description
         Debug.Print "Variable: " & GetVariableName(rs)
         Err.Clear
     End If
@@ -55,21 +43,21 @@ Public Sub InsertMRLLineItems()
     On Error Resume Next
     jsonString = CStr(jsonData(0))
     If Err.Number <> 0 Then
-        Debug.Print "Error setting jsonString: " & Err.Description
+        Debug.Print "Error setting jsonString: " & Err.description
         Debug.Print "Variable: jsonData"
         Err.Clear
     End If
     
     errorLog = CStr(jsonData(1))
     If Err.Number <> 0 Then
-        Debug.Print "Error setting errorLog: " & Err.Description
+        Debug.Print "Error setting errorLog: " & Err.description
         Debug.Print "Variable: jsonData"
         Err.Clear
     End If
     
     updateSource = frm.txtUpdateSource.Value
     If Err.Number <> 0 Then
-        Debug.Print "Error setting updateSource: " & Err.Description
+        Debug.Print "Error setting updateSource: " & Err.description
         Debug.Print "Variable: frm.txtUpdateSource"
         Err.Clear
     End If
@@ -126,7 +114,7 @@ Public Sub InsertMRLLineItems()
     Exit Sub
 
 ErrorHandler:
-    Debug.Print "Error in InsertMRLLineItems: " & Err.Description
+    Debug.Print "Error in InsertMRLLineItems: " & Err.description
     Debug.Print "Error Number: " & Err.Number
     Debug.Print "Error Source: " & Err.Source
     Debug.Print "Line: " & Erl
@@ -215,9 +203,8 @@ Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collect
     ConvertToJSON = Array(json, errorLog)
 End Function
 
-
 ' UpdateFulfillmentItems
-' version 0.9.09
+' version 0.9.30
 
 Public Sub UpdateFulfillmentItems()
     Dim jsonData As Variant
@@ -225,21 +212,67 @@ Public Sub UpdateFulfillmentItems()
     Dim result As Variant
     Dim jsonString As String
     Dim errorLog As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
     
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting UpdateFulfillmentItems"
+    
+    On Error Resume Next
     Set frm = Forms!frMRL
-    jsonData = ConvertToJSON()
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting form reference: " & Err.description
+        Debug.Print "Variable: frm"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("TempTable", dbOpenSnapshot)
+    
+    On Error Resume Next
+    jsonData = ConvertToJSON(rs)
+    If Err.Number <> 0 Then
+        Debug.Print "Error in ConvertToJSON: " & Err.description
+        Debug.Print "Variable: " & GetVariableName(rs)
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    On Error Resume Next
     jsonString = CStr(jsonData(0))
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting jsonString: " & Err.description
+        Debug.Print "Variable: jsonData"
+        Err.Clear
+    End If
+    
     errorLog = CStr(jsonData(1))
-    updateSource = frm.txtUpdateSource.Value ' Get the update source from the text box
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting errorLog: " & Err.description
+        Debug.Print "Variable: jsonData"
+        Err.Clear
+    End If
     
-    ' Debugging output
-    Debug.Print "Function name: insert_fulfillment_items"
-    Debug.Print "JSON Data length: " & Len(jsonString)
-    Debug.Print "Update Source: " & updateSource
-    Debug.Print "Pre-insert Error Log: " & errorLog
+    updateSource = frm.txtUpdateSource.Value
+    If Err.Number <> 0 Then
+        Debug.Print "Error setting updateSource: " & Err.description
+        Debug.Print "Variable: frm.txtUpdateSource"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
     
-    ' Call the protected function with correct number of parameters
-    result = ExecuteProtectedFunction("insert_fulfillment_items", jsonString, updateSource)
+    Debug.Print "JSON string length: " & Len(jsonString)
+    Debug.Print "Update source: " & updateSource
+    
+    Debug.Print "Calling ExecuteProtectedFunction"
+    result = ExecuteProtectedFunction("update_fulfillment_items", jsonString, updateSource)
+    Debug.Print "ExecuteProtectedFunction completed"
     
     ' Check the result
     If Not IsNull(result) Then
@@ -257,20 +290,20 @@ Public Sub UpdateFulfillmentItems()
             ' Log errors and duplicates for later processing
             LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog
         Else
-            MsgBox "Unexpected result format from insert_fulfillment_items. Check the database logs for details.", vbExclamation
+            MsgBox "Unexpected result format from update_fulfillment_items. Check the database logs for details.", vbExclamation
             Exit Sub
         End If
     Else
-        MsgBox "Unexpected result type from insert_fulfillment_items. Check the database logs for details.", vbExclamation
+        MsgBox "Unexpected result type from update_fulfillment_items. Check the database logs for details.", vbExclamation
         Exit Sub
     End If
     
     ' Display results
     MsgBox "Process completed." & vbNewLine & _
            "Total Records: " & totalCount & vbNewLine & _
-           "Successful Inserts: " & successCount & vbNewLine & _
+           "Successful Updates: " & successCount & vbNewLine & _
            "Duplicate Records: " & duplicateCount & vbNewLine & _
-           "Failed Inserts: " & errorCount & vbNewLine & _
+           "Failed Updates: " & errorCount & vbNewLine & _
            "See error log for details.", vbInformation
     
     ' Save error logs to a file
@@ -278,10 +311,20 @@ Public Sub UpdateFulfillmentItems()
     Dim fileName As String
     Set fso = CreateObject("Scripting.FileSystemObject")
     fileName = "C:\Temp\FulfillmentUpdateErrorLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
-    fso.CreateTextFile(fileName).Write "Pre-insert Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
-                                       "Insert Process Results:" & vbNewLine & CStr(result)
+    fso.CreateTextFile(fileName).Write "Pre-update Errors:" & vbNewLine & errorLog & vbNewLine & vbNewLine & _
+                                       "Update Process Results:" & vbNewLine & CStr(result)
     MsgBox "Error log has been saved to " & fileName, vbInformation
+
+    Exit Sub
+
+ErrorHandler:
+    Debug.Print "Error in UpdateFulfillmentItems: " & Err.description
+    Debug.Print "Error Number: " & Err.Number
+    Debug.Print "Error Source: " & Err.Source
+    Debug.Print "Line: " & Erl
+    Resume Next
 End Sub
+
 ' version 0.8.60 REVERTED 39
 ' Helper function to escape JSON
 Private Function EscapeJSON(ByVal text As String) As String
