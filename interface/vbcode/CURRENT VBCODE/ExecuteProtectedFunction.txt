@@ -1,52 +1,57 @@
 ' execute protected (postgres) function or procedure
-' version 0.9.32
+' version 0.9.50
 
 Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
     Dim cmdValidate As ADODB.Command
     Dim cmdExecute As ADODB.Command
     Dim cmdRenew As ADODB.Command
-    Dim rs As ADODB.Recordset
+    Dim rsValidation As ADODB.Recordset
+    Dim rsRenew As ADODB.Recordset
     Dim functionArgs() As Variant
-    Dim i As Long
+    Dim argIndex As Long
+    Dim paramIndex As Long
     Dim commandText As String
     Dim outputParam As ADODB.Parameter
     
     On Error GoTo ErrorHandler
     
+    Debug.Print "Entering ExecuteProtectedFunction for " & functionName
+    
     ' Store args in a separate array to ensure they're not lost
     ReDim functionArgs(LBound(args) To UBound(args))
-    For i = LBound(args) To UBound(args)
-        functionArgs(i) = args(i)
-    Next i
+    For argIndex = LBound(args) To UBound(args)
+        functionArgs(argIndex) = args(argIndex)
+    Next argIndex
     
     ' Debug print arguments
-    For i = LBound(functionArgs) To UBound(functionArgs)
-        Debug.Print "Argument " & i & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100)
-    Next i
+    For argIndex = LBound(functionArgs) To UBound(functionArgs)
+        Debug.Print "Argument " & argIndex & ": Type=" & TypeName(functionArgs(argIndex)) & ", Value=" & Left$(CStr(functionArgs(argIndex)), 100)
+    Next argIndex
     
     ' Validate session and permission
     Set cmdValidate = New ADODB.Command
     With cmdValidate
         .ActiveConnection = g_conn
-        .commandText = "SELECT (validate_session_and_permission(?, ?)).*"
+        .CommandText = "SELECT (validate_session_and_permission(?, ?)).*"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
         .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
     End With
     
-    Set rs = cmdValidate.Execute
+    Set rsValidation = cmdValidate.Execute
     
     Dim isValid As Boolean
-    If Not rs.EOF Then
-        isValid = rs.Fields("is_valid").Value
+    If Not rsValidation.EOF Then
+        isValid = rsValidation.Fields("is_valid").Value
     Else
         isValid = False
     End If
     
-    rs.Close
-    Set rs = Nothing
+    rsValidation.Close
+    Set rsValidation = Nothing
     Set cmdValidate = Nothing
     
     If Not isValid Then
+        Debug.Print "Permission validation failed for " & functionName
         MsgBox "You don't have permission to perform this action.", vbExclamation
         ExecuteProtectedFunction = False
         Exit Function
@@ -61,7 +66,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
         If functionName = "insert_mrl_line_items" Or functionName = "update_fulfillment_items" Then
             Debug.Print "JSON data size: " & Len(CStr(functionArgs(0))) & " bytes"
             commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?)"
-            .commandText = commandText
+            .CommandText = commandText
             
             ' Add input parameters with unlimited size
             .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, -1, functionArgs(0))
@@ -75,14 +80,14 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
             commandText = "CALL " & functionName & "("
             
             ' Add parameters
-            For i = LBound(functionArgs) To UBound(functionArgs)
-                If i > LBound(functionArgs) Then commandText = commandText & ", "
+            For paramIndex = LBound(functionArgs) To UBound(functionArgs)
+                If paramIndex > LBound(functionArgs) Then commandText = commandText & ", "
                 commandText = commandText & "?"
-                .Parameters.Append .CreateParameter("param" & (i + 1), adLongVarChar, adParamInput, -1, functionArgs(i))
-            Next i
+                .Parameters.Append .CreateParameter("param" & (paramIndex + 1), adLongVarChar, adParamInput, -1, functionArgs(paramIndex))
+            Next paramIndex
             
             commandText = commandText & ")"
-            .commandText = commandText
+            .CommandText = commandText
         End If
         
         ' Debug print
@@ -121,20 +126,25 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     With cmdRenew
         .ActiveConnection = g_conn
         .CommandType = adCmdText
-        .commandText = "SELECT renew_session(?, ?)"
+        .CommandText = "SELECT renew_session(?, ?)"
         .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
         .Parameters.Append .CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
     End With
     
-    Set rs = cmdRenew.Execute
+    Set rsRenew = cmdRenew.Execute
     
-    If Not rs.EOF Then
+    If Not rsRenew.EOF Then
         Dim renewSuccess As Boolean
-        renewSuccess = rs.Fields(0).Value
+        renewSuccess = rsRenew.Fields(0).Value
         If Not renewSuccess Then
             Debug.Print "Failed to renew session"
         End If
     End If
+    
+    ' Clean up only local objects
+    Set rsRenew = Nothing
+    Set cmdRenew = Nothing
+    Set cmdExecute = Nothing
     
     Debug.Print "ExecuteProtectedFunction completed successfully"
     Debug.Print "Returning result: " & CStr(result)
@@ -150,9 +160,9 @@ ErrorHandler:
     Debug.Print "Function Name: " & functionName
     
     ' Print out all parameter values for debugging
-    For i = LBound(functionArgs) To UBound(functionArgs)
-        Debug.Print "Parameter " & i + 1 & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100) & "..."
-    Next i
+    For argIndex = LBound(functionArgs) To UBound(functionArgs)
+        Debug.Print "Parameter " & argIndex + 1 & ": Type=" & TypeName(functionArgs(argIndex)) & ", Value=" & Left$(CStr(functionArgs(argIndex)), 100) & "..."
+    Next argIndex
     
     ExecuteProtectedFunction = "Error: " & Err.Description ' Return error message
     If Err.Number = 42883 Then  ' Function does not exist
@@ -161,6 +171,13 @@ ErrorHandler:
         MsgBox "An error occurred: " & Err.Description & vbNewLine & _
                "See Immediate window for more details.", vbExclamation
     End If
+
+    ' Clean up only local objects in case of error
+    Set rsValidation = Nothing
+    Set rsRenew = Nothing
+    Set cmdValidate = Nothing
+    Set cmdExecute = Nothing
+    Set cmdRenew = Nothing
 
     Resume Next
 End Function
