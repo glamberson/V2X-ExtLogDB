@@ -1,8 +1,7 @@
-
-' version 0.9.31
+' version 0.9.47
 ' Helper function to log errors, duplicates, and warnings
 
-Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateOrWarningCount As Long, errorCount As Long, errorLog As String, Optional isWarning As Boolean = False)
+Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateOrWarningCount As Long, errorCount As Long, errorLog As String, Optional isWarning As Boolean = False, Optional batchId As String = "")
     Dim db As DAO.Database
     Dim rst As DAO.Recordset
     Dim countType As String
@@ -20,11 +19,11 @@ Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, dupl
     rst!errorCount = errorCount
     rst!ErrorDetails = errorLog
     rst!LogType = IIf(isWarning, "Warning", "Duplicate")
+    rst!BatchID = batchId
     rst.Update
     
     rst.Close
     Set rst = Nothing
     Set db = Nothing
 End Sub
-
 
