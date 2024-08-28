@@ -1,0 +1,68 @@
+
+' Parse JSON
+' version 0.9.49
+
+Public Function ParseJson(ByVal jsonString As String) As Object
+    On Error GoTo ErrorHandler
+    
+    Dim regex As Object
+    Dim matches As Object
+    Dim match As Object
+    Dim key As String
+    Dim value As Variant
+    Dim dict As Object
+    
+    Set regex = CreateObject("VBScript.RegExp")
+    Set dict = CreateObject("Scripting.Dictionary")
+    
+    ' Remove any whitespace before and after the JSON string
+    jsonString = Trim(jsonString)
+    
+    ' Check if it's a valid JSON object
+    If Left(jsonString, 1) <> "{" Or Right(jsonString, 1) <> "}" Then
+        Err.Raise 5, "ParseJson", "Invalid JSON string"
+    End If
+    
+    ' Remove the outer braces
+    jsonString = Mid(jsonString, 2, Len(jsonString) - 2)
+    
+    ' Set up the regular expression
+    With regex
+        .Global = True
+        .MultiLine = True
+        .IgnoreCase = True
+        .Pattern = """(\w+)""\s*:\s*""?([^""}]+)""?"
+    End With
+    
+    ' Execute the regular expression
+    Set matches = regex.Execute(jsonString)
+    
+    ' Loop through the matches and add them to the dictionary
+    For Each match In matches
+        key = match.SubMatches(0)
+        value = match.SubMatches(1)
+        
+        ' Try to convert numeric values
+        If IsNumeric(value) Then
+            If InStr(value, ".") > 0 Then
+                value = CDbl(value)
+            Else
+                value = CLng(value)
+            End If
+        End If
+        
+        dict.Add key, value
+    Next match
+    
+    Set ParseJson = dict
+    Exit Function
+
+ErrorHandler:
+    Debug.Print "Error in ParseJson: " & Err.Description
+    Debug.Print "Error Number: " & Err.Number
+    Debug.Print "Error Source: " & Err.Source
+    Debug.Print "Problematic JSON string: " & Left(jsonString, 1000) ' Print first 1000 characters
+    Set ParseJson = Nothing
+End Function
+
+
