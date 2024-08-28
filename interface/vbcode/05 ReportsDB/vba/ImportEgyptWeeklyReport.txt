@@ -1,0 +1,158 @@
+' Add this to your existing modImportExcel module
+
+Public Sub ImportEgyptWeeklyReport()
+    Dim xlApp As Object
+    Dim xlWorkbook As Object
+    Dim xlSheet As Object
+    Dim filePath As String
+    Dim reportName As String
+    Dim reportDate As Date
+    
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting ImportEgyptWeeklyReport"
+    
+    ' Use the existing SelectExcelFile function
+    filePath = SelectExcelFile()
+    Debug.Print "After SelectExcelFile, filePath = " & filePath
+    
+    If filePath = "" Then
+        MsgBox "No file selected. Process aborted.", vbExclamation
+        Exit Sub
+    End If
+    
+    ' Prompt for report name and date
+    reportName = InputBox("Enter the name of the report:", "Report Name")
+    reportDate = CDate(InputBox("Enter the report date (MM/DD/YYYY):", "Report Date"))
+    
+    ' Create a new Excel application instance
+    Set xlApp = CreateObject("Excel.Application")
+    xlApp.Visible = False
+    Debug.Print "Excel application created"
+    
+    ' Open the workbook
+    Set xlWorkbook = xlApp.Workbooks.Open(filePath)
+    Debug.Print "Workbook opened: " & xlWorkbook.Name
+    
+    ' Process each worksheet
+    For Each xlSheet In xlWorkbook.Worksheets
+        Debug.Print "Processing sheet: " & xlSheet.Name
+        
+        ' Clean up the column names
+        Call CleanUpColumnNames(xlSheet, 1)
+        Debug.Print "Column names cleaned up for sheet: " & xlSheet.Name
+        
+        ' Clean up the data
+        Call CleanUpData(xlSheet, 1)
+        Debug.Print "Data cleaned up for sheet: " & xlSheet.Name
+        
+        ' Import the sheet data to PostgreSQL
+        Call ImportSheetToPostgres(xlSheet, reportName, reportDate)
+        Debug.Print "Sheet " & xlSheet.Name & " imported to PostgreSQL"
+    Next xlSheet
+    
+    MsgBox "Import process completed successfully.", vbInformation
+    
+    GoTo Cleanup
+
+ErrorHandler:
+    Debug.Print "Error in ImportEgyptWeeklyReport: " & Err.Description & " (Error " & Err.Number & ")"
+    Debug.Print "Error Source: " & Err.Source
+    MsgBox "An error occurred: " & Err.Description, vbExclamation
+
+Cleanup:
+    On Error Resume Next
+    Debug.Print "Starting cleanup"
+
+    ' Close the workbook without saving changes
+    If Not xlWorkbook Is Nothing Then
+        xlWorkbook.Close SaveChanges:=False
+        Debug.Print "Workbook closed"
+    End If
+    
+    ' Quit the Excel application
+    If Not xlApp Is Nothing Then
+        xlApp.Quit
+        Debug.Print "Excel application quit"
+    End If
+    
+    ' Clear object references
+    Set xlSheet = Nothing
+    Set xlWorkbook = Nothing
+    Set xlApp = Nothing
+
+    ' Use the Sleep API to pause briefly, allowing Windows to release file handles
+    Sleep 1000 ' Wait for 1 second
+
+    ' Kill any lingering Excel processes
+    KillExcelProcesses
+
+    Debug.Print "Cleanup completed"
+End Sub
+
+Private Sub ImportSheetToPostgres(xlSheet As Object, reportName As String, reportDate As Date)
+    Dim columnNames() As String
+    Dim rowData As String
+    Dim i As Long, j As Long
+    Dim lastRow As Long, lastCol As Long
+    
+    ' Get last used row and column
+    lastRow = xlSheet.UsedRange.Rows.Count
+    lastCol = xlSheet.UsedRange.Columns.Count
+    
+    ' Get column names
+    ReDim columnNames(1 To lastCol)
+    For i = 1 To lastCol
+        columnNames(i) = xlSheet.Cells(1, i).Value
+    Next i
+    
+    ' Prepare row data as JSON
+    rowData = "["
+    For i = 2 To lastRow ' Start from second row (assuming first row is header)
+        If i > 2 Then rowData = rowData & ","
+        rowData = rowData & "{"
+        For j = 1 To lastCol
+            If j > 1 Then rowData = rowData & ","
+            rowData = rowData & """" & columnNames(j) & """: """ & Replace(xlSheet.Cells(i, j).Value, """", "\""") & """"
+        Next j
+        rowData = rowData & "}"
+    Next i
+    rowData = rowData & "]"
+    
+    ' Insert data into PostgreSQL
+    InsertRawEgyptWeeklyReport reportName, reportDate, xlSheet.Name, columnNames, rowData
+End Sub
+
+Private Sub InsertRawEgyptWeeklyReport(reportName As String, reportDate As Date, sheetName As String, columnNames() As String, jsonData As String)
+    Dim cmd As ADODB.Command
+    Dim sql As String
+    
+    ' Ensure connection is initialized
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
+    
+    ' Prepare SQL statement
+    sql = "INSERT INTO raw_egypt_weekly_reports (report_name, report_date, sheet_name, column_names, row_data) VALUES (?, ?, ?, ?, ?::jsonb)"
+    
+    ' Create and execute the command
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandText = sql
+        .CommandType = adCmdText
+        
+        .Parameters.Append .CreateParameter("@report_name", adVarChar, adParamInput, 255, reportName)
+        .Parameters.Append .CreateParameter("@report_date", adDate, adParamInput, , reportDate)
+        .Parameters.Append .CreateParameter("@sheet_name", adVarChar, adParamInput, 255, sheetName)
+        .Parameters.Append .CreateParameter("@column_names", adVarChar, adParamInput, -1, Join(columnNames, ","))
+        .Parameters.Append .CreateParameter("@row_data", adLongVarChar, adParamInput, -1, jsonData)
+        
+        .Execute
+    End With
+    
+    Set cmd = Nothing
+    
+    Debug.Print "Data inserted for sheet: " & sheetName
+End Sub
+

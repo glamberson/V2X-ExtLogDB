@@ -1,0 +1,46 @@
+-- Table to store information about imported reports
+CREATE TABLE imported_reports (
+    report_id SERIAL PRIMARY KEY,
+    report_name VARCHAR(255) NOT NULL,
+    report_date DATE NOT NULL,
+    import_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (report_name, report_date)
+);
+
+-- Table to store information about sheets within each report
+CREATE TABLE report_sheets (
+    sheet_id SERIAL PRIMARY KEY,
+    report_id INT REFERENCES imported_reports(report_id),
+    sheet_name VARCHAR(255) NOT NULL,
+    UNIQUE (report_id, sheet_name)
+);
+
+-- Revised raw_egypt_weekly_reports table
+CREATE TABLE raw_egypt_weekly_reports (
+    raw_data_id SERIAL PRIMARY KEY,
+    sheet_id INT REFERENCES report_sheets(sheet_id),
+    column_names TEXT[],
+    row_data JSONB,
+    row_number INT NOT NULL
+);
+
+CREATE TABLE field_mappings (
+    mapping_id SERIAL PRIMARY KEY,
+    sheet_id INT REFERENCES report_sheets(sheet_id),
+    raw_field_name TEXT NOT NULL,
+    target_field_name TEXT NOT NULL,
+    mapping_type TEXT NOT NULL CHECK (mapping_type IN ('mrl', 'fulfillment', 'additional', 'ignore')),
+    priority INT NOT NULL,
+    transformation_rule TEXT,
+    UNIQUE (sheet_id, raw_field_name)
+);
+
+-- Revised mapped_egypt_weekly_data table
+CREATE TABLE mapped_egypt_weekly_data (
+    mapped_data_id SERIAL PRIMARY KEY,
+    raw_data_id INT REFERENCES raw_egypt_weekly_reports(raw_data_id),
+    identification_data JSONB,
+    fulfillment_data JSONB,
+    mapping_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

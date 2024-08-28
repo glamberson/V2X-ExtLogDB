@@ -1,0 +1,11 @@
+-- version 0.1
+
+CREATE TABLE raw_egypt_weekly_reports (
+    id SERIAL PRIMARY KEY,
+    report_name VARCHAR(255),
+    report_date DATE,
+    sheet_name VARCHAR(255),
+    column_names TEXT[],
+    row_data JSONB,
+    import_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
