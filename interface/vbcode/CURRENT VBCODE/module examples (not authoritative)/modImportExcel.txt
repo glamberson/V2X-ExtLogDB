@@ -93,9 +93,9 @@ Sub ImportAndInsertMRLLineItems()
     GoTo Cleanup
 
 ErrorHandler:
-    Debug.Print "Error in ImportAndInsertMRLLineItems: " & Err.Description & " (Error " & Err.Number & ")"
+    Debug.Print "Error in ImportAndInsertMRLLineItems: " & Err.description & " (Error " & Err.Number & ")"
     Debug.Print "Error Source: " & Err.Source
-    MsgBox "An error occurred: " & Err.Description, vbExclamation
+    MsgBox "An error occurred: " & Err.description, vbExclamation
 
 Cleanup:
     On Error Resume Next
@@ -198,9 +198,9 @@ Sub ImportAndUpdateFulfillmentItems()
     GoTo Cleanup
 
 ErrorHandler:
-    Debug.Print "Error in ImportAndUpdateFulfillmentItems: " & Err.Description & " (Error " & Err.Number & ")"
+    Debug.Print "Error in ImportAndUpdateFulfillmentItems: " & Err.description & " (Error " & Err.Number & ")"
     Debug.Print "Error Source: " & Err.Source
-    MsgBox "An error occurred: " & Err.Description, vbExclamation
+    MsgBox "An error occurred: " & Err.description, vbExclamation
 
 Cleanup:
     On Error Resume Next
@@ -290,7 +290,7 @@ Public Function SelectExcelFile() As String
     Exit Function
 
 ErrorHandler:
-    Debug.Print "Error in SelectExcelFile: " & Err.Description
+    Debug.Print "Error in SelectExcelFile: " & Err.description
     SelectExcelFile = ""
 End Function
 
@@ -518,8 +518,8 @@ Sub ImportExcelToAccess(filePath As String)
     GoTo Cleanup
 
 ErrorHandler:
-    Debug.Print "Error in ImportExcelToAccess: " & Err.Description
-    MsgBox "An error occurred while importing the Excel data: " & Err.Description, vbExclamation
+    Debug.Print "Error in ImportExcelToAccess: " & Err.description
+    MsgBox "An error occurred while importing the Excel data: " & Err.description, vbExclamation
 
 Cleanup:
     Set db = Nothing

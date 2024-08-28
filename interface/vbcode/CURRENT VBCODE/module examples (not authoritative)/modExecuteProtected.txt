@@ -144,7 +144,7 @@ Public Function ExecuteProtectedFunction(functionName As String, ParamArray args
     Exit Function
 
 ErrorHandler:
-    Debug.Print "Error in ExecuteProtectedFunction: " & Err.Description
+    Debug.Print "Error in ExecuteProtectedFunction: " & Err.description
     Debug.Print "Error Number: " & Err.Number
     Debug.Print "Error Source: " & Err.Source
     Debug.Print "Command Text: " & commandText
@@ -156,11 +156,11 @@ ErrorHandler:
         Debug.Print "Parameter " & i + 1 & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100) & "..."
     Next i
     
-    ExecuteProtectedFunction = "Error: " & Err.Description ' Return error message
+    ExecuteProtectedFunction = "Error: " & Err.description ' Return error message
     If Err.Number = 42883 Then  ' Function does not exist
         MsgBox "Function or procedure '" & functionName & "' does not exist.", vbExclamation
     Else
-        MsgBox "An error occurred: " & Err.Description & vbNewLine & _
+        MsgBox "An error occurred: " & Err.description & vbNewLine & _
                "See Immediate window for more details.", vbExclamation
     End If
 

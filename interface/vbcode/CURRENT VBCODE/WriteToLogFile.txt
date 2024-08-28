@@ -1,14 +1,12 @@
 
 ' WRITE TO LOG FILE
-' version 0.9.44
+' version 0.9.48
 
-Public Sub WriteToLogFile(filePath As String, message As String)
+Public Sub WriteToLogFile(filePath As String, message As Variant)
     Dim fileNum As Integer
     fileNum = FreeFile
     
     Open filePath For Append As #fileNum
-    Print #fileNum, Format(Now, "yyyy-mm-dd hh:nn:ss") & " - " & message
+    Print #fileNum, Format(Now, "yyyy-mm-dd hh:nn:ss") & " - " & CStr(message)
     Close #fileNum
 End Sub
-
-

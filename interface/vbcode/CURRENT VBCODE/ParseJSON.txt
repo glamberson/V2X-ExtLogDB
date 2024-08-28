@@ -1,0 +1,31 @@
+' Parse JSON
+' version 0.9.47
+
+Public Function ParseJson(ByVal jsonString As Variant) As Object
+    Dim script As Object
+    Set script = CreateObject("ScriptControl")
+    script.Language = "JScript"
+    
+    On Error GoTo ErrorHandler
+    
+    ' Convert jsonString to string if it's not already
+    If VarType(jsonString) <> vbString Then
+        jsonString = CStr(jsonString)
+    End If
+    
+    ' Trim any leading/trailing whitespace
+    jsonString = Trim(jsonString)
+    
+    ' Check if the string starts and ends with curly braces
+    If Left(jsonString, 1) <> "{" Or Right(jsonString, 1) <> "}" Then
+        Err.Raise 5, "ParseJson", "Invalid JSON string"
+    End If
+    
+    Set ParseJson = script.Eval("(" & jsonString & ")")
+    Exit Function
+
+ErrorHandler:
+    Debug.Print "Error in ParseJson: " & Err.Description
+    Set ParseJson = Nothing
+End Function
+

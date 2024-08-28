@@ -1,7 +1,7 @@
 Option Compare Database
 
 ' InsertMRLLineItems
-' version 0.9.44
+' version 0.9.48
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -23,7 +23,7 @@ Public Sub InsertMRLLineItems()
     On Error Resume Next
     Set frm = Forms!frMRL
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting form reference: " & Err.Description
+        WriteToLogFile logFile, "Error setting form reference: " & Err.description
         WriteToLogFile logFile, "Variable: frm"
         Err.Clear
     End If
@@ -35,7 +35,7 @@ Public Sub InsertMRLLineItems()
     On Error Resume Next
     jsonData = ConvertToJSON(rs)
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.Description
+        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.description
         WriteToLogFile logFile, "Variable: " & GetVariableName(rs)
         Err.Clear
     End If
@@ -48,21 +48,21 @@ Public Sub InsertMRLLineItems()
     On Error Resume Next
     jsonString = CStr(jsonData(0))
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting jsonString: " & Err.Description
+        WriteToLogFile logFile, "Error setting jsonString: " & Err.description
         WriteToLogFile logFile, "Variable: jsonData"
         Err.Clear
     End If
     
     errorLog = CStr(jsonData(1))
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting errorLog: " & Err.Description
+        WriteToLogFile logFile, "Error setting errorLog: " & Err.description
         WriteToLogFile logFile, "Variable: jsonData"
         Err.Clear
     End If
     
     updateSource = frm.txtUpdateSource.Value
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting updateSource: " & Err.Description
+        WriteToLogFile logFile, "Error setting updateSource: " & Err.description
         WriteToLogFile logFile, "Variable: frm.txtUpdateSource"
         Err.Clear
     End If
@@ -77,6 +77,9 @@ Public Sub InsertMRLLineItems()
     
     ' Check the result
     If Not IsNull(result) Then
+        WriteToLogFile logFile, "Result type: " & TypeName(result)
+        WriteToLogFile logFile, "Result value: " & result
+
         Set jsonObject = ParseJson(result)
         
         If Not jsonObject Is Nothing Then
@@ -128,14 +131,14 @@ Public Sub InsertMRLLineItems()
             WriteToLogFile logFile, vbNewLine & "Pre-insert Errors:"
             WriteToLogFile logFile, errorLog
             WriteToLogFile logFile, vbNewLine & "Insert Process Results:"
-            WriteToLogFile logFile, result
+            WriteToLogFile logFile, "Raw result: " & CStr(result)
             
         Else
-            WriteToLogFile logFile, "Failed to parse result JSON."
+            WriteToLogFile logFile, "Failed to parse result JSON. Raw result: " & result
             MsgBox "Failed to parse result JSON. Check the log file for details.", vbExclamation
         End If
     Else
-        WriteToLogFile logFile, "Unexpected result type from insert_mrl_line_items."
+        WriteToLogFile logFile, "Unexpected result type from insert_mrl_line_items. Result is Null."
         MsgBox "Unexpected result type from insert_mrl_line_items. Check the log file for details.", vbExclamation
     End If
 
@@ -145,13 +148,17 @@ Public Sub InsertMRLLineItems()
     Exit Sub
 
 ErrorHandler:
-    WriteToLogFile logFile, "Error in InsertMRLLineItems: " & Err.Description
+    WriteToLogFile logFile, "Error in InsertMRLLineItems: " & Err.description
     WriteToLogFile logFile, "Error Number: " & Err.Number
     WriteToLogFile logFile, "Error Source: " & Err.Source
     WriteToLogFile logFile, "Line: " & Erl
-    MsgBox "An error occurred: " & Err.Description & vbNewLine & "See log file for details.", vbExclamation
+    MsgBox "An error occurred: " & Err.description & vbNewLine & "See log file for details.", vbExclamation
     Resume Next
 End Sub
+
+
+
+
 
 ' convert to JSON
 ' version 0.9.33
@@ -237,7 +244,7 @@ Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collect
 End Function
 
 ' UpdateFulfillmentItems
-' version 0.9.44
+' version 0.9.48
 
 Public Sub UpdateFulfillmentItems()
     Dim jsonData As Variant
@@ -259,7 +266,7 @@ Public Sub UpdateFulfillmentItems()
     On Error Resume Next
     Set frm = Forms!frMRL
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting form reference: " & Err.Description
+        WriteToLogFile logFile, "Error setting form reference: " & Err.description
         WriteToLogFile logFile, "Variable: frm"
         Err.Clear
     End If
@@ -271,7 +278,7 @@ Public Sub UpdateFulfillmentItems()
     On Error Resume Next
     jsonData = ConvertToJSON(rs)
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.Description
+        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.description
         WriteToLogFile logFile, "Variable: " & GetVariableName(rs)
         Err.Clear
     End If
@@ -284,21 +291,21 @@ Public Sub UpdateFulfillmentItems()
     On Error Resume Next
     jsonString = CStr(jsonData(0))
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting jsonString: " & Err.Description
+        WriteToLogFile logFile, "Error setting jsonString: " & Err.description
         WriteToLogFile logFile, "Variable: jsonData"
         Err.Clear
     End If
     
     errorLog = CStr(jsonData(1))
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting errorLog: " & Err.Description
+        WriteToLogFile logFile, "Error setting errorLog: " & Err.description
         WriteToLogFile logFile, "Variable: jsonData"
         Err.Clear
     End If
     
     updateSource = frm.txtUpdateSource.Value
     If Err.Number <> 0 Then
-        WriteToLogFile logFile, "Error setting updateSource: " & Err.Description
+        WriteToLogFile logFile, "Error setting updateSource: " & Err.description
         WriteToLogFile logFile, "Variable: frm.txtUpdateSource"
         Err.Clear
     End If
@@ -313,6 +320,9 @@ Public Sub UpdateFulfillmentItems()
     
     ' Check the result
     If Not IsNull(result) Then
+        WriteToLogFile logFile, "Result type: " & TypeName(result)
+        WriteToLogFile logFile, "Result value: " & result
+        
         Set jsonObject = ParseJson(result)
         
         If Not jsonObject Is Nothing Then
@@ -368,14 +378,14 @@ Public Sub UpdateFulfillmentItems()
             WriteToLogFile logFile, vbNewLine & "Pre-update Errors:"
             WriteToLogFile logFile, errorLog
             WriteToLogFile logFile, vbNewLine & "Update Process Results:"
-            WriteToLogFile logFile, result
+            WriteToLogFile logFile, "Raw result: " & CStr(result)
             
         Else
-            WriteToLogFile logFile, "Failed to parse result JSON."
+            WriteToLogFile logFile, "Failed to parse result JSON. Raw result: " & result
             MsgBox "Failed to parse result JSON. Check the log file for details.", vbExclamation
         End If
     Else
-        WriteToLogFile logFile, "Unexpected result type from update_fulfillment_items."
+        WriteToLogFile logFile, "Unexpected result type from update_fulfillment_items. Result is Null."
         MsgBox "Unexpected result type from update_fulfillment_items. Check the log file for details.", vbExclamation
     End If
 
@@ -385,13 +395,15 @@ Public Sub UpdateFulfillmentItems()
     Exit Sub
 
 ErrorHandler:
-    WriteToLogFile logFile, "Error in UpdateFulfillmentItems: " & Err.Description
+    WriteToLogFile logFile, "Error in UpdateFulfillmentItems: " & Err.description
     WriteToLogFile logFile, "Error Number: " & Err.Number
     WriteToLogFile logFile, "Error Source: " & Err.Source
     WriteToLogFile logFile, "Line: " & Erl
-    MsgBox "An error occurred: " & Err.Description & vbNewLine & "See log file for details.", vbExclamation
+    MsgBox "An error occurred: " & Err.description & vbNewLine & "See log file for details.", vbExclamation
     Resume Next
 End Sub
+
+
 
 ' Helper function to escape JSON
 ' version 0.8.60 REVERTED 39
@@ -436,5 +448,36 @@ Private Function GetJSONRecordCount(jsonString As String) As Long
     GetJSONRecordCount = count
 End Function
 
+
+' Parse JSON
+' version 0.9.47
+
+Public Function ParseJson(ByVal jsonString As Variant) As Object
+    Dim script As Object
+    Set script = CreateObject("ScriptControl")
+    script.Language = "JScript"
+    
+    On Error GoTo ErrorHandler
+    
+    ' Convert jsonString to string if it's not already
+    If VarType(jsonString) <> vbString Then
+        jsonString = CStr(jsonString)
+    End If
+    
+    ' Trim any leading/trailing whitespace
+    jsonString = Trim(jsonString)
+    
+    ' Check if the string starts and ends with curly braces
+    If Left(jsonString, 1) <> "{" Or Right(jsonString, 1) <> "}" Then
+        Err.Raise 5, "ParseJson", "Invalid JSON string"
+    End If
+    
+    Set ParseJson = script.Eval("(" & jsonString & ")")
+    Exit Function
+
+ErrorHandler:
+    Debug.Print "Error in ParseJson: " & Err.description
+    Set ParseJson = Nothing
+End Function
 
 

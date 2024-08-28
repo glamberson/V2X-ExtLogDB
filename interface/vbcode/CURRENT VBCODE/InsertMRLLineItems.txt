@@ -1,5 +1,5 @@
 ' InsertMRLLineItems
-' version 0.9.44
+' version 0.9.48
 
 Public Sub InsertMRLLineItems()
     Dim jsonData As Variant
@@ -75,6 +75,9 @@ Public Sub InsertMRLLineItems()
     
     ' Check the result
     If Not IsNull(result) Then
+        WriteToLogFile logFile, "Result type: " & TypeName(result)
+        WriteToLogFile logFile, "Result value: " & result
+
         Set jsonObject = ParseJson(result)
         
         If Not jsonObject Is Nothing Then
@@ -126,14 +129,14 @@ Public Sub InsertMRLLineItems()
             WriteToLogFile logFile, vbNewLine & "Pre-insert Errors:"
             WriteToLogFile logFile, errorLog
             WriteToLogFile logFile, vbNewLine & "Insert Process Results:"
-            WriteToLogFile logFile, result
+            WriteToLogFile logFile, "Raw result: " & CStr(result)
             
         Else
-            WriteToLogFile logFile, "Failed to parse result JSON."
+            WriteToLogFile logFile, "Failed to parse result JSON. Raw result: " & result
             MsgBox "Failed to parse result JSON. Check the log file for details.", vbExclamation
         End If
     Else
-        WriteToLogFile logFile, "Unexpected result type from insert_mrl_line_items."
+        WriteToLogFile logFile, "Unexpected result type from insert_mrl_line_items. Result is Null."
         MsgBox "Unexpected result type from insert_mrl_line_items. Check the log file for details.", vbExclamation
     End If
 
