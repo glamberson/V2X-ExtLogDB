@@ -1,4 +1,4 @@
--- version 0.7.4
+-- version 0.10.2
 
 -- Create fulfillment items table (added MILSTRIP/req field)(added carrier field)
 
@@ -21,8 +21,8 @@ CREATE TABLE fulfillment_items (
     sail_date DATE, -- Sail date
     edd_to_ches DATE, -- Estimated delivery date to Chesapeake warehouse
     rcd_v2x_date DATE, -- Received by V2X date
-    lot_id VARCHAR(15), -- Lot ID
-    triwall VARCHAR(15), -- Triwall number
+    lot_id VARCHAR(30), -- Lot ID
+    triwall VARCHAR(30), -- Triwall number
     lsc_on_hand_date DATE, -- LSC on-hand date
     arr_lsc_egypt DATE, -- Arrival at LSC Egypt date
     milstrip_req_no VARCHAR(25), -- Requisition or MILSTRIP number
