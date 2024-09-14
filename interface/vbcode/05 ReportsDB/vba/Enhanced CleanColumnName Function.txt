@@ -1,0 +1,87 @@
+Private Function CleanColumnName(colName As String) As String
+    Dim originalColName As String
+    Dim logMessage As String
+    originalColName = colName
+    
+    logMessage = "Original column name: '" & originalColName & "' -> "
+    
+    ' Explicitly remove BOM if present
+    If AscW(Left(colName, 1)) = 65279 Then
+        colName = Mid(colName, 2)
+        logMessage = logMessage & "Removed BOM, "
+    End If
+    
+    ' Remove non-printable characters using a regular expression
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "[^\x20-\x7E]" ' Match any character outside the printable ASCII range
+    regex.Global = True
+    colName = regex.Replace(colName, "")
+    logMessage = logMessage & "Removed non-printable characters, "
+    
+    ' Remove any remaining line breaks, tabs, or control characters
+    colName = Replace(colName, vbNewLine, "")
+    colName = Replace(colName, vbCr, "")
+    colName = Replace(colName, vbLf, "")
+    colName = Replace(colName, vbTab, "")
+    logMessage = logMessage & "Removed line breaks and tabs, "
+    
+    ' Remove all quotation marks
+    colName = Replace(colName, """", "")
+    colName = Replace(colName, "'", "")
+    logMessage = logMessage & "Removed quotation marks, "
+    
+    ' Trim leading and trailing spaces
+    colName = Trim(colName)
+    logMessage = logMessage & "Trimmed spaces, "
+    
+    ' Replace any problematic characters with underscores
+    Dim invalidChars As String
+    invalidChars = " ./\:;!@#$%^&*()[]{}<>?=+|`~,"
+
+    Dim i As Integer
+    For i = 1 To Len(invalidChars)
+        colName = Replace(colName, Mid(invalidChars, i, 1), "_")
+    Next i
+    logMessage = logMessage & "Replaced special characters with underscores, "
+    
+    ' Reduce multiple underscores to a single underscore
+    Do While InStr(colName, "__") > 0
+        colName = Replace(colName, "__", "_")
+    Loop
+    logMessage = logMessage & "Reduced multiple underscores, "
+    
+    ' Convert to lowercase for consistency
+    colName = LCase(colName)
+    logMessage = logMessage & "Converted to lowercase, "
+    
+    ' Ensure the column name starts with a letter or underscore
+    If Len(colName) > 0 Then
+        Dim firstChar As String
+        firstChar = Left(colName, 1)
+        If Not (firstChar Like "[A-Za-z_]") Then
+            colName = "col_" & colName
+            logMessage = logMessage & "Prefixed with 'col_', "
+        End If
+    End If
+    
+    ' Remove any trailing underscores
+    Do While Right(colName, 1) = "_"
+        colName = Left(colName, Len(colName) - 1)
+    Loop
+    logMessage = logMessage & "Removed trailing underscores, "
+    
+    ' Truncate if longer than 63 characters (PostgreSQL limit)
+    If Len(colName) > 63 Then
+        colName = Left(colName, 63)
+        logMessage = logMessage & "Truncated to 63 characters, "
+    End If
+    
+    ' Final log message with cleaned column name
+    logMessage = logMessage & "Final column name: '" & colName & "'"
+    
+    ' Log any changes made
+    WriteToLogFile TEMP_DIR & "ColumnNameLog.txt", logMessage
+    
+    CleanColumnName = colName
+End Function
