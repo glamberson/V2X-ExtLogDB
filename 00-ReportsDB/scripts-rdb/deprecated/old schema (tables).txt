@@ -1,0 +1,47 @@
+
+CREATE TABLE raw_egypt_weekly_reports (
+    raw_data_id SERIAL PRIMARY KEY,
+    report_name VARCHAR(255),
+    report_date DATE,
+    sheet_name VARCHAR(255),
+    column_names TEXT[],
+    row_data JSONB
+);
+
+-- Table to store information about imported reports
+CREATE TABLE imported_reports (
+    report_id SERIAL PRIMARY KEY,
+    report_name VARCHAR(255) NOT NULL,
+    report_date DATE NOT NULL,
+    import_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (report_name, report_date)
+);
+
+-- Table to store information about sheets within each report
+CREATE TABLE report_sheets (
+    sheet_id SERIAL PRIMARY KEY,
+    report_id INT REFERENCES imported_reports(report_id),
+    sheet_name VARCHAR(255) NOT NULL,
+    UNIQUE (report_id, sheet_name)
+);
+
+
+CREATE TABLE field_mappings (
+    mapping_id SERIAL PRIMARY KEY,
+    report_name VARCHAR(255),
+    sheet_name VARCHAR(255),
+    original_column_name VARCHAR(255),
+    mapped_field_name VARCHAR(255),  -- Can be NULL if the field is just included in the record
+    include_in_preprocessed BOOLEAN DEFAULT FALSE  -- True if the field should be included in the preprocessed record
+);
+
+
+-- Revised mapped_egypt_weekly_data table
+CREATE TABLE mapped_egypt_weekly_data (
+    mapped_data_id SERIAL PRIMARY KEY,
+    raw_data_id INT REFERENCES raw_egypt_weekly_reports(raw_data_id),
+    identification_data JSONB,
+    fulfillment_data JSONB,
+    mapping_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+

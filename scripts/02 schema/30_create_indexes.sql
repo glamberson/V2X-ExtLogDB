@@ -1,4 +1,4 @@
--- version 0.9.41
+-- version 0.11.12
 
 
 -- Indexes for performance improvement
@@ -28,3 +28,8 @@ CREATE INDEX idx_import_error_log_composite ON import_error_log(batch_id, operat
 
 -- Create a GIN index for efficient querying of the JSONB data
 CREATE INDEX idx_import_error_log_record_data ON import_error_log USING GIN (record_data);
+
+-- Additional index for faster queries
+CREATE INDEX idx_staged_egypt_weekly_data_report ON staged_egypt_weekly_data(report_name, report_date);
+
+

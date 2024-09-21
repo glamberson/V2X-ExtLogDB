@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowTitle">
+   <string>External Logistics Database - Control Panel</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <!-- User Information -->
+    <item>
+     <widget class="QLabel" name="userInfoLabel">
+      <property name="text">
+       <string>User: [Username] | Role: [Role]</string>
+      </property>
+     </widget>
+    </item>
+    
+    <!-- Main Actions -->
+    <item>
+     <widget class="QGroupBox" name="actionsGroup">
+      <property name="title">
+       <string>Actions</string>
+      </property>
+      <layout class="QVBoxLayout" name="actionsLayout">
+       <item>
+        <widget class="QPushButton" name="openSearchWindowButton">
+         <property name="text">
+          <string>Open Search Window</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="openNewMRLWindowButton">
+         <property name="text">
+          <string>Open New MRL Line Item Window</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="openBulkOperationsWindowButton">
+         <property name="text">
+          <string>Open Bulk Operations Window</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    
+    <!-- Open Windows List -->
+    <item>
+     <widget class="QGroupBox" name="openWindowsGroup">
+      <property name="title">
+       <string>Currently Open Windows</string>
+      </property>
+      <layout class="QVBoxLayout" name="openWindowsLayout">
+       <item>
+        <widget class="QListWidget" name="openWindowsList"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    
+    <!-- Status Bar -->
+    <item>
+     <widget class="QLabel" name="statusLabel">
+      <property name="text">
+       <string>Status: Ready</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar"/>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

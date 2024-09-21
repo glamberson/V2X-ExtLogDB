@@ -1,9 +1,11 @@
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql  
--- version 0.5.1
+-- version 0.11.11
 
 
 -- Enable pgcrypto extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE EXTENSION IN NOT EXISTS dblink;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\02_create_roles.sql  
@@ -151,31 +153,48 @@ CREATE TABLE MRL_line_items (
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\03_create_fulfillment_items.sql  
--- version 0.7.4
+<<<<<<< HEAD
+-- version 0.10.1
+=======
+-- version 0.10.2
+>>>>>>> e7c938ac4d0d29a31e0cd74a54b984fcf965d720
 
 -- Create fulfillment items table (added MILSTRIP/req field)(added carrier field)
 
--- Create fulfillment_items table
 CREATE TABLE fulfillment_items (
-    fulfillment_item_id SERIAL PRIMARY KEY, -- Unique identifier for the fulfillment item
-    order_line_item_id INT REFERENCES MRL_line_items(order_line_item_id) ON DELETE CASCADE, -- Foreign key to MRL line items table
-    created_by INT REFERENCES users(user_id), -- User who created the fulfillment item
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the fulfillment item was created
-    updated_by INT REFERENCES users(user_id), -- User who last updated the fulfillment item
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the fulfillment item was last updated
-    update_source TEXT, -- Source of the update
-    status_id INT REFERENCES statuses(status_id), -- Foreign key to statuses table
-    shipdoc_tcn VARCHAR(30), -- Shipment document or transportation control number
-    v2x_ship_no VARCHAR(20), -- V2X shipment number
-    booking VARCHAR(20), -- Booking number
-    vessel VARCHAR(30), -- Vessel name
-    container VARCHAR(25), -- Container number
+    fulfillment_item_id SERIAL PRIMARY KEY,
+    order_line_item_id INT REFERENCES MRL_line_items(order_line_item_id) ON DELETE CASCADE,
+    created_by INT REFERENCES users(user_id),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_by INT REFERENCES users(user_id),
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    update_source TEXT,
+    status_id INT REFERENCES statuses(status_id),
+    shipdoc_tcn VARCHAR(30),
+    v2x_ship_no VARCHAR(20),
+    booking VARCHAR(20),
+    vessel VARCHAR(30),
+    container VARCHAR(25),
     carrier VARCHAR(50),
+<<<<<<< HEAD
+    sail_date DATE,
+    edd_to_ches DATE,
+    edd_egypt DATE, -- Added Estimated Delivery Date to Egypt
+    rcd_v2x_date DATE,
+    lot_id VARCHAR(15),
+    triwall VARCHAR(15),
+    lsc_on_hand_date DATE,
+    arr_lsc_egypt DATE,
+    milstrip_req_no VARCHAR(25),
+    inquiry_status BOOLEAN DEFAULT FALSE,
+    comments TEXT
+);
+=======
     sail_date DATE, -- Sail date
     edd_to_ches DATE, -- Estimated delivery date to Chesapeake warehouse
     rcd_v2x_date DATE, -- Received by V2X date
-    lot_id VARCHAR(15), -- Lot ID
-    triwall VARCHAR(15), -- Triwall number
+    lot_id VARCHAR(30), -- Lot ID
+    triwall VARCHAR(30), -- Triwall number
     lsc_on_hand_date DATE, -- LSC on-hand date
     arr_lsc_egypt DATE, -- Arrival at LSC Egypt date
     milstrip_req_no VARCHAR(25), -- Requisition or MILSTRIP number
@@ -183,6 +202,7 @@ CREATE TABLE fulfillment_items (
     comments TEXT -- Comments regarding the fulfillment item
 );
 
+>>>>>>> e7c938ac4d0d29a31e0cd74a54b984fcf965d720
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql  
@@ -507,8 +527,85 @@ COMMENT ON TABLE import_error_log IS 'Stores detailed error and warning informat
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\20_create_constraints.sql  
  
  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\20_create_staged_egypt_weekly_data.sql  
+CREATE TABLE staged_egypt_weekly_data (
+    staged_id SERIAL PRIMARY KEY,
+    preprocessed_id INT,
+    raw_data_id INT,
+    
+    -- Identifier fields
+    report_name VARCHAR(255),
+    report_date DATE,
+    sheet_name VARCHAR(255),
+    original_line INT,
+    system_identifier_code VARCHAR(50),
+    
+    -- MRL-related fields
+    jcn VARCHAR(50),
+    twcode VARCHAR(50),
+    nomenclature TEXT,
+    cog VARCHAR(10),
+    fsc VARCHAR(10),
+    niin VARCHAR(20),
+    part_no VARCHAR(50),
+    qty INT,
+    ui VARCHAR(10),
+    market_research_up MONEY,
+    market_research_ep MONEY,
+    availability_identifier INT,
+    request_date DATE,
+    rdd DATE,
+    pri VARCHAR(10),
+    swlin VARCHAR(20),
+    hull_or_shop VARCHAR(20),
+    suggested_source TEXT,
+    mfg_cage VARCHAR(20),
+    apl VARCHAR(50),
+    nha_equipment_system TEXT,
+    nha_model TEXT,
+    nha_serial TEXT,
+    techmanual TEXT,
+    dwg_pc TEXT,
+    requestor_remarks TEXT,
+    
+    -- Fulfillment-related fields
+    shipdoc_tcn VARCHAR(30),
+    v2x_ship_no VARCHAR(20),
+    booking VARCHAR(20),
+    vessel VARCHAR(30),
+    container VARCHAR(25),
+    carrier VARCHAR(50),
+    sail_date DATE,
+    edd_to_ches DATE,
+    edd_egypt DATE,
+    rcd_v2x_date DATE,
+    lot_id VARCHAR(30),
+    triwall VARCHAR(30),
+    lsc_on_hand_date DATE,
+    arr_lsc_egypt DATE,
+    milstrip_req_no VARCHAR(25),
+    
+    -- Additional fields
+    additional_data JSONB,
+    overall_quality_score DECIMAL(5,2),
+    flags JSONB,
+    data_integrity_score DECIMAL(5,2),
+    consistency_score DECIMAL(5,2),
+    completeness_score DECIMAL(5,2),
+    check_details JSONB,
+    
+    -- Metadata
+    mapped_fields TEXT[],
+    import_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Composite unique constraint for record identification
+    UNIQUE (report_name, report_date, sheet_name, original_line, system_identifier_code)
+);
+
+ 
+ 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\30_create_indexes.sql  
--- version 0.9.41
+-- version 0.11.12
 
 
 -- Indexes for performance improvement
@@ -538,6 +635,11 @@ CREATE INDEX idx_import_error_log_composite ON import_error_log(batch_id, operat
 
 -- Create a GIN index for efficient querying of the JSONB data
 CREATE INDEX idx_import_error_log_record_data ON import_error_log USING GIN (record_data);
+
+-- Additional index for faster queries
+CREATE INDEX idx_staged_egypt_weekly_data_report ON staged_egypt_weekly_data(report_name, report_date);
+
+
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\01_create_functions-01.sql  
@@ -1637,9 +1739,8 @@ END;
 $$ LANGUAGE plpgsql; 
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_and_mrl_status.sql  
-
--- version 0.9.40
--- Trigger function to update status and log changes
+-- version 0.10.22
+-- Updated Trigger Function to Set MRL_line_items.status_id to MIN(status_id)
 
 CREATE OR REPLACE FUNCTION update_fulfillment_and_mrl_status()
 RETURNS TRIGGER AS $$
@@ -1650,35 +1751,30 @@ DECLARE
     v_mrl_status_id INT;
     v_mrl_old_status_id INT;
 BEGIN
+    -- Logging the trigger invocation
     RAISE LOG 'Trigger fired for fulfillment_item_id: %, order_line_item_id: %', NEW.fulfillment_item_id, NEW.order_line_item_id;
     
     -- Store the old status
     v_old_status_id := OLD.status_id;
-    RAISE LOG 'Old status_id: %', v_old_status_id;
+    RAISE LOG 'Old fulfillment_item status_id: %', v_old_status_id;
 
-    -- Determine the new status based on the updated fulfillment item
-    IF NEW.lsc_on_hand_date IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON HAND EGYPT');
-    ELSIF NEW.arr_lsc_egypt IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'ARR EGYPT');
-    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'EN ROUTE TO EGYPT');
-    ELSIF NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'FREIGHT FORWARDER');
-    ELSIF NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'READY TO SHIP');
-    ELSIF NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'PROC CHES WH');
-    ELSIF NEW.rcd_v2x_date IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'RCD CHES WH');
-    ELSIF NEW.edd_to_ches IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'ON ORDER');
-    ELSIF NEW.milstrip_req_no IS NOT NULL THEN
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'INIT PROCESS');
-    ELSE
-        v_new_status_id := (SELECT status_id FROM statuses WHERE status_name = 'NOT ORDERED');
-    END IF;
-    RAISE LOG 'Determined new status_id: %', v_new_status_id;
+    -- Determine the new status based on the updated fulfillment item using CASE for clarity
+    SELECT status_id INTO v_new_status_id
+    FROM statuses
+    WHERE status_name = CASE
+        WHEN NEW.lsc_on_hand_date IS NOT NULL THEN 'ON HAND EGYPT'
+        WHEN NEW.arr_lsc_egypt IS NOT NULL THEN 'ARR EGYPT'
+        WHEN NEW.sail_date IS NOT NULL AND NEW.sail_date <= CURRENT_DATE THEN 'EN ROUTE TO EGYPT'
+        WHEN NEW.sail_date IS NOT NULL AND NEW.sail_date > CURRENT_DATE THEN 'FREIGHT FORWARDER'
+        WHEN NEW.shipdoc_tcn IS NOT NULL OR NEW.v2x_ship_no IS NOT NULL OR NEW.booking IS NOT NULL OR NEW.vessel IS NOT NULL OR NEW.container IS NOT NULL THEN 'READY TO SHIP'
+        WHEN NEW.lot_id IS NOT NULL AND NEW.triwall IS NOT NULL THEN 'PROC CHES WH'
+        WHEN NEW.rcd_v2x_date IS NOT NULL THEN 'RCD CHES WH'
+        WHEN NEW.edd_to_ches IS NOT NULL THEN 'ON ORDER'
+        WHEN NEW.milstrip_req_no IS NOT NULL THEN 'INIT PROCESS'
+        ELSE 'NOT ORDERED'
+    END;
+
+    RAISE LOG 'Determined new fulfillment_item status_id: %', v_new_status_id;
 
     -- Update the fulfillment item status if it has changed
     IF v_new_status_id != v_old_status_id THEN
@@ -1687,51 +1783,62 @@ BEGIN
         
         -- Get the status name for logging
         SELECT status_name INTO v_status_name FROM statuses WHERE status_id = v_new_status_id;
-        RAISE LOG 'New status name: %', v_status_name;
+        RAISE LOG 'New fulfillment_item status name: %', v_status_name;
 
         -- Log the status change for the fulfillment item
         PERFORM log_audit(
             'UPDATE'::TEXT, 
             NEW.order_line_item_id, 
             NEW.fulfillment_item_id,
-            format('Fulfillment item status updated from %s to %s', 
-                   (SELECT status_name FROM statuses WHERE status_id = v_old_status_id),
-                   v_status_name)::TEXT,
+            format(
+                'Fulfillment item status updated from %s to %s', 
+                (SELECT status_name FROM statuses WHERE status_id = v_old_status_id),
+                v_status_name
+            ),
             NEW.update_source
         );
     ELSE
-        RAISE LOG 'Fulfillment item status not changed. Remains at %', v_old_status_id;
+        RAISE LOG 'Fulfillment item status not changed. Remains at status_id: %', v_old_status_id;
     END IF;
 
-    -- Update the associated MRL line item status
+    -- Update the associated MRL line item status to the MIN(status_id) among related fulfillment_items
     SELECT status_id INTO v_mrl_old_status_id
     FROM MRL_line_items
     WHERE order_line_item_id = NEW.order_line_item_id;
-    RAISE LOG 'Current MRL line item status_id: %', v_mrl_old_status_id;
+    RAISE LOG 'Current MRL_line_item status_id: %', v_mrl_old_status_id;
 
-    SELECT MAX(status_id) INTO v_mrl_status_id
-    FROM fulfillment_items
-    WHERE order_line_item_id = NEW.order_line_item_id;
-    RAISE LOG 'Determined new MRL line item status_id: %', v_mrl_status_id;
+    -- Determine the new MRL_line_item status_id as the MIN of associated fulfillment_items.status_id
+    SELECT MIN(fi.status_id) INTO v_mrl_status_id
+    FROM fulfillment_items fi
+    WHERE fi.order_line_item_id = NEW.order_line_item_id;
 
+    RAISE LOG 'Determined new MRL_line_item status_id: %', v_mrl_status_id;
+
+    -- Update MRL_line_items.status_id if it has changed
     IF v_mrl_status_id != v_mrl_old_status_id THEN
         UPDATE MRL_line_items
         SET status_id = v_mrl_status_id
         WHERE order_line_item_id = NEW.order_line_item_id;
-        RAISE LOG 'Updated MRL line item status from % to %', v_mrl_old_status_id, v_mrl_status_id;
+        RAISE LOG 'Updated MRL_line_item status_id from % to %', v_mrl_old_status_id, v_mrl_status_id;
+
+        -- Get the new status name for logging
+        SELECT status_name INTO v_status_name FROM statuses WHERE status_id = v_mrl_status_id;
+        RAISE LOG 'New MRL_line_item status name: %', v_status_name;
 
         -- Log the status change for the MRL line item
         PERFORM log_audit(
             'UPDATE'::TEXT, 
             NEW.order_line_item_id, 
-            NULL,
-            format('MRL line item status updated from %s to %s', 
-                   (SELECT status_name FROM statuses WHERE status_id = v_mrl_old_status_id),
-                   (SELECT status_name FROM statuses WHERE status_id = v_mrl_status_id))::TEXT,
+            NULL, -- fulfillment_item_id is not applicable here
+            format(
+                'MRL line item status updated from %s to %s', 
+                (SELECT status_name FROM statuses WHERE status_id = v_mrl_old_status_id),
+                v_status_name
+            ),
             NEW.update_source
         );
     ELSE
-        RAISE LOG 'MRL line item status not changed. Remains at %', v_mrl_old_status_id;
+        RAISE LOG 'MRL_line_item status not changed. Remains at status_id: %', v_mrl_old_status_id;
     END IF;
 
     RAISE LOG 'Trigger function completed for fulfillment_item_id: %', NEW.fulfillment_item_id;
@@ -1741,7 +1848,6 @@ EXCEPTION WHEN OTHERS THEN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\03 functions\02_update_fulfillment_status.sql  
@@ -2645,6 +2751,15 @@ ON
 
  
  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\01_debug table (procedure call log).sql  
+-- Create a table to log procedure invocations
+CREATE TABLE procedure_call_log (
+    id SERIAL PRIMARY KEY,
+    procedure_name TEXT,
+    call_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+ 
+ 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\02_create_search_views.sql  
 -- version 0.9.24		Doc
 
@@ -2685,6 +2800,22 @@ LEFT JOIN
     fulfillment_items f
 ON
     m.order_line_item_id = f.order_line_item_id;
+
+ 
+ 
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\05 utilities\100_link_databases.sql  
+
+
+
+CREATE SERVER reportsdb_server
+FOREIGN DATA WRAPPER dblink_fdw
+OPTIONS (host 'localhost', dbname 'ReportsDB');
+
+
+CREATE USER MAPPING FOR CURRENT_USER
+SERVER reportsdb_server
+OPTIONS (user 'postgres', password '123456');
+
 
  
  
@@ -2887,6 +3018,275 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+ 
+ 
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\02_insert_mrl_line_items_efficient.sql  
+CREATE OR REPLACE PROCEDURE insert_mrl_line_items_efficient(
+    IN batch_data JSONB,
+    IN v_update_source TEXT,
+    OUT summary JSONB
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_record_count INT;
+    v_success_count INT;
+    v_duplicate_count INT := 0;
+    v_created_by INT;
+    v_role_id INT;
+    original_session_replication_role TEXT;
+    v_status_id_not_ordered INT;
+BEGIN
+    -- Drop temporary tables if they exist
+    DROP TABLE IF EXISTS temp_mrl_line_items;
+    DROP TABLE IF EXISTS temp_inserted_mrl_items;
+    DROP TABLE IF EXISTS temp_fulfillment_items;
+
+    -- Validate batch_data
+    IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
+        RAISE EXCEPTION 'Invalid batch_data: not a JSON array or is NULL';
+    END IF;
+
+    -- Get the current user ID from the session
+    v_created_by := current_setting('myapp.user_id', true)::INT;
+    IF v_created_by IS NULL THEN
+        RAISE EXCEPTION 'User ID not set in session.';
+    END IF;
+
+    -- Get the role_id for the current user
+    SELECT role_id INTO v_role_id FROM users WHERE user_id = v_created_by;
+    IF v_role_id IS NULL THEN
+        RAISE EXCEPTION 'Role ID not found for user ID %', v_created_by;
+    END IF;
+
+    -- Get the status_id for 'NOT ORDERED'
+    SELECT status_id INTO v_status_id_not_ordered FROM statuses WHERE status_name = 'NOT ORDERED';
+    IF v_status_id_not_ordered IS NULL THEN
+        RAISE EXCEPTION 'Status "NOT ORDERED" not found in statuses table';
+    END IF;
+
+    -- Prepare the data for bulk insert
+    CREATE TEMP TABLE temp_mrl_line_items (
+        jcn TEXT,
+        twcode TEXT,
+        nomenclature TEXT,
+        cog TEXT,
+        fsc TEXT,
+        niin TEXT,
+        part_no TEXT,
+        qty INT,
+        ui TEXT,
+        market_research_up MONEY,
+        market_research_ep MONEY,
+        availability_identifier INT,
+        request_date DATE,
+        rdd DATE,
+        pri VARCHAR(10),
+        swlin VARCHAR(20),
+        hull_or_shop VARCHAR(20),
+        suggested_source TEXT,
+        mfg_cage VARCHAR(20),
+        apl VARCHAR(50),
+        nha_equipment_system TEXT,
+        nha_model TEXT,
+        nha_serial TEXT,
+        techmanual TEXT,
+        dwg_pc TEXT,
+        requestor_remarks TEXT,
+        created_by INT,
+        created_at TIMESTAMPTZ,
+        update_source TEXT
+    );
+
+    -- Insert data into temp_mrl_line_items
+    INSERT INTO temp_mrl_line_items
+    SELECT
+        ni.jcn, ni.twcode, ni.nomenclature, ni.cog, ni.fsc, ni.niin, ni.part_no, ni.qty, ni.ui,
+        ni.market_research_up, ni.market_research_ep, ni.availability_identifier,
+        ni.request_date, ni.rdd, ni.pri, ni.swlin, ni.hull_or_shop, ni.suggested_source,
+        ni.mfg_cage, ni.apl, ni.nha_equipment_system, ni.nha_model, ni.nha_serial,
+        ni.techmanual, ni.dwg_pc, ni.requestor_remarks,
+        v_created_by, NOW() AT TIME ZONE 'UTC', v_update_source
+    FROM jsonb_to_recordset(batch_data) AS ni(
+        jcn TEXT,
+        twcode TEXT,
+        nomenclature TEXT,
+        cog TEXT,
+        fsc TEXT,
+        niin TEXT,
+        part_no TEXT,
+        qty INT,
+        ui TEXT,
+        market_research_up MONEY,
+        market_research_ep MONEY,
+        availability_identifier INT,
+        request_date DATE,
+        rdd DATE,
+        pri VARCHAR(10),
+        swlin VARCHAR(20),
+        hull_or_shop VARCHAR(20),
+        suggested_source TEXT,
+        mfg_cage VARCHAR(20),
+        apl VARCHAR(50),
+        nha_equipment_system TEXT,
+        nha_model TEXT,
+        nha_serial TEXT,
+        techmanual TEXT,
+        dwg_pc TEXT,
+        requestor_remarks TEXT
+    );
+
+    -- Store the record count
+    v_record_count := (SELECT COUNT(*) FROM temp_mrl_line_items);
+
+    -- Disable triggers
+    original_session_replication_role := current_setting('session_replication_role');
+    PERFORM set_config('session_replication_role', 'replica', true);
+
+    -- Create temporary table to hold inserted order_line_item_ids
+    CREATE TEMP TABLE temp_inserted_mrl_items (
+        order_line_item_id INT
+    );
+
+    -- Perform the bulk insert into MRL_line_items and capture inserted IDs
+    WITH inserted_ids AS (
+        INSERT INTO MRL_line_items (
+            jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
+            market_research_up, market_research_ep, availability_identifier,
+            request_date, rdd, pri, swlin, hull_or_shop, suggested_source,
+            mfg_cage, apl, nha_equipment_system, nha_model, nha_serial,
+            techmanual, dwg_pc, requestor_remarks,
+            created_by, created_at, update_source
+        )
+        SELECT
+            t.jcn, t.twcode, t.nomenclature, t.cog, t.fsc, t.niin, t.part_no, t.qty, t.ui,
+            t.market_research_up, t.market_research_ep, t.availability_identifier,
+            t.request_date, t.rdd, t.pri, t.swlin, t.hull_or_shop, t.suggested_source,
+            t.mfg_cage, t.apl, t.nha_equipment_system, t.nha_model, t.nha_serial,
+            t.techmanual, t.dwg_pc, t.requestor_remarks,
+            t.created_by, t.created_at, t.update_source
+        FROM temp_mrl_line_items t
+        ON CONFLICT (jcn, twcode) DO NOTHING
+        RETURNING order_line_item_id
+    )
+    INSERT INTO temp_inserted_mrl_items (order_line_item_id)
+    SELECT order_line_item_id FROM inserted_ids;
+
+    -- Update success count
+    v_success_count := (SELECT COUNT(*) FROM temp_inserted_mrl_items);
+    v_duplicate_count := v_record_count - v_success_count;
+
+    -- Create temporary table to hold inserted fulfillment_item_ids
+    CREATE TEMP TABLE temp_fulfillment_items (
+        fulfillment_item_id INT,
+        order_line_item_id INT
+    );
+
+    -- Now insert into fulfillment_items and capture inserted IDs
+    WITH inserted_fulfillment_ids AS (
+        INSERT INTO fulfillment_items (
+            order_line_item_id,
+            status_id,
+            created_by,
+            created_at,
+            update_source
+        )
+        SELECT
+            mi.order_line_item_id,
+            v_status_id_not_ordered,
+            v_created_by,
+            NOW() AT TIME ZONE 'UTC',
+            v_update_source
+        FROM temp_inserted_mrl_items mi
+        RETURNING fulfillment_item_id, order_line_item_id
+    )
+    INSERT INTO temp_fulfillment_items (fulfillment_item_id, order_line_item_id)
+    SELECT fulfillment_item_id, order_line_item_id FROM inserted_fulfillment_ids;
+
+    -- Insert into audit_trail for MRL_line_items
+    INSERT INTO audit_trail (
+        order_line_item_id,
+        fulfillment_item_id,
+        action,
+        changed_by,
+        changed_at,
+        details,
+        update_source,
+        role_id,
+        user_id
+    )
+    SELECT
+        mi.order_line_item_id,
+        NULL, -- No fulfillment_item_id at this point
+        'INSERT',
+        v_created_by,
+        NOW() AT TIME ZONE 'UTC',
+        'Initial MRL Line Item Record created',
+        v_update_source,
+        v_role_id,
+        v_created_by -- Assuming user_id is same as changed_by
+    FROM temp_inserted_mrl_items mi;
+
+    -- Insert into audit_trail for fulfillment_items
+    INSERT INTO audit_trail (
+        order_line_item_id,
+        fulfillment_item_id,
+        action,
+        changed_by,
+        changed_at,
+        details,
+        update_source,
+        role_id,
+        user_id
+    )
+    SELECT
+        fi.order_line_item_id,
+        fi.fulfillment_item_id,
+        'INSERT',
+        v_created_by,
+        NOW() AT TIME ZONE 'UTC',
+        'Initial Fulfillment Item Record created',
+        v_update_source,
+        v_role_id,
+        v_created_by -- Assuming user_id is same as changed_by
+    FROM temp_fulfillment_items fi;
+
+    -- Restore the original session_replication_role
+    PERFORM set_config('session_replication_role', original_session_replication_role, true);
+
+    -- Drop temporary tables to clean up
+    DROP TABLE IF EXISTS temp_mrl_line_items;
+    DROP TABLE IF EXISTS temp_inserted_mrl_items;
+    DROP TABLE IF EXISTS temp_fulfillment_items;
+
+    -- Prepare summary
+    summary := jsonb_build_object(
+        'status', 'completed',
+        'total', v_record_count,
+        'success', v_success_count,
+        'duplicates', v_duplicate_count,
+        'operation', 'insert_mrl_line_items_efficient',
+        'timestamp', current_timestamp
+    );
+
+EXCEPTION WHEN OTHERS THEN
+    -- Restore the original session_replication_role in case of error
+    PERFORM set_config('session_replication_role', original_session_replication_role, true);
+    -- Drop temporary tables in case of error
+    DROP TABLE IF EXISTS temp_mrl_line_items;
+    DROP TABLE IF EXISTS temp_inserted_mrl_items;
+    DROP TABLE IF EXISTS temp_fulfillment_items;
+    -- Handle exceptions
+    RAISE LOG 'Unhandled exception in insert_mrl_line_items_efficient: %, SQLSTATE: %', SQLERRM, SQLSTATE;
+    summary := jsonb_build_object(
+        'status', 'error',
+        'message', 'Unhandled exception: ' || SQLERRM,
+        'operation', 'insert_mrl_line_items_efficient',
+        'timestamp', current_timestamp
+    );
+END;
+$$;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\03_update_fulfillment_items.sql  
@@ -3127,5 +3527,458 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
+ 
+ 
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\06 procedures\03_update_fulfillment_items_efficient.sql  
+-- Version 0.11.0
+-- Updated Stored Procedure with additional logging and data verification
+
+CREATE OR REPLACE PROCEDURE update_fulfillment_items_efficient(
+    IN batch_data JSONB,
+    IN v_update_source TEXT,
+    OUT summary JSONB
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    -- Counters for summary
+    v_success_count INT := 0;
+    v_error_count INT := 0;
+    v_warning_count INT := 0;
+
+    -- Batch processing variables
+    v_batch_size INT := 1000; -- Define batch size
+    v_total_records INT;
+    v_batch_start INT;
+    v_batch_id UUID;
+    v_updated_rows INT;
+    v_logged_warnings INT;
+
+    -- Status mapping
+    status_map JSONB;
+
+    -- Exception handling
+    original_session_replication_role TEXT;
+
+    -- Variables to capture error details
+    v_error_message TEXT;
+    v_error_detail TEXT;
+    v_error_hint TEXT;
+    v_sqlstate TEXT;
+BEGIN
+    -- Generate a unique batch ID
+    v_batch_id := gen_random_uuid();
+    RAISE NOTICE 'Generated batch ID: %', v_batch_id;
+
+    -- Validate batch_data
+    IF batch_data IS NULL OR jsonb_typeof(batch_data) != 'array' THEN
+        RAISE EXCEPTION 'Invalid batch_data: not a JSON array or is NULL';
+    END IF;
+
+    -- Get total number of records
+    v_total_records := jsonb_array_length(batch_data);
+    RAISE NOTICE 'Total records to process: %', v_total_records;
+
+    -- Create temporary table for updates
+    CREATE TEMP TABLE temp_fulfillment_updates (
+        jcn VARCHAR,
+        twcode VARCHAR,
+        shipdoc_tcn VARCHAR,
+        v2x_ship_no VARCHAR,
+        booking VARCHAR,
+        vessel VARCHAR,
+        container VARCHAR,
+        carrier VARCHAR,
+        sail_date DATE,
+        edd_to_ches DATE,
+        edd_egypt DATE,
+        rcd_v2x_date DATE,
+        lot_id VARCHAR,
+        triwall VARCHAR,
+        lsc_on_hand_date DATE,
+        arr_lsc_egypt DATE,
+        milstrip_req_no VARCHAR,
+        comments TEXT,
+        update_source TEXT
+    ) ON COMMIT DROP;
+
+    -- Create temporary table for multiple records
+    CREATE TEMP TABLE temp_multiple_records (
+        jcn VARCHAR,
+        twcode VARCHAR,
+        fulfillment_item_ids INT[],
+        order_line_item_ids INT[],
+        batch_id UUID
+    ) ON COMMIT DROP;
+
+    -- Pre-fetch all relevant status_id mappings into a JSONB object
+    SELECT jsonb_object_agg(status_name, status_id) INTO status_map
+    FROM statuses
+    WHERE status_name IN (
+        'ON HAND EGYPT', 'ARR EGYPT', 'EN ROUTE TO EGYPT', 'FREIGHT FORWARDER',
+        'READY TO SHIP', 'PROC CHES WH', 'RCD CHES WH', 'ON ORDER',
+        'INIT PROCESS', 'NOT ORDERED'
+    );
+
+    -- Store the original session_replication_role
+    original_session_replication_role := current_setting('session_replication_role', true);
+
+    -- Set session_replication_role to 'replica' to bypass triggers
+    PERFORM set_config('session_replication_role', 'replica', true);
+    RAISE NOTICE 'session_replication_role set to replica. Triggers are bypassed during bulk updates.';
+
+    -- Process records in batches
+    FOR v_batch_start IN 0..v_total_records-1 BY v_batch_size LOOP
+        RAISE NOTICE 'Processing batch starting at record: %', v_batch_start;
+
+        -- Truncate temporary tables
+        TRUNCATE TABLE temp_fulfillment_updates, temp_multiple_records;
+
+        -- Insert batch data into temporary table
+        INSERT INTO temp_fulfillment_updates
+        SELECT
+            NULLIF(item.value ->> 'jcn', '') AS jcn,
+            NULLIF(item.value ->> 'twcode', '') AS twcode,
+            NULLIF(item.value ->> 'shipdoc_tcn', '') AS shipdoc_tcn,
+            NULLIF(item.value ->> 'v2x_ship_no', '') AS v2x_ship_no,
+            NULLIF(item.value ->> 'booking', '') AS booking,
+            NULLIF(item.value ->> 'vessel', '') AS vessel,
+            NULLIF(item.value ->> 'container', '') AS container,
+            NULLIF(item.value ->> 'carrier', '') AS carrier,
+            NULLIF(item.value ->> 'sail_date', '')::DATE AS sail_date,
+            NULLIF(item.value ->> 'edd_to_ches', '')::DATE AS edd_to_ches,
+            NULLIF(item.value ->> 'edd_egypt', '')::DATE AS edd_egypt,
+            NULLIF(item.value ->> 'rcd_v2x_date', '')::DATE AS rcd_v2x_date,
+            NULLIF(item.value ->> 'lot_id', '') AS lot_id,
+            NULLIF(item.value ->> 'triwall', '') AS triwall,
+            NULLIF(item.value ->> 'lsc_on_hand_date', '')::DATE AS lsc_on_hand_date,
+            NULLIF(item.value ->> 'arr_lsc_egypt', '')::DATE AS arr_lsc_egypt,
+            NULLIF(item.value ->> 'milstrip_req_no', '') AS milstrip_req_no,
+            NULLIF(item.value ->> 'comments', '') AS comments,
+            v_update_source AS update_source
+        FROM jsonb_array_elements(batch_data) WITH ORDINALITY AS item(value, index)
+        WHERE index > v_batch_start AND index <= v_batch_start + v_batch_size;
+
+        -- Log number of records inserted into temp_fulfillment_updates
+        RAISE NOTICE 'Inserted % records into temp_fulfillment_updates', (SELECT COUNT(*) FROM temp_fulfillment_updates);
+
+        -- Log sample data from temp_fulfillment_updates
+        RAISE NOTICE 'Sample record from temp_fulfillment_updates: %', (SELECT row_to_json(tfu) FROM temp_fulfillment_updates tfu LIMIT 1);
+
+        -- Detect fulfillment items with multiple records (same jcn and twcode)
+        WITH duplicate_records AS (
+            SELECT 
+                tu.jcn,
+                tu.twcode,
+                array_agg(fi.fulfillment_item_id) AS fulfillment_item_ids,
+                array_agg(fi.order_line_item_id) AS order_line_item_ids,
+                COUNT(*) AS cnt
+            FROM temp_fulfillment_updates tu
+            JOIN MRL_line_items mli ON LOWER(TRIM(tu.jcn)) = LOWER(TRIM(mli.jcn))
+                                   AND LOWER(TRIM(tu.twcode)) = LOWER(TRIM(mli.twcode))
+            JOIN fulfillment_items fi ON fi.order_line_item_id = mli.order_line_item_id
+            GROUP BY tu.jcn, tu.twcode
+        )
+        INSERT INTO temp_multiple_records (
+            jcn, twcode, fulfillment_item_ids, order_line_item_ids, batch_id
+        )
+        SELECT dr.jcn, dr.twcode, dr.fulfillment_item_ids, dr.order_line_item_ids, v_batch_id
+        FROM duplicate_records dr
+        WHERE dr.cnt > 1;
+
+        -- Log number of fulfillment items with multiple records detected
+        v_logged_warnings := (SELECT COUNT(*) FROM temp_multiple_records);
+        RAISE NOTICE 'Detected % fulfillment items with multiple records (jcn and twcode)', v_logged_warnings;
+
+        -- Log warnings for multiple fulfillment records
+        INSERT INTO import_error_log (
+            batch_id, operation_type, source_file_line_number, jcn, twcode,
+            error_type, error_message, record_data, created_at
+        )
+        SELECT
+            v_batch_id,
+            'FULFILLMENT_UPDATE',
+            NULL, -- No specific source file line number
+            mr.jcn,
+            mr.twcode,
+            'WARNING',
+            'Multiple fulfillment records found for this JCN and TWCODE',
+            row_to_json(tu.*)::jsonb,
+            NOW()
+        FROM temp_multiple_records mr
+        JOIN temp_fulfillment_updates tu ON tu.jcn = mr.jcn AND tu.twcode = mr.twcode;
+
+        RAISE NOTICE 'Logged % warning records for multiple fulfillment items.', v_logged_warnings;
+
+        -- Increment warning count
+        v_warning_count := v_warning_count + v_logged_warnings;
+
+        -- Create temporary table to store updated_fulfillments data
+        CREATE TEMP TABLE temp_updated_fulfillments ON COMMIT DROP AS
+        WITH to_update AS (
+            SELECT tu.*, fi.fulfillment_item_id, fi.order_line_item_id
+            FROM temp_fulfillment_updates tu
+            JOIN MRL_line_items mli ON LOWER(TRIM(tu.jcn)) = LOWER(TRIM(mli.jcn))
+                                   AND LOWER(TRIM(tu.twcode)) = LOWER(TRIM(mli.twcode))
+            JOIN fulfillment_items fi ON fi.order_line_item_id = mli.order_line_item_id
+            LEFT JOIN temp_multiple_records mr ON tu.jcn = mr.jcn AND tu.twcode = mr.twcode
+            WHERE mr.jcn IS NULL -- Exclude duplicates
+        ),
+        updated_fulfillments AS (
+            SELECT 
+                tu.fulfillment_item_id,
+                tu.shipdoc_tcn,
+                tu.v2x_ship_no,
+                tu.booking,
+                tu.vessel,
+                tu.container,
+                tu.carrier,
+                tu.sail_date,
+                tu.edd_to_ches,
+                tu.edd_egypt,
+                tu.rcd_v2x_date,
+                tu.lot_id,
+                tu.triwall,
+                tu.lsc_on_hand_date,
+                tu.arr_lsc_egypt,
+                tu.milstrip_req_no,
+                tu.comments,
+                tu.update_source,
+                CASE
+                    WHEN tu.lsc_on_hand_date IS NOT NULL THEN (status_map->>'ON HAND EGYPT')::INT
+                    WHEN tu.arr_lsc_egypt IS NOT NULL THEN (status_map->>'ARR EGYPT')::INT
+                    WHEN tu.sail_date IS NOT NULL AND tu.sail_date <= CURRENT_DATE THEN (status_map->>'EN ROUTE TO EGYPT')::INT
+                    WHEN tu.sail_date IS NOT NULL AND tu.sail_date > CURRENT_DATE THEN (status_map->>'FREIGHT FORWARDER')::INT
+                    WHEN tu.shipdoc_tcn IS NOT NULL OR tu.v2x_ship_no IS NOT NULL OR tu.booking IS NOT NULL OR tu.vessel IS NOT NULL OR tu.container IS NOT NULL THEN (status_map->>'READY TO SHIP')::INT
+                    WHEN tu.lot_id IS NOT NULL AND tu.triwall IS NOT NULL THEN (status_map->>'PROC CHES WH')::INT
+                    WHEN tu.rcd_v2x_date IS NOT NULL THEN (status_map->>'RCD CHES WH')::INT
+                    WHEN tu.edd_to_ches IS NOT NULL THEN (status_map->>'ON ORDER')::INT
+                    WHEN tu.milstrip_req_no IS NOT NULL THEN (status_map->>'INIT PROCESS')::INT
+                    ELSE (status_map->>'NOT ORDERED')::INT
+                END AS new_status_id
+            FROM to_update tu
+        )
+        SELECT * FROM updated_fulfillments;
+
+        -- Log number of records in temp_updated_fulfillments
+        RAISE NOTICE 'temp_updated_fulfillments contains % records.', (SELECT COUNT(*) FROM temp_updated_fulfillments);
+
+        -- Log sample data from temp_updated_fulfillments
+        RAISE NOTICE 'Sample record from temp_updated_fulfillments: %', (SELECT row_to_json(tuf) FROM temp_updated_fulfillments tuf LIMIT 1);
+
+        -- Now update fulfillment_items using temp_updated_fulfillments
+        UPDATE fulfillment_items fi
+        SET
+            shipdoc_tcn = LEFT(tuf.shipdoc_tcn, 30),
+            v2x_ship_no = LEFT(tuf.v2x_ship_no, 20),
+            booking = LEFT(tuf.booking, 20),
+            vessel = LEFT(tuf.vessel, 30),
+            container = LEFT(tuf.container, 25),
+            carrier = LEFT(tuf.carrier, 50),
+            sail_date = tuf.sail_date,
+            edd_to_ches = tuf.edd_to_ches,
+            edd_egypt = tuf.edd_egypt,
+            rcd_v2x_date = tuf.rcd_v2x_date,
+            lot_id = LEFT(tuf.lot_id, 30),
+            triwall = LEFT(tuf.triwall, 30),
+            lsc_on_hand_date = tuf.lsc_on_hand_date,
+            arr_lsc_egypt = tuf.arr_lsc_egypt,
+            milstrip_req_no = LEFT(tuf.milstrip_req_no, 25),
+            comments = tuf.comments,
+            updated_by = current_setting('myapp.user_id')::INT,
+            updated_at = NOW(),
+            update_source = tuf.update_source,
+            status_id = tuf.new_status_id
+        FROM temp_updated_fulfillments tuf
+        WHERE fi.fulfillment_item_id = tuf.fulfillment_item_id;
+
+        -- Get the number of updated rows
+        GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+        RAISE NOTICE 'Updated % fulfillment records.', v_updated_rows;
+
+        -- Increment success count
+        v_success_count := v_success_count + v_updated_rows;
+
+        -- Insert audit trail entries for successful updates
+        WITH changed_fields AS (
+            SELECT
+                fi.fulfillment_item_id,
+                array_agg(row_to_json(fc)) AS changes,
+                tuf.update_source
+            FROM fulfillment_items fi
+            JOIN temp_updated_fulfillments tuf ON fi.fulfillment_item_id = tuf.fulfillment_item_id
+            CROSS JOIN LATERAL (
+                VALUES
+                    ('shipdoc_tcn', fi.shipdoc_tcn::TEXT, tuf.shipdoc_tcn::TEXT),
+                    ('v2x_ship_no', fi.v2x_ship_no::TEXT, tuf.v2x_ship_no::TEXT),
+                    ('booking', fi.booking::TEXT, tuf.booking::TEXT),
+                    ('vessel', fi.vessel::TEXT, tuf.vessel::TEXT),
+                    ('container', fi.container::TEXT, tuf.container::TEXT),
+                    ('carrier', fi.carrier::TEXT, tuf.carrier::TEXT),
+                    ('sail_date', fi.sail_date::TEXT, tuf.sail_date::TEXT),
+                    ('edd_to_ches', fi.edd_to_ches::TEXT, tuf.edd_to_ches::TEXT),
+                    ('edd_egypt', fi.edd_egypt::TEXT, tuf.edd_egypt::TEXT),
+                    ('rcd_v2x_date', fi.rcd_v2x_date::TEXT, tuf.rcd_v2x_date::TEXT),
+                    ('lot_id', fi.lot_id::TEXT, tuf.lot_id::TEXT),
+                    ('triwall', fi.triwall::TEXT, tuf.triwall::TEXT),
+                    ('lsc_on_hand_date', fi.lsc_on_hand_date::TEXT, tuf.lsc_on_hand_date::TEXT),
+                    ('arr_lsc_egypt', fi.arr_lsc_egypt::TEXT, tuf.arr_lsc_egypt::TEXT),
+                    ('milstrip_req_no', fi.milstrip_req_no::TEXT, tuf.milstrip_req_no::TEXT),
+                    ('comments', fi.comments::TEXT, tuf.comments::TEXT),
+                    ('status_id', fi.status_id::TEXT, tuf.new_status_id::TEXT)
+            ) AS fc(field, old_value, new_value)
+            WHERE fc.old_value IS DISTINCT FROM fc.new_value
+            GROUP BY fi.fulfillment_item_id, tuf.update_source
+        )
+        INSERT INTO audit_trail (
+            fulfillment_item_id,
+            action,
+            changed_by,
+            changed_at,
+            details,
+            update_source,
+            role_id,
+            user_id
+        )
+        SELECT
+            cf.fulfillment_item_id,
+            'UPDATE',
+            current_setting('myapp.user_id')::INT,
+            NOW(),
+            jsonb_build_object('changed_fields', cf.changes),
+            cf.update_source,
+            current_setting('myapp.role_id')::INT,
+            current_setting('myapp.user_id')::INT
+        FROM changed_fields cf;
+
+        -- Clean up temporary table for updated fulfillments
+        DROP TABLE IF EXISTS temp_updated_fulfillments;
+
+    END LOOP;
+
+    -- After all batches are processed, perform status synchronization for MRL_line_items
+
+    -- Create temporary table to store mrl_status_updates data
+    CREATE TEMP TABLE temp_mrl_status_updates ON COMMIT DROP AS
+    SELECT
+        mli.order_line_item_id,
+        MIN(fi.status_id) AS new_status_id
+    FROM MRL_line_items mli
+    JOIN fulfillment_items fi ON mli.order_line_item_id = fi.order_line_item_id
+    GROUP BY mli.order_line_item_id;
+
+    -- Update MRL_line_items using temp_mrl_status_updates
+    UPDATE MRL_line_items mli
+    SET status_id = mru.new_status_id
+    FROM temp_mrl_status_updates mru
+    WHERE mli.order_line_item_id = mru.order_line_item_id
+      AND mli.status_id IS DISTINCT FROM mru.new_status_id;
+
+    -- Log the number of MRL_line_items updated
+    GET DIAGNOSTICS v_updated_rows = ROW_COUNT;
+    IF v_updated_rows > 0 THEN
+        RAISE NOTICE 'Updated % MRL_line_items with new status_id based on MIN(status_id).', v_updated_rows;
+
+        -- Insert audit trail entries for MRL_line_items updates
+        INSERT INTO audit_trail (
+            order_line_item_id,
+            action,
+            changed_by,
+            changed_at,
+            details,
+            update_source,
+            role_id,
+            user_id
+        )
+        SELECT
+            mli.order_line_item_id,
+            'UPDATE',
+            current_setting('myapp.user_id')::INT,
+            NOW(),
+            jsonb_build_object('changed_fields', jsonb_build_object('status_id', mli.status_id)),
+            v_update_source,
+            current_setting('myapp.role_id')::INT,
+            current_setting('myapp.user_id')::INT
+        FROM MRL_line_items mli
+        JOIN temp_mrl_status_updates mru ON mli.order_line_item_id = mru.order_line_item_id
+        WHERE mli.status_id IS DISTINCT FROM mru.new_status_id;
+    ELSE
+        RAISE NOTICE 'No MRL_line_items required status updates.';
+    END IF;
+
+    -- Clean up temporary table
+    DROP TABLE IF EXISTS temp_mrl_status_updates;
+
+    -- Restore the original session_replication_role after bulk updates
+    PERFORM set_config('session_replication_role', original_session_replication_role, true);
+    RAISE NOTICE 'session_replication_role restored to original value. Triggers are active for individual updates.';
+
+    -- Prepare summary
+    summary := jsonb_build_object(
+        'status', 'completed',
+        'batch_id', v_batch_id,
+        'total', v_total_records,
+        'success', v_success_count,
+        'errors', v_error_count,
+        'warnings', v_warning_count,
+        'operation', 'update_fulfillment_items_efficient',
+        'update_source', v_update_source,
+        'timestamp', current_timestamp
+    );
+
+EXCEPTION 
+    WHEN data_exception THEN
+        -- Capture detailed error information
+        GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT,
+                                 v_error_detail = PG_EXCEPTION_DETAIL,
+                                 v_error_hint = PG_EXCEPTION_HINT,
+                                 v_sqlstate = RETURNED_SQLSTATE;
+
+        -- Log the detailed error
+        RAISE NOTICE 'Data exception in update_fulfillment_items_efficient: %, Detail: %, Hint: %', 
+                    v_error_message, v_error_detail, v_error_hint;
+
+        -- Prepare the summary with detailed error message
+        summary := jsonb_build_object(
+            'status', 'error',
+            'message', 'Data exception occurred: ' || COALESCE(v_error_message, 'No details provided.'),
+            'detail', COALESCE(v_error_detail, ''),
+            'hint', COALESCE(v_error_hint, ''),
+            'operation', 'update_fulfillment_items_efficient',
+            'timestamp', current_timestamp
+        );
+        RETURN; -- Exit after handling exception
+
+    WHEN OTHERS THEN
+        -- Capture detailed error information
+        GET STACKED DIAGNOSTICS v_error_message = MESSAGE_TEXT,
+                                 v_error_detail = PG_EXCEPTION_DETAIL,
+                                 v_error_hint = PG_EXCEPTION_HINT,
+                                 v_sqlstate = RETURNED_SQLSTATE;
+
+        -- Restore the original session_replication_role in case of error
+        PERFORM set_config('session_replication_role', original_session_replication_role, true);
+        -- Drop temporary tables in case of error
+        DROP TABLE IF EXISTS temp_fulfillment_updates;
+        DROP TABLE IF EXISTS temp_multiple_records;
+        DROP TABLE IF EXISTS temp_updated_fulfillments;
+        DROP TABLE IF EXISTS temp_mrl_status_updates;
+        -- Log the unhandled exception with detailed information
+        RAISE LOG 'Unhandled exception in update_fulfillment_items_efficient: %, Detail: %, Hint: %, SQLSTATE: %', 
+                 v_error_message, v_error_detail, v_error_hint, v_sqlstate;
+
+        -- Prepare the summary with detailed error message
+        summary := jsonb_build_object(
+            'status', 'error',
+            'message', 'Unhandled exception occurred: ' || COALESCE(v_error_message, 'No details provided.'),
+            'detail', COALESCE(v_error_detail, ''),
+            'hint', COALESCE(v_error_hint, ''),
+            'operation', 'update_fulfillment_items_efficient',
+            'timestamp', current_timestamp
+        );
+        RETURN; -- Exit after handling exception
+END;
+$$;
  
  
