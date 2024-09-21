@@ -1,3 +1,7 @@
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\combined_script.sql  
+-- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\combined_script.sql  
+ 
+ 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql  
 -- version 0.11.11
 
@@ -153,12 +157,8 @@ CREATE TABLE MRL_line_items (
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\03_create_fulfillment_items.sql  
-<<<<<<< HEAD
--- version 0.10.1
-=======
--- version 0.10.2
->>>>>>> e7c938ac4d0d29a31e0cd74a54b984fcf965d720
 
+-- version 0.11.12
 -- Create fulfillment items table (added MILSTRIP/req field)(added carrier field)
 
 CREATE TABLE fulfillment_items (
@@ -176,23 +176,10 @@ CREATE TABLE fulfillment_items (
     vessel VARCHAR(30),
     container VARCHAR(25),
     carrier VARCHAR(50),
-<<<<<<< HEAD
     sail_date DATE,
     edd_to_ches DATE,
-    edd_egypt DATE, -- Added Estimated Delivery Date to Egypt
+    edd_egypt DATE, -- Estimated Delivery Date to Egypt
     rcd_v2x_date DATE,
-    lot_id VARCHAR(15),
-    triwall VARCHAR(15),
-    lsc_on_hand_date DATE,
-    arr_lsc_egypt DATE,
-    milstrip_req_no VARCHAR(25),
-    inquiry_status BOOLEAN DEFAULT FALSE,
-    comments TEXT
-);
-=======
-    sail_date DATE, -- Sail date
-    edd_to_ches DATE, -- Estimated delivery date to Chesapeake warehouse
-    rcd_v2x_date DATE, -- Received by V2X date
     lot_id VARCHAR(30), -- Lot ID
     triwall VARCHAR(30), -- Triwall number
     lsc_on_hand_date DATE, -- LSC on-hand date
@@ -202,7 +189,8 @@ CREATE TABLE fulfillment_items (
     comments TEXT -- Comments regarding the fulfillment item
 );
 
->>>>>>> e7c938ac4d0d29a31e0cd74a54b984fcf965d720
+
+
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\04_create_audit_trail.sql  
