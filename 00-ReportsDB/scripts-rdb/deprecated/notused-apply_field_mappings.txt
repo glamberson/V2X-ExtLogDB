@@ -1,0 +1,38 @@
+CREATE OR REPLACE PROCEDURE apply_field_mappings()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    r RECORD;
+    mapping RECORD;
+    mapped_identification JSONB;
+    mapped_fulfillment JSONB;
+BEGIN
+    FOR r IN SELECT raw.raw_data_id, raw.sheet_id, raw.row_data 
+             FROM raw_egypt_weekly_reports raw
+             LEFT JOIN mapped_egypt_weekly_data mapped ON raw.raw_data_id = mapped.raw_data_id
+             WHERE mapped.raw_data_id IS NULL
+    LOOP
+        mapped_identification := '{}';
+        mapped_fulfillment := '{}';
+        
+        FOR mapping IN SELECT * FROM field_mappings 
+                       WHERE sheet_id = r.sheet_id
+                       ORDER BY priority
+        LOOP
+            IF mapping.mapping_type = 'identification' THEN
+                mapped_identification := mapped_identification || 
+                    jsonb_build_object(mapping.target_field_name, 
+                        apply_transformation(r.row_data->>mapping.raw_field_name, mapping.transformation_rule));
+            ELSIF mapping.mapping_type = 'fulfillment' THEN
+                mapped_fulfillment := mapped_fulfillment || 
+                    jsonb_build_object(mapping.target_field_name, 
+                        apply_transformation(r.row_data->>mapping.raw_field_name, mapping.transformation_rule));
+            END IF;
+        END LOOP;
+        
+        INSERT INTO mapped_egypt_weekly_data (raw_data_id, identification_data, fulfillment_data)
+        VALUES (r.raw_data_id, mapped_identification, mapped_fulfillment);
+    END LOOP;
+END;
+$$;
+

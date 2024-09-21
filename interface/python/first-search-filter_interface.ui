@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SearchWindow</class>
+ <widget class="QMainWindow" name="SearchWindow">
+  <property name="windowTitle">
+   <string>MRL Record Search</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <!-- Search and Filter Section -->
+    <item>
+     <widget class="QGroupBox" name="searchFilterGroup">
+      <property name="title">
+       <string>Search and Filter</string>
+      </property>
+      <layout class="QHBoxLayout" name="searchFilterLayout">
+       <item>
+        <widget class="QLineEdit" name="quickSearchEdit">
+         <property name="placeholderText">
+          <string>Quick Search (JCN, TWCODE, etc.)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="advancedSearchButton">
+         <property name="text">
+          <string>Advanced Search</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="quickFilterCombo">
+         <item>
+          <property name="text">
+           <string>Recent Records (Last 7 Days)</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>High Priority Records</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Records Needing Attention</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    
+    <!-- Results Section -->
+    <item>
+     <widget class="QGroupBox" name="resultsGroup">
+      <property name="title">
+       <string>Results</string>
+      </property>
+      <layout class="QVBoxLayout" name="resultsLayout">
+       <item>
+        <widget class="QTableView" name="resultsTable"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="resultCountLabel">
+         <property name="text">
+          <string>Showing 0 of 0 records</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="resultControlsLayout">
+         <item>
+          <widget class="QPushButton" name="loadMoreButton">
+           <property name="text">
+            <string>Load More</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="loadingIndicator">
+           <property name="text">
+            <string>Loading...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="exportResultsButton">
+           <property name="text">
+            <string>Export Results</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

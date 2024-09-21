@@ -1,0 +1,6 @@
+ALTER TABLE preprocessed_egypt_weekly_data
+ADD COLUMN overall_quality_score DECIMAL(5,2),
+ADD COLUMN flags JSONB;
+
+ALTER TABLE raw_egypt_weekly_reports
+ADD COLUMN preprocessed BOOLEAN DEFAULT FALSE;

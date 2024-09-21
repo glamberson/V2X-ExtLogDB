@@ -1,0 +1,10 @@
+CREATE TABLE mapping_sets (
+    set_id SERIAL PRIMARY KEY,
+    set_name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    report_type TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used TIMESTAMP,
+    version_date DATE DEFAULT CURRENT_DATE,
+    CONSTRAINT unique_version_per_set UNIQUE (set_name, version_date)
+);

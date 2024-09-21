@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowTitle">
+   <string>External Logistics Database</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <!-- Search Section -->
+    <item>
+     <widget class="QGroupBox" name="searchGroupBox">
+      <property name="title">
+       <string>Search</string>
+      </property>
+      <layout class="QGridLayout" name="searchLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="jcnLabel">
+         <property name="text">
+          <string>JCN:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="jcnSearch"/>
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="twcodeLabel">
+         <property name="text">
+          <string>TWCODE:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QLineEdit" name="twcodeSearch"/>
+       </item>
+       <item row="1" column="0" colspan="4">
+        <widget class="QPushButton" name="advancedSearchButton">
+         <property name="text">
+          <string>Advanced Search</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    
+    <!-- Main Tab Widget -->
+    <item>
+     <widget class="QTabWidget" name="mainTabWidget">
+      <!-- Search Results Tab -->
+      <widget class="QWidget" name="searchResultsTab">
+       <attribute name="title">
+        <string>Search Results</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="searchResultsLayout">
+        <item>
+         <widget class="QTableView" name="searchResultsTable"/>
+        </item>
+       </layout>
+      </widget>
+      
+      <!-- Record Details Tab -->
+      <widget class="QWidget" name="recordDetailsTab">
+       <attribute name="title">
+        <string>Record Details</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="recordDetailsLayout">
+        <item>
+         <widget class="QGroupBox" name="mrlDetailsGroup">
+          <property name="title">
+           <string>MRL Details</string>
+          </property>
+          <!-- Add MRL detail fields here -->
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="fulfillmentDetailsGroup">
+          <property name="title">
+           <string>Fulfillment Details</string>
+          </property>
+          <!-- Add Fulfillment detail fields here -->
+         </widget>
+        </item>
+        <item>
+         <widget class="QTabWidget" name="recordInfoTabs">
+          <widget class="QWidget" name="commentsTab">
+           <attribute name="title">
+            <string>Comments</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="commentsLayout">
+            <item>
+             <widget class="QTextEdit" name="commentsView" />
+            </item>
+            <item>
+             <widget class="QPushButton" name="addCommentButton">
+              <property name="text">
+               <string>Add Comment</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="auditTrailTab">
+           <attribute name="title">
+            <string>Audit Trail</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="auditTrailLayout">
+            <item>
+             <widget class="QTableView" name="auditTrailTable" />
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="reportsTab">
+           <attribute name="title">
+            <string>Linked Reports</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="reportsLayout">
+            <item>
+             <widget class="QTableView" name="reportsTable" />
+            </item>
+            <item>
+             <widget class="QPushButton" name="editReportLinksButton">
+              <property name="text">
+               <string>Edit Report Links</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      
+      <!-- Bulk Operations Tab -->
+      <widget class="QWidget" name="bulkOperationsTab">
+       <attribute name="title">
+        <string>Bulk Operations</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="bulkOperationsLayout">
+        <item>
+         <widget class="QPushButton" name="insertMRLButton">
+          <property name="text">
+           <string>Insert MRL Line Items</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="updateFulfillmentButton">
+          <property name="text">
+           <string>Update Fulfillment Records</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

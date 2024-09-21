@@ -1,0 +1,11 @@
+CREATE TABLE preprocessing_errors (
+    error_id SERIAL PRIMARY KEY,
+    raw_data_id INT REFERENCES raw_egypt_weekly_reports(raw_data_id),
+    report_name VARCHAR(255),
+    report_date DATE,
+    sheet_name VARCHAR(255),
+    original_line INT,
+    field_name VARCHAR(255),
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowTitle">
+   <string>Fulfillment Management</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <!-- User Information Layout -->
+    <item>
+     <layout class="QHBoxLayout" name="userInfoLayout">
+      <item>
+       <widget class="QLabel" name="user_label">
+        <property name="text">
+         <string>User ID: </string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="role_label">
+        <property name="text">
+         <string>Role: </string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    
+    <!-- Update Source Input Layout -->
+    <item>
+     <layout class="QHBoxLayout" name="updateSourceLayout">
+      <item>
+       <widget class="QLabel" name="update_source_label">
+        <property name="text">
+         <string>Update Source:</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="update_source_input"/>
+      </item>
+     </layout>
+    </item>
+    
+    <!-- Tab Widget -->
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <widget class="QWidget" name="tab_mrl">
+       <attribute name="title">
+        <string>MRL Line Items</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="mrlLayout">
+        <item>
+         <widget class="QPushButton" name="insert_mrl_button">
+          <property name="text">
+           <string>Insert MRL Line Items</string>
+          </property>
+         </widget>
+        </item>
+        <!-- Add other MRL Line Items UI components here -->
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_fulfillment">
+       <attribute name="title">
+        <string>Fulfillment Items</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="fulfillmentLayout">
+        <item>
+         <widget class="QPushButton" name="update_fulfillment_button">
+          <property name="text">
+           <string>Update Fulfillment Records</string>
+          </property>
+         </widget>
+        </item>
+        <!-- Add other Fulfillment Items UI components here -->
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    
+    <!-- Spacer to Push Content Upwards -->
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    
+    <!-- Optional: Status Bar or Additional UI Elements -->
+    
+   </layout>
+  </widget>
+  <!-- Optional: Menu Bar or Tool Bar -->
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,10 @@
+CREATE TABLE default_field_mappings (
+    mapping_id SERIAL PRIMARY KEY,
+    raw_field_name TEXT NOT NULL,
+    mapping_type TEXT NOT NULL,
+    target_field_name TEXT,
+    data_type TEXT,
+    set_id INT REFERENCES mapping_sets(set_id),
+    CONSTRAINT valid_mapping_type CHECK (mapping_type IN ('mrl', 'fulfillment', 'additional', 'identifier')),
+    UNIQUE (raw_field_name, set_id)
+);

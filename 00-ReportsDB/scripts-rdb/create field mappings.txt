@@ -1,0 +1,16 @@
+	
+CREATE TABLE field_mappings (
+    mapping_id SERIAL PRIMARY KEY,
+    raw_data_id INT NOT NULL,
+    raw_field_name TEXT NOT NULL,
+    mapping_type TEXT NOT NULL,
+    target_field_name TEXT,
+    set_id INT,
+    data_type TEXT,
+    FOREIGN KEY (raw_data_id) REFERENCES raw_egypt_weekly_reports(raw_data_id),
+    FOREIGN KEY (set_id) REFERENCES mapping_sets(set_id),
+    CONSTRAINT valid_mapping_type CHECK (mapping_type IN ('mrl', 'fulfillment', 'additional', 'identifier')),
+    CONSTRAINT unique_field_mapping_per_set UNIQUE (raw_data_id, set_id, raw_field_name),
+    UNIQUE (raw_data_id, raw_field_name)
+);
+

@@ -72,5 +72,3 @@ CREATE TABLE staged_egypt_weekly_data (
     UNIQUE (report_name, report_date, sheet_name, original_line, system_identifier_code)
 );
 
--- Additional index for faster queries
-CREATE INDEX idx_staged_egypt_weekly_data_report ON staged_egypt_weekly_data(report_name, report_date);

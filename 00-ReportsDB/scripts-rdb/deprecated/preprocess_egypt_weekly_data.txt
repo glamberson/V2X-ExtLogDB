@@ -1,0 +1,64 @@
+CREATE OR REPLACE PROCEDURE preprocess_egypt_weekly_data()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    r RECORD;
+    mapping RECORD;
+    mapped_mrl JSONB := '{}';
+    mapped_fulfillment JSONB := '{}';
+    mapped_additional JSONB := '{}';
+    mapped_fields TEXT[] := '{}';
+BEGIN
+    FOR r IN SELECT raw.raw_data_id, raw.sheet_id, raw.row_data 
+             FROM raw_egypt_weekly_reports raw
+             LEFT JOIN preprocessed_egypt_weekly_data prep ON raw.raw_data_id = prep.raw_data_id
+             WHERE prep.raw_data_id IS NULL
+    LOOP
+        mapped_mrl := '{}';
+        mapped_fulfillment := '{}';
+        mapped_additional := '{}';
+        mapped_fields := '{}';
+        
+        FOR mapping IN SELECT * FROM field_mappings 
+                       WHERE sheet_id = r.sheet_id
+                       ORDER BY priority
+        LOOP
+            CASE mapping.mapping_type
+                WHEN 'mrl' THEN
+                    mapped_mrl := mapped_mrl || 
+                        jsonb_build_object(mapping.target_field_name, 
+                            apply_transformation(r.row_data->>mapping.raw_field_name, mapping.transformation_rule));
+                WHEN 'fulfillment' THEN
+                    mapped_fulfillment := mapped_fulfillment || 
+                        jsonb_build_object(mapping.target_field_name, 
+                            apply_transformation(r.row_data->>mapping.raw_field_name, mapping.transformation_rule));
+                WHEN 'additional' THEN
+                    mapped_additional := mapped_additional || 
+                        jsonb_build_object(mapping.target_field_name, 
+                            apply_transformation(r.row_data->>mapping.raw_field_name, mapping.transformation_rule));
+            END CASE;
+            
+            IF mapping.mapping_type != 'ignore' THEN
+                mapped_fields := array_append(mapped_fields, mapping.raw_field_name);
+            END IF;
+        END LOOP;
+        
+        INSERT INTO preprocessed_egypt_weekly_data (
+            raw_data_id,
+            jcn, twcode, nomenclature, -- and other MRL fields...
+            shipdoc_tcn, v2x_ship_no, booking, -- and other fulfillment fields...
+            additional_data,
+            mapped_fields
+        )
+        SELECT
+            r.raw_data_id,
+            (mapped_mrl->>'jcn')::VARCHAR(50), (mapped_mrl->>'twcode')::VARCHAR(50), (mapped_mrl->>'nomenclature')::TEXT,
+            -- ... (other MRL fields)
+            (mapped_fulfillment->>'shipdoc_tcn')::VARCHAR(30), (mapped_fulfillment->>'v2x_ship_no')::VARCHAR(20), (mapped_fulfillment->>'booking')::VARCHAR(20),
+            -- ... (other fulfillment fields)
+            mapped_additional,
+            mapped_fields;
+    END LOOP;
+END;
+$$;
+

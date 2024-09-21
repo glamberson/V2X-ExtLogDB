@@ -1,0 +1,47 @@
+CREATE OR REPLACE FUNCTION insert_raw_egypt_weekly_report(
+    p_report_name VARCHAR(255),
+    p_report_date DATE,
+    p_sheet_name VARCHAR(255),
+    p_column_names TEXT[],
+    p_temp_table_name TEXT
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    row_count INTEGER;
+BEGIN
+    -- Drop indexes before insertion to improve performance
+    RAISE LOG 'Dropping indexes on raw_egypt_weekly_reports...';
+    EXECUTE 'DROP INDEX IF EXISTS idx_report_name';
+    EXECUTE 'DROP INDEX IF EXISTS idx_report_date';
+    EXECUTE 'DROP INDEX IF EXISTS idx_sheet_name';
+    EXECUTE 'DROP INDEX IF EXISTS idx_report_name_date_sheet';
+
+    -- Log the number of rows in the temp table
+    EXECUTE format('SELECT COUNT(*) FROM %I', p_temp_table_name) INTO row_count;
+    RAISE LOG 'Number of rows in temp table: %', row_count;
+
+    -- Insert the report data as a single record into raw_egypt_weekly_reports
+    EXECUTE format('
+        INSERT INTO raw_egypt_weekly_reports (report_name, report_date, sheet_name, column_names, row_data)
+        SELECT %L, %L::date, %L, %L::text[], json_agg(row_to_json(t))
+        FROM %I t',
+        p_report_name, p_report_date, p_sheet_name, p_column_names, p_temp_table_name
+    );
+
+    -- Recreate indexes after insertion
+    RAISE LOG 'Recreating indexes on raw_egypt_weekly_reports...';
+    EXECUTE 'CREATE INDEX idx_report_name ON raw_egypt_weekly_reports(report_name)';
+    EXECUTE 'CREATE INDEX idx_report_date ON raw_egypt_weekly_reports(report_date)';
+    EXECUTE 'CREATE INDEX idx_sheet_name ON raw_egypt_weekly_reports(sheet_name)';
+    EXECUTE 'CREATE INDEX idx_report_name_date_sheet ON raw_egypt_weekly_reports(report_name, report_date, sheet_name)';
+
+    -- Drop the temporary table
+    EXECUTE format('DROP TABLE %I', p_temp_table_name);
+
+    RETURN TRUE;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE LOG 'Error inserting raw Egypt Weekly Report data: %', SQLERRM;
+        RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
