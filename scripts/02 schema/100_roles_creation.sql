@@ -1,4 +1,4 @@
--- version 0.9.10
+-- version 0.11.13
 
 -- Create roles and grant permissions
 
@@ -32,7 +32,7 @@ GRANT SELECT ON users TO "login";
 
 
 -- Step 5: Grant database connection privilege
-GRANT CONNECT ON DATABASE "Beta_004" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
+GRANT CONNECT ON DATABASE "ExtLogDB" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
 
 -- Step 6: Grant usage on schema
 GRANT USAGE ON SCHEMA public TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
