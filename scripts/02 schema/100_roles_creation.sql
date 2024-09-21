@@ -30,7 +30,6 @@ GRANT EXECUTE ON FUNCTIONS TO "kppo_admin_user", "logistics_user", "report_viewe
 -- Step 3: Grant SELECT on the users table to validate credentials
 GRANT SELECT ON users TO "login";
 
-
 -- Step 5: Grant database connection privilege
 GRANT CONNECT ON DATABASE "ExtLogDB" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
 

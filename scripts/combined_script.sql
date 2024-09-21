@@ -1,15 +1,11 @@
--- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\combined_script.sql  
--- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\combined_script.sql  
- 
- 
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\01_create_extensions.sql  
--- version 0.11.11
+-- version 0.11.14
 
 
 -- Enable pgcrypto extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE EXTENSION IN NOT EXISTS dblink;
+CREATE EXTENSION IF NOT EXISTS dblink;
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\01 initialization\02_create_roles.sql  
@@ -346,7 +342,7 @@ CREATE TABLE failed_logins (
  
  
 -- Including C:\Users\vse\Desktop\External Logistics Database\ExtLogisticsDB Github Repository\V2X-ExtLogDB\scripts\02 schema\100_roles_creation.sql  
--- version 0.9.10
+-- version 0.11.13
 
 -- Create roles and grant permissions
 
@@ -378,9 +374,8 @@ GRANT EXECUTE ON FUNCTIONS TO "kppo_admin_user", "logistics_user", "report_viewe
 -- Step 3: Grant SELECT on the users table to validate credentials
 GRANT SELECT ON users TO "login";
 
-
 -- Step 5: Grant database connection privilege
-GRANT CONNECT ON DATABASE "Beta_004" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
+GRANT CONNECT ON DATABASE "ExtLogDB" TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
 
 -- Step 6: Grant usage on schema
 GRANT USAGE ON SCHEMA public TO "login", "kppo_admin_user", "logistics_user", "report_viewer_user";
