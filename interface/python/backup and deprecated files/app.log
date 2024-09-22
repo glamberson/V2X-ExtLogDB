@@ -1,0 +1,139 @@
+2024-09-22 09:48:59,284 - DEBUG - Starting application.
+2024-09-22 09:48:59,549 - INFO - Database connection established.
+2024-09-22 09:48:59,549 - DEBUG - Database connection established.
+2024-09-22 09:49:10,698 - DEBUG - Attempting login for user admin.
+2024-09-22 09:49:10,741 - INFO - User admin logged in successfully.
+2024-09-22 09:49:10,743 - DEBUG - Session variables set: user_id=1, role_id=1
+2024-09-22 09:49:10,744 - DEBUG - Login successful in login_dialog.
+2024-09-22 09:49:10,768 - DEBUG - Login dialog returned: 1
+2024-09-22 09:49:10,769 - DEBUG - Login successful, launching main window.
+2024-09-22 09:49:10,854 - DEBUG - Logging has been configured.
+2024-09-22 09:49:10,857 - DEBUG - Starting MainWindow initialization.
+2024-09-22 09:49:10,858 - DEBUG - Loading UI file for MainWindow.
+2024-09-22 09:49:10,899 - DEBUG - UI file loaded successfully.
+2024-09-22 09:49:10,903 - DEBUG - Central widget set.
+2024-09-22 09:49:10,907 - DEBUG - Connected 'insert_mrl_button' signal.
+2024-09-22 09:49:10,910 - DEBUG - Connected 'update_fulfillment_button' signal.
+2024-09-22 09:49:10,912 - DEBUG - Signals connected.
+2024-09-22 09:49:10,915 - DEBUG - User information displayed on main UI.
+2024-09-22 09:49:10,918 - DEBUG - Main UI setup complete.
+2024-09-22 09:49:10,972 - DEBUG - Main window shown.
+2024-09-22 09:49:43,375 - DEBUG - Excel file 'C:/Beta_004/MRL good original.xlsx' read successfully.
+2024-09-22 09:49:43,375 - DEBUG - Column names cleaned and standardized.
+2024-09-22 09:49:43,375 - DEBUG - Date field 'request_date' processed.
+2024-09-22 09:49:43,375 - DEBUG - Date field 'rdd' processed.
+2024-09-22 09:49:43,375 - DEBUG - Numeric field 'fsc' converted.
+2024-09-22 09:49:43,390 - DEBUG - Numeric field 'niin' converted.
+2024-09-22 09:49:43,390 - DEBUG - Numeric field 'qty' converted.
+2024-09-22 09:49:43,390 - DEBUG - Numeric field 'market_research_up' converted.
+2024-09-22 09:49:43,390 - DEBUG - Numeric field 'market_research_ep' converted.
+2024-09-22 09:49:43,390 - DEBUG - Numeric field 'availability_identifier' converted.
+2024-09-22 09:49:43,406 - DEBUG - Replaced NaN and Infinity with None.
+2024-09-22 09:49:43,421 - DEBUG - DataFrame converted to list of dictionaries.
+2024-09-22 09:49:43,421 - DEBUG - Data cleaned to remove NaN and Infinity values.
+2024-09-22 09:49:43,421 - DEBUG - Prepared JSON data for insert_mrl_line_items_efficient: [{"jcn": 9015000258, "twcode": "K24AYAP0214", "nomenclature": "Bearing", "cog": "9B", "fsc": 5246, "niin": 12345678, "part_no": "B-15", "qty": 2, "ui": "EA", "market_research_up": 150, "market_research_ep": 300, "availability_identifier": 41, "request_date": "2024-01-01", "rdd": "2024-12-01", "pri": "A", "swlin": "901-52111-001", "hull_or_shop": 901, "suggested_source": "SKF", "mfg_cage": 9541, "apl": "NIC", "nha_equipment_system": "SSDG", "nha_model": "NIC", "nha_serial": "NIC", "techmanual": "...
+2024-09-22 09:49:43,546 - DEBUG - Stored procedure insert_mrl_line_items_efficient called successfully.
+2024-09-22 09:49:43,546 - INFO - Insert summary: {
+  "total": 1,
+  "status": "completed",
+  "success": 1,
+  "operation": "insert_mrl_line_items_efficient",
+  "timestamp": "2024-09-22T06:49:43.150707+00:00",
+  "duplicates": 0
+}
+2024-09-22 09:49:43,546 - DEBUG - Called 'insert_mrl_line_items_efficient' stored procedure.
+2024-09-22 09:49:47,389 - INFO - MRL Line Items inserted successfully.
+2024-09-22 09:49:55,696 - DEBUG - Excel file 'C:/Beta_004/MRL good full sedeeq without equipment.xlsx' read successfully.
+2024-09-22 09:49:55,696 - DEBUG - Column names cleaned and standardized.
+2024-09-22 09:49:55,712 - DEBUG - Date field 'request_date' processed.
+2024-09-22 09:49:55,712 - DEBUG - Date field 'rdd' processed.
+2024-09-22 09:49:55,712 - DEBUG - Numeric field 'fsc' converted.
+2024-09-22 09:49:55,712 - DEBUG - Numeric field 'niin' converted.
+2024-09-22 09:49:55,712 - DEBUG - Numeric field 'qty' converted.
+2024-09-22 09:49:55,712 - DEBUG - Numeric field 'market_research_up' converted.
+2024-09-22 09:49:55,712 - DEBUG - Numeric field 'market_research_ep' converted.
+2024-09-22 09:49:55,712 - DEBUG - Numeric field 'availability_identifier' converted.
+2024-09-22 09:49:55,712 - DEBUG - Replaced NaN and Infinity with None.
+2024-09-22 09:49:55,743 - DEBUG - DataFrame converted to list of dictionaries.
+2024-09-22 09:49:55,774 - DEBUG - Data cleaned to remove NaN and Infinity values.
+2024-09-22 09:49:55,790 - DEBUG - Prepared JSON data for insert_mrl_line_items_efficient: [{"jcn": "521-0009820", "twcode": "K22ABSS0459", "nomenclature": "DISK,SOLID,PLAIN", "cog": "9B", "fsc": 5330, "niin": 13588738, "part_no": "4.275.999", "qty": 1, "ui": "EA", "market_research_up": 110.31, "market_research_ep": 110.309997558594, "availability_identifier": 41, "request_date": "2022-07-07", "rdd": "2022-10-05", "pri": "A", "swlin": "521-24411-002", "hull_or_shop": 521, "suggested_source": "MICHELL BEARINGS LIMITED", "mfg_cage": "U1570", "apl": "370080003M", "nha_model": "NIC", "nh_...
+2024-09-22 09:49:57,270 - DEBUG - Stored procedure insert_mrl_line_items_efficient called successfully.
+2024-09-22 09:49:57,286 - INFO - Insert summary: {
+  "total": 2459,
+  "status": "completed",
+  "success": 2459,
+  "operation": "insert_mrl_line_items_efficient",
+  "timestamp": "2024-09-22T06:49:55.538504+00:00",
+  "duplicates": 0
+}
+2024-09-22 09:49:57,286 - DEBUG - Called 'insert_mrl_line_items_efficient' stored procedure.
+2024-09-22 09:49:59,495 - INFO - MRL Line Items inserted successfully.
+2024-09-22 09:50:05,257 - DEBUG - Excel file 'C:/Beta_004/MRL - GOOD Alex full.xlsx' read successfully.
+2024-09-22 09:50:05,257 - DEBUG - Column names cleaned and standardized.
+2024-09-22 09:50:05,257 - DEBUG - Date field 'request_date' processed.
+2024-09-22 09:50:05,273 - DEBUG - Date field 'rdd' processed.
+2024-09-22 09:50:05,273 - DEBUG - Numeric field 'fsc' converted.
+2024-09-22 09:50:05,273 - DEBUG - Numeric field 'niin' converted.
+2024-09-22 09:50:05,273 - DEBUG - Numeric field 'qty' converted.
+2024-09-22 09:50:05,273 - DEBUG - Numeric field 'market_research_up' converted.
+2024-09-22 09:50:05,273 - DEBUG - Numeric field 'market_research_ep' converted.
+2024-09-22 09:50:05,273 - DEBUG - Numeric field 'availability_identifier' converted.
+2024-09-22 09:50:05,288 - DEBUG - Replaced NaN and Infinity with None.
+2024-09-22 09:50:05,335 - DEBUG - DataFrame converted to list of dictionaries.
+2024-09-22 09:50:05,398 - DEBUG - Data cleaned to remove NaN and Infinity values.
+2024-09-22 09:50:05,444 - DEBUG - Prepared JSON data for insert_mrl_line_items_efficient: [{"jcn": "911-0009536", "twcode": "K24BSAD0001", "nomenclature": "PLATE, STEEL, HTS, (.250 or 1/4\" Thick x 96\" Wide x 29' Long) Conforming to MIL-S-22698-DH-36,Class P or ABS-DH-36, Painted", "cog": "9B", "fsc": 9515, "niin": 9526280.0, "part_no": "ASTM A36", "qty": 2, "ui": "PM", "market_research_up": 362.1, "market_research_ep": 724.2, "availability_identifier": 66, "request_date": "2024-07-08", "rdd": "2024-10-08", "pri": "B", "swlin": "911-11011-001", "hull_or_shop": 911, "suggested_source...
+2024-09-22 09:50:07,564 - DEBUG - Stored procedure insert_mrl_line_items_efficient called successfully.
+2024-09-22 09:50:07,579 - INFO - Insert summary: {
+  "total": 5323,
+  "status": "completed",
+  "success": 5323,
+  "operation": "insert_mrl_line_items_efficient",
+  "timestamp": "2024-09-22T06:50:05.208411+00:00",
+  "duplicates": 0
+}
+2024-09-22 09:50:07,579 - DEBUG - Called 'insert_mrl_line_items_efficient' stored procedure.
+2024-09-22 09:50:09,608 - INFO - MRL Line Items inserted successfully.
+2024-09-22 09:50:46,243 - WARNING - No Excel file selected for Fulfillment update.
+2024-09-22 09:50:50,671 - DEBUG - Excel file 'C:/Beta_004/El Sedeeq 521 PMA for Beta_004.xlsx' read successfully.
+2024-09-22 09:50:50,671 - DEBUG - Column names cleaned and standardized.
+2024-09-22 09:50:50,671 - DEBUG - DataFrame filtered to required and present optional columns: ['jcn', 'twcode', 'shipdoc_tcn', 'v2x_ship_no', 'booking', 'vessel', 'container', 'sail_date', 'edd_to_ches', 'rcd_v2x_date', 'lot_id', 'triwall', 'arr_lsc_egypt', 'milstrip_req_no']
+2024-09-22 09:50:50,671 - DEBUG - Date field 'sail_date' processed.
+2024-09-22 09:50:50,671 - DEBUG - Date field 'edd_to_ches' processed.
+2024-09-22 09:50:50,671 - DEBUG - Date field 'rcd_v2x_date' processed.
+2024-09-22 09:50:50,671 - DEBUG - Date field 'arr_lsc_egypt' processed.
+2024-09-22 09:50:50,687 - DEBUG - Replaced NaN and Infinity with None.
+2024-09-22 09:50:50,703 - DEBUG - DataFrame converted to list of dictionaries.
+2024-09-22 09:50:50,703 - DEBUG - First few records:
+2024-09-22 09:50:50,703 - DEBUG - {'jcn': '521-8500062', 'twcode': 'K22SHRS0003', 'shipdoc_tcn': None, 'v2x_ship_no': None, 'booking': None, 'vessel': None, 'container': None, 'sail_date': None, 'edd_to_ches': None, 'rcd_v2x_date': None, 'lot_id': None, 'triwall': None, 'arr_lsc_egypt': datetime.date(2023, 3, 8), 'milstrip_req_no': None}
+2024-09-22 09:50:50,703 - DEBUG - {'jcn': '521-8500062', 'twcode': 'K22SHRS0004', 'shipdoc_tcn': 'PEGA4N52816001PU', 'v2x_ship_no': 'EG-SD40002', 'booking': '235963173', 'vessel': 'MAERSK DETROIT', 'container': 'MRSU3664680', 'sail_date': datetime.date(2024, 3, 15), 'edd_to_ches': datetime.date(2023, 12, 6), 'rcd_v2x_date': datetime.date(2023, 12, 1), 'lot_id': 'VSE093814', 'triwall': 'EG3758', 'arr_lsc_egypt': datetime.date(2024, 5, 9), 'milstrip_req_no': 'CBKRL100MHC-039'}
+2024-09-22 09:50:50,703 - DEBUG - Data validated and truncated based on field length constraints.
+2024-09-22 09:50:50,718 - DEBUG - Data cleaned to remove NaN and Infinity values.
+2024-09-22 09:50:50,734 - DEBUG - Prepared JSON data for update_fulfillment_records_efficient: [{"jcn": "521-8500062", "twcode": "K22SHRS0003", "shipdoc_tcn": null, "v2x_ship_no": null, "booking": null, "vessel": null, "container": null, "sail_date": null, "edd_to_ches": null, "rcd_v2x_date": null, "lot_id": null, "triwall": null, "arr_lsc_egypt": "2023-03-08", "milstrip_req_no": null}, {"jcn": "521-8500062", "twcode": "K22SHRS0004", "shipdoc_tcn": "PEGA4N52816001PU", "v2x_ship_no": "EG-SD40002", "booking": "235963173", "vessel": "MAERSK DETROIT", "container": "MRSU3664680", "sail_date": ...
+2024-09-22 09:50:52,542 - DEBUG - Stored procedure update_fulfillment_items_efficient called successfully.
+2024-09-22 09:50:52,557 - INFO - Update summary: {
+  "total": 2457,
+  "errors": 0,
+  "status": "completed",
+  "success": 2457,
+  "batch_id": "57b2676f-dfc5-40a7-b418-2f172346e568",
+  "warnings": 0,
+  "operation": "update_fulfillment_items_efficient",
+  "timestamp": "2024-09-22T06:50:50.613439+00:00",
+  "update_source": "First load in ExtLogDB version 1.0"
+}
+2024-09-22 09:50:52,557 - DEBUG - Called 'update_fulfillment_items_efficient' stored procedure.
+2024-09-22 09:50:55,153 - INFO - Fulfillment Records updated successfully.
+pdate_fulfillment_items_efficient called successfully.
+2024-09-22 09:50:52,557 - INFO - Update summary: {
+  "total": 2457,
+  "errors": 0,
+  "status": "completed",
+  "success": 2457,
+  "batch_id": "57b2676f-dfc5-40a7-b418-2f172346e568",
+  "warnings": 0,
+  "operation": "update_fulfillment_items_efficient",
+  "timestamp": "2024-09-22T06:50:50.613439+00:00",
+  "update_source": "First load in ExtLogDB version 1.0"
+}
+2024-09-22 09:50:52,557 - DEBUG - Called 'update_fulfillment_items_efficient' stored procedure.
+2024-09-22 09:50:55,153 - INFO - Fulfillment Records updated successfully.

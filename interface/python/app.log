@@ -1,0 +1,49 @@
+2024-09-22 14:52:34,982 - DEBUG - Starting application.
+2024-09-22 14:52:35,222 - INFO - Database connection established.
+2024-09-22 14:52:35,222 - DEBUG - Database connection established.
+2024-09-22 14:52:44,464 - DEBUG - Attempting login for user admin.
+2024-09-22 14:52:44,496 - INFO - User admin logged in successfully.
+2024-09-22 14:52:44,498 - DEBUG - Session variables set: user_id=1, role_id=1
+2024-09-22 14:52:44,498 - DEBUG - Login successful in login_dialog.
+2024-09-22 14:52:44,506 - DEBUG - Login dialog returned: 1
+2024-09-22 14:52:44,506 - DEBUG - Login successful, launching main window.
+2024-09-22 14:52:44,513 - DEBUG - Logging has been configured.
+2024-09-22 14:52:44,513 - DEBUG - Starting MainWindow initialization.
+2024-09-22 14:52:44,549 - DEBUG - UI file loaded successfully.
+2024-09-22 14:52:44,549 - DEBUG - Central widget set.
+2024-09-22 14:52:44,550 - DEBUG - Connected 'openSearchWindowButton' signal.
+2024-09-22 14:52:44,550 - DEBUG - Connected 'openNewMRLWindowButton' signal.
+2024-09-22 14:52:44,552 - DEBUG - Connected 'openBulkOperationsWindowButton' signal.
+2024-09-22 14:52:44,552 - DEBUG - Signals connected.
+2024-09-22 14:52:44,552 - DEBUG - User information displayed on main UI.
+2024-09-22 14:52:44,552 - DEBUG - Main UI setup complete.
+2024-09-22 14:52:44,568 - DEBUG - Main window shown.
+2024-09-22 14:52:46,795 - DEBUG - SearchWindow UI loaded successfully.
+2024-09-22 14:52:46,795 - DEBUG - Central widget set for SearchWindow.
+2024-09-22 14:52:46,796 - DEBUG - Signals connected in SearchWindow.
+2024-09-22 14:53:09,929 - DEBUG - Executing search query: SELECT * FROM combined_line_items_fulfillments_search_view WHERE 1=1 AND niin ILIKE %(niin_0)s ORDER BY jcn LIMIT 100 OFFSET 0 with params: {'niin_0': '%1661091.0%'}
+2024-09-22 14:53:16,115 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:16,118 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:16,122 - DEBUG - Signals connected in MRLDetailWindow.
+2024-09-22 14:53:23,333 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:23,333 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:23,333 - DEBUG - Signals connected in MRLDetailWindow.
+2024-09-22 14:53:24,552 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:24,567 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:24,567 - DEBUG - Signals connected in MRLDetailWindow.
+2024-09-22 14:53:25,849 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:25,849 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:25,849 - DEBUG - Signals connected in MRLDetailWindow.
+2024-09-22 14:53:33,982 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:33,982 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:33,982 - DEBUG - Signals connected in MRLDetailWindow.
+2024-09-22 14:53:35,091 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:35,106 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:35,106 - DEBUG - Signals connected in MRLDetailWindow.
+2024-09-22 14:53:59,569 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:59,569 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:59,569 - DEBUG - Signals connected in MRLDetailWindow.
+
+2024-09-22 14:53:59,569 - DEBUG - MRLDetailWindow UI loaded successfully.
+2024-09-22 14:53:59,569 - DEBUG - Central widget set for MRLDetailWindow.
+2024-09-22 14:53:59,569 - DEBUG - Signals connected in MRLDetailWindow.

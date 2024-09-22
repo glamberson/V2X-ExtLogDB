@@ -15,7 +15,7 @@
       </property>
      </widget>
     </item>
-
+    
     <!-- Main Actions -->
     <item>
      <widget class="QGroupBox" name="actionsGroup">
@@ -47,7 +47,7 @@
       </layout>
      </widget>
     </item>
-
+    
     <!-- Open Windows List -->
     <item>
      <widget class="QGroupBox" name="openWindowsGroup">
@@ -61,7 +61,7 @@
       </layout>
      </widget>
     </item>
-
+    
     <!-- Status Bar -->
     <item>
      <widget class="QLabel" name="statusLabel">
@@ -72,29 +72,8 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>800</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuSettings">
-    <property name="title">
-     <string>Settings</string>
-    </property>
-    <addaction name="actionDatabaseConfiguration"/>
-   </widget>
-   <addaction name="menuSettings"/>
-  </widget>
+  <widget class="QMenuBar" name="menubar"/>
   <widget class="QStatusBar" name="statusbar"/>
-  <action name="actionDatabaseConfiguration">
-   <property name="text">
-    <string>Database Configuration</string>
-   </property>
-  </action>
  </widget>
  <resources/>
  <connections/>

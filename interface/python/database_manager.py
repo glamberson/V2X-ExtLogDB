@@ -1,13 +1,13 @@
 import psycopg2
 from psycopg2.extras import DictCursor
 import json
-from config import DB_CONFIG
 import logging
 import pandas as pd  # Make sure pandas is imported
 import datetime
 import math
 import numpy as np  # Ensure numpy is imported for type handling
 from utils import DateTimeEncoder
+from config import FIELD_MAX_LENGTHS
 
 class DatabaseManager:
     def __init__(self):
@@ -16,10 +16,11 @@ class DatabaseManager:
         self.user_id = None
         self.role_id = None
         self.db_role_name = None
+        self.db_config = db_config
 
     def connect(self):
         try:
-            self.connection = psycopg2.connect(**DB_CONFIG)
+            self.connection = psycopg2.connect(**self.db_config)
             logging.info("Database connection established.")
             return True
         except psycopg2.Error as error:

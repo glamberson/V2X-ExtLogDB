@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MRLDetailWindow</class>
+ <widget class="QMainWindow" name="MRLDetailWindow">
+  <property name="windowTitle">
+   <string>MRL Line Item Detail</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <!-- MRL Line Item Details Section -->
+    <item>
+     <widget class="QGroupBox" name="mrlDetailsGroup">
+      <property name="title">
+       <string>MRL Line Item Details</string>
+      </property>
+      <layout class="QGridLayout" name="mrlDetailsLayout">
+       <item row="0" column="0">
+        <widget class="QLabel" name="jcnLabel">
+         <property name="text">
+          <string>JCN:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLineEdit" name="jcnEdit" />
+       </item>
+       <item row="0" column="2">
+        <widget class="QLabel" name="twcodeLabel">
+         <property name="text">
+          <string>TWCODE:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
+        <widget class="QLineEdit" name="twcodeEdit" />
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="niinLabel">
+         <property name="text">
+          <string>NIIN:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLineEdit" name="niinEdit" />
+       </item>
+       <item row="1" column="2">
+        <widget class="QLabel" name="partNoLabel">
+         <property name="text">
+          <string>Part No:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="3">
+        <widget class="QLineEdit" name="partNoEdit" />
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="nomenclatureLabel">
+         <property name="text">
+          <string>Nomenclature:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1" colspan="3">
+        <widget class="QLineEdit" name="nomenclatureEdit" />
+       </item>
+       <!-- Add more MRL fields as needed -->
+      </layout>
+     </widget>
+    </item>
+    
+    <!-- Fulfillment Records Section -->
+    <item>
+     <widget class="QGroupBox" name="fulfillmentGroup">
+      <property name="title">
+       <string>Associated Fulfillment Records</string>
+      </property>
+      <layout class="QVBoxLayout" name="fulfillmentLayout">
+       <item>
+        <widget class="QTableView" name="fulfillmentTable" />
+       </item>
+      </layout>
+     </widget>
+    </item>
+    
+    <!-- Additional Information Tabs -->
+    <item>
+     <widget class="QTabWidget" name="infoTabWidget">
+      <widget class="QWidget" name="commentsTab">
+       <attribute name="title">
+        <string>Comments</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="commentsLayout">
+        <item>
+         <widget class="QTextEdit" name="commentsTextEdit" />
+        </item>
+        <item>
+         <widget class="QPushButton" name="addCommentButton">
+          <property name="text">
+           <string>Add Comment</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="historyTab">
+       <attribute name="title">
+        <string>History</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="historyLayout">
+        <item>
+         <widget class="QTableView" name="historyTable" />
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="reportsTab">
+       <attribute name="title">
+        <string>Linked Reports</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="reportsLayout">
+        <item>
+         <widget class="QTableView" name="reportsTable" />
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    
+    <!-- Action Buttons -->
+    <item>
+     <layout class="QHBoxLayout" name="actionButtonsLayout">
+      <item>
+       <widget class="QPushButton" name="saveButton">
+        <property name="text">
+         <string>Save Changes</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="closeButton">
+        <property name="text">
+         <string>Close</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar" />
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

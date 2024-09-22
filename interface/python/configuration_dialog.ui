@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConfigurationDialog</class>
+ <widget class="QDialog" name="ConfigurationDialog">
+  <property name="windowTitle">
+   <string>Database Configuration</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QFormLayout" name="formLayout">
+     <property name="labelAlignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
+     <item row="0" labelRole="LabelRole">
+      <widget class="QLabel" name="labelHost">
+       <property name="text">
+        <string>Host:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="hostEdit"/>
+     </item>
+     <item row="1" labelRole="LabelRole">
+      <widget class="QLabel" name="labelPort">
+       <property name="text">
+        <string>Port:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="portEdit"/>
+     </item>
+     <item row="2" labelRole="LabelRole">
+      <widget class="QLabel" name="labelDatabase">
+       <property name="text">
+        <string>Database:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="databaseEdit"/>
+     </item>
+     <item row="3" labelRole="LabelRole">
+      <widget class="QLabel" name="labelUser">
+       <property name="text">
+        <string>User:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="userEdit"/>
+     </item>
+     <item row="4" labelRole="LabelRole">
+      <widget class="QLabel" name="labelPassword">
+       <property name="text">
+        <string>Password:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" fieldRole="FieldRole">
+      <widget class="QLineEdit" name="passwordEdit">
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="buttonLayout">
+     <item>
+      <widget class="QPushButton" name="saveButton">
+       <property name="text">
+        <string>Save</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="cancelButton">
+       <property name="text">
+        <string>Cancel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="resetButton">
+       <property name="text">
+        <string>Reset to Defaults</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
