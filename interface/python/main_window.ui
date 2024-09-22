@@ -3,102 +3,98 @@
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
   <property name="windowTitle">
-   <string>Fulfillment Management</string>
+   <string>External Logistics Database - Control Panel</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
-    <!-- User Information Layout -->
+    <!-- User Information -->
     <item>
-     <layout class="QHBoxLayout" name="userInfoLayout">
-      <item>
-       <widget class="QLabel" name="user_label">
-        <property name="text">
-         <string>User ID: </string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="role_label">
-        <property name="text">
-         <string>Role: </string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    
-    <!-- Update Source Input Layout -->
-    <item>
-     <layout class="QHBoxLayout" name="updateSourceLayout">
-      <item>
-       <widget class="QLabel" name="update_source_label">
-        <property name="text">
-         <string>Update Source:</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLineEdit" name="update_source_input"/>
-      </item>
-     </layout>
-    </item>
-    
-    <!-- Tab Widget -->
-    <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <widget class="QWidget" name="tab_mrl">
-       <attribute name="title">
-        <string>MRL Line Items</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="mrlLayout">
-        <item>
-         <widget class="QPushButton" name="insert_mrl_button">
-          <property name="text">
-           <string>Insert MRL Line Items</string>
-          </property>
-         </widget>
-        </item>
-        <!-- Add other MRL Line Items UI components here -->
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_fulfillment">
-       <attribute name="title">
-        <string>Fulfillment Items</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="fulfillmentLayout">
-        <item>
-         <widget class="QPushButton" name="update_fulfillment_button">
-          <property name="text">
-           <string>Update Fulfillment Records</string>
-          </property>
-         </widget>
-        </item>
-        <!-- Add other Fulfillment Items UI components here -->
-       </layout>
-      </widget>
+     <widget class="QLabel" name="userInfoLabel">
+      <property name="text">
+       <string>User: [Username] | Role: [Role]</string>
+      </property>
      </widget>
     </item>
-    
-    <!-- Spacer to Push Content Upwards -->
+
+    <!-- Main Actions -->
     <item>
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
+     <widget class="QGroupBox" name="actionsGroup">
+      <property name="title">
+       <string>Actions</string>
       </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
+      <layout class="QVBoxLayout" name="actionsLayout">
+       <item>
+        <widget class="QPushButton" name="openSearchWindowButton">
+         <property name="text">
+          <string>Open Search Window</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="openNewMRLWindowButton">
+         <property name="text">
+          <string>Open New MRL Line Item Window</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="openBulkOperationsWindowButton">
+         <property name="text">
+          <string>Open Bulk Operations Window</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </item>
-    
-    <!-- Optional: Status Bar or Additional UI Elements -->
-    
+
+    <!-- Open Windows List -->
+    <item>
+     <widget class="QGroupBox" name="openWindowsGroup">
+      <property name="title">
+       <string>Currently Open Windows</string>
+      </property>
+      <layout class="QVBoxLayout" name="openWindowsLayout">
+       <item>
+        <widget class="QListWidget" name="openWindowsList"/>
+       </item>
+      </layout>
+     </widget>
+    </item>
+
+    <!-- Status Bar -->
+    <item>
+     <widget class="QLabel" name="statusLabel">
+      <property name="text">
+       <string>Status: Ready</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
-  <!-- Optional: Menu Bar or Tool Bar -->
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionDatabaseConfiguration"/>
+   </widget>
+   <addaction name="menuSettings"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionDatabaseConfiguration">
+   <property name="text">
+    <string>Database Configuration</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
