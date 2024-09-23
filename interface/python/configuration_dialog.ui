@@ -11,54 +11,54 @@
      <property name="labelAlignment">
       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
-     <item row="0" labelRole="LabelRole">
+     <item row="0" column="0">
       <widget class="QLabel" name="labelHost">
        <property name="text">
         <string>Host:</string>
        </property>
       </widget>
      </item>
-     <item row="0" fieldRole="FieldRole">
+     <item row="0" column="1">
       <widget class="QLineEdit" name="hostEdit"/>
      </item>
-     <item row="1" labelRole="LabelRole">
+     <item row="1" column="0">
       <widget class="QLabel" name="labelPort">
        <property name="text">
         <string>Port:</string>
        </property>
       </widget>
      </item>
-     <item row="1" fieldRole="FieldRole">
+     <item row="1" column="1">
       <widget class="QLineEdit" name="portEdit"/>
      </item>
-     <item row="2" labelRole="LabelRole">
+     <item row="2" column="0">
       <widget class="QLabel" name="labelDatabase">
        <property name="text">
         <string>Database:</string>
        </property>
       </widget>
      </item>
-     <item row="2" fieldRole="FieldRole">
+     <item row="2" column="1">
       <widget class="QLineEdit" name="databaseEdit"/>
      </item>
-     <item row="3" labelRole="LabelRole">
+     <item row="3" column="0">
       <widget class="QLabel" name="labelUser">
        <property name="text">
         <string>User:</string>
        </property>
       </widget>
      </item>
-     <item row="3" fieldRole="FieldRole">
+     <item row="3" column="1">
       <widget class="QLineEdit" name="userEdit"/>
      </item>
-     <item row="4" labelRole="LabelRole">
+     <item row="4" column="0">
       <widget class="QLabel" name="labelPassword">
        <property name="text">
         <string>Password:</string>
        </property>
       </widget>
      </item>
-     <item row="4" fieldRole="FieldRole">
+     <item row="4" column="1">
       <widget class="QLineEdit" name="passwordEdit">
        <property name="echoMode">
         <enum>QLineEdit::Password</enum>

@@ -1,16 +1,16 @@
 import psycopg2
-from psycopg2.extras import DictCursor
+from psycopg2.extras import DictCursor, RealDictCursor
 import json
 import logging
-import pandas as pd  # Make sure pandas is imported
+import pandas as pd
 import datetime
 import math
-import numpy as np  # Ensure numpy is imported for type handling
+import numpy as np
 from utils import DateTimeEncoder
 from config import FIELD_MAX_LENGTHS
 
 class DatabaseManager:
-    def __init__(self):
+    def __init__(self, db_config):
         self.connection = None
         self.session_id = None
         self.user_id = None
@@ -20,7 +20,10 @@ class DatabaseManager:
 
     def connect(self):
         try:
-            self.connection = psycopg2.connect(**self.db_config)
+            self.connection = psycopg2.connect(
+                **self.db_config,
+                connect_timeout=15
+            )
             logging.info("Database connection established.")
             return True
         except psycopg2.Error as error:
@@ -46,7 +49,6 @@ class DatabaseManager:
                     self.role_id = result['login_role_id']
                     self.db_role_name = result['login_db_role_name']
 
-                    # Set the user role
                     cursor.execute(
                         "SELECT set_user_role(%s)",
                         (self.db_role_name,)
@@ -54,10 +56,7 @@ class DatabaseManager:
                     self.connection.commit()
 
                     logging.info(f"User {username} logged in successfully.")
-
-                    # Set session variables in PostgreSQL
                     self.set_session_variables(self.user_id, self.role_id)
-
                     return True
                 else:
                     self.connection.rollback()
@@ -89,8 +88,7 @@ class DatabaseManager:
             raise Exception("Database connection not established.")
 
         try:
-            with self.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                # Validate session and permission
+            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
                     "SELECT is_valid FROM validate_session_and_permission(%s, %s);",
                     (self.session_id, function_name)
@@ -100,30 +98,21 @@ class DatabaseManager:
                 if not validation_result or not validation_result['is_valid']:
                     raise PermissionError(f"Invalid session or insufficient permissions for {function_name}")
 
-                # Prepare the SQL command with explicit type casts
                 if parameter_types and len(parameter_types) == len(args):
                     placeholders = ', '.join([f'%s::{ptype}' for ptype in parameter_types])
                 else:
                     placeholders = ', '.join(['%s'] * len(args))
 
-                # Prepare the CALL statement
-                sql = f"CALL {function_name}({placeholders}, %s);"  # Add a placeholder for the OUT parameter
-
-                # Append None for the OUT parameter
+                sql = f"CALL {function_name}({placeholders}, %s);"
                 args = args + (None,)
 
-                # Execute the CALL statement
                 cursor.execute(sql, args)
-
-                # Fetch the OUT parameters
                 result = cursor.fetchone()
 
                 self.connection.commit()
 
                 if result and 'summary' in result and result['summary']:
-                    # Check if 'summary' is a string or dict
                     if isinstance(result['summary'], str):
-                        # Parse the JSON summary string into a Python dictionary
                         summary = json.loads(result['summary'])
                     elif isinstance(result['summary'], dict):
                         summary = result['summary']
@@ -174,7 +163,7 @@ class DatabaseManager:
             raise ValueError("batch_data must be a list of dictionaries")
 
         json_data = json.dumps(batch_data, cls=DateTimeEncoder)
-        logging.debug(f"Prepared JSON data for insert_mrl_line_items_efficient: {json_data[:500]}...")  # Log first 500 chars
+        logging.debug(f"Prepared JSON data for insert_mrl_line_items_efficient: {json_data[:500]}...")
 
         try:
             summary = self.execute_protected_function(
@@ -199,7 +188,7 @@ class DatabaseManager:
             raise ValueError("batch_data must be a list of dictionaries")
 
         json_data = json.dumps(batch_data, cls=DateTimeEncoder)
-        logging.debug(f"Prepared JSON data for update_fulfillment_records_efficient: {json_data[:500]}...")  # Log first 500 chars
+        logging.debug(f"Prepared JSON data for update_fulfillment_records_efficient: {json_data[:500]}...")
 
         try:
             summary = self.execute_protected_function(

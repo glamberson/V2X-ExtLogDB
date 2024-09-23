@@ -58,12 +58,39 @@ class SearchWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"An error occurred while initializing the search window:\n{str(e)}")
 
     def connect_signals(self):
-        self.ui.searchButton.clicked.connect(self.apply_filter)
+        # Connect search button
+        self.ui.searchButton.clicked.connect(self.perform_search)
+        
+        # Connect Enter key press for each input field
+        input_fields = [
+            self.ui.jcnEdit, self.ui.niinEdit, self.ui.partNoEdit,
+            self.ui.twcodeEdit, self.ui.swlinEdit, self.ui.nomenclatureEdit,
+            self.ui.availabilityIdentifierEdit
+        ]
+        for field in input_fields:
+            field.returnPressed.connect(self.perform_search)
+
         self.ui.clearButton.clicked.connect(self.clear_filters)
         self.ui.loadMoreButton.clicked.connect(self.load_more)
         self.ui.resultsTable.doubleClicked.connect(self.open_mrl_detail)
+        
         # Hide the loading indicator initially
         self.ui.loadingIndicator.setVisible(False)
+        
+        logging.debug("Signals connected in SearchWindow.")
+
+    def perform_search(self):
+        self.offset = 0  # Reset offset when performing a new search
+        self.apply_filter()
+
+    def apply_filter(self):
+        try:
+            self.results_df = pd.DataFrame()  # Clear previous results
+            self.ui.resultsTable.model().layoutChanged.emit()  # Refresh the table
+            self.load_data()
+        except Exception as e:
+            logging.exception(f"Error in apply_filter: {e}")
+            QMessageBox.critical(self, "Error", f"An error occurred during search:\n{str(e)}")
 
     def setup_results_table(self):
         self.model = PandasTableModel(self.results_df)
@@ -72,16 +99,6 @@ class SearchWindow(QMainWindow):
         self.ui.resultsTable.setSelectionMode(QAbstractItemView.SingleSelection)
         self.ui.resultsTable.setAlternatingRowColors(True)
         self.ui.resultsTable.setSortingEnabled(True)
-
-    def apply_filter(self):
-        try:
-            self.offset = 0  # Reset offset when applying a new filter
-            self.results_df = pd.DataFrame()  # Clear previous results
-            self.ui.resultsTable.model().layoutChanged.emit()  # Refresh the table
-            self.load_data()
-        except Exception as e:
-            logging.exception(f"Error in apply_filter: {e}")
-            QMessageBox.critical(self, "Error", f"An error occurred during search:\n{str(e)}")
 
     def load_data(self):
         try:
@@ -190,7 +207,10 @@ class SearchWindow(QMainWindow):
             # Open MRL Detail Window
             mrl_detail_window = MRLDetailWindow(self.db_manager, order_line_item_id, parent=None)
             mrl_detail_window.show()
-            QApplication.instance().open_windows.append(mrl_detail_window)
+            if hasattr(QApplication.instance(), 'open_windows'):
+                QApplication.instance().open_windows.append(mrl_detail_window)
+            else:
+                logging.warning("QApplication instance does not have 'open_windows' attribute")
             mrl_detail_window.window_closed.connect(lambda: self.remove_window_from_app_list(mrl_detail_window))
         except Exception as e:
             logging.exception(f"Error in open_mrl_detail: {e}")
