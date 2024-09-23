@@ -15,7 +15,6 @@
       </property>
      </widget>
     </item>
-
     <!-- Main Actions -->
     <item>
      <widget class="QGroupBox" name="actionsGroup">
@@ -44,10 +43,17 @@
          </property>
         </widget>
        </item>
+       <!-- New Configuration Button -->
+       <item>
+        <widget class="QPushButton" name="configurationButton">
+         <property name="text">
+          <string>Configure Database</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
-
     <!-- Open Windows List -->
     <item>
      <widget class="QGroupBox" name="openWindowsGroup">
@@ -61,7 +67,6 @@
       </layout>
      </widget>
     </item>
-
     <!-- Status Bar -->
     <item>
      <widget class="QLabel" name="statusLabel">
