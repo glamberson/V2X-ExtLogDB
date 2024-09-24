@@ -43,6 +43,13 @@
          </property>
         </widget>
        </item>
+	   <item>
+	    <widget class="QPushButton" name="openAvailabilityEventsButton">
+         <property name="text">
+	      <string>Manage Availability Events</string>
+	     </property>
+		</widget>
+	   </item>
        <!-- New Configuration Button -->
        <item>
         <widget class="QPushButton" name="configurationButton">

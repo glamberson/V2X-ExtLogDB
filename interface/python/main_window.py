@@ -13,6 +13,7 @@ from search_window import SearchWindow
 from mrl_detail_window import MRLDetailWindow
 from bulk_operations_window import BulkOperationsWindow
 from configuration_dialog import ConfigurationDialog
+from availability_events_window import AvailabilityEventsWindow
 
 class MainWindow(QMainWindow):
     def __init__(self, db_manager, loader):
@@ -101,6 +102,8 @@ class MainWindow(QMainWindow):
                 self.ui.configurationButton.clicked.connect(self.open_configuration_dialog)  # And this line
             if hasattr(self.ui, 'menuSettings'):
                 self.ui.menuSettings.actions()[0].triggered.connect(self.open_configuration_dialog)
+            if hasattr(self.ui, 'openAvailabilityEventsButton'):
+                self.ui.openAvailabilityEventsButton.clicked.connect(self.open_availability_events_window)            
             if hasattr(self.ui, 'openWindowsList'):
                 self.ui.openWindowsList.itemDoubleClicked.connect(self.focus_window)
             logging.debug("Signals connected successfully.")
@@ -184,6 +187,16 @@ class MainWindow(QMainWindow):
             logging.warning("QApplication instance does not have 'open_windows' attribute")
         bulk_window.window_closed.connect(lambda: self.remove_window_from_app_list(bulk_window))
         self.add_window_to_list(bulk_window, "Bulk Operations")
+
+    def open_availability_events_window(self):
+        availability_events_window = AvailabilityEventsWindow(self.db_manager)
+        availability_events_window.show()
+        if hasattr(QApplication.instance(), 'open_windows'):
+            QApplication.instance().open_windows.append(availability_events_window)
+        else:
+            logging.warning("QApplication instance does not have 'open_windows' attribute")
+        availability_events_window.window_closed.connect(lambda: self.remove_window_from_app_list(availability_events_window))
+        self.add_window_to_list(availability_events_window, "Availability Events")
 
     def add_window_to_list(self, window, title):
         item = QListWidgetItem(title)
