@@ -120,7 +120,12 @@ class DataProcessor:
         return bool(re.match(jcn_pattern, jcn)) and bool(re.match(twcode_pattern, twcode))
 
     def check_suffix(self, record):
-        additional_data = json.loads(record.get('additional_data', '{}'))
+        additional_data = record.get('additional_data', {})
+        if isinstance(additional_data, str):
+            try:
+                additional_data = json.loads(additional_data)
+            except json.JSONDecodeError:
+                additional_data = {}
         return additional_data.get('suffix') is not None
 
     def check_details_match(self, record):
@@ -141,17 +146,17 @@ class DataProcessor:
         scores = []
         for result in check_results:
             overall_score = sum([
-                result['jcn_twcode_valid'],
-                not result['suffix_check_result'],
-                result['details_match_result'],
-                not result['has_duplicates']
+                int(result['jcn_twcode_valid']),
+                int(not result['suffix_check_result']),
+                int(result['details_match_result']),
+                int(not result['has_duplicates'])
             ]) / 4 * 100
             
             scores.append({
                 'overall_quality_score': overall_score,
-                'data_integrity_score': (result['jcn_twcode_valid'] + not result['suffix_check_result']) / 2 * 100,
-                'consistency_score': result['details_match_result'] * 100,
-                'completeness_score': (not result['has_duplicates']) * 100
+                'data_integrity_score': (int(result['jcn_twcode_valid']) + int(not result['suffix_check_result'])) / 2 * 100,
+                'consistency_score': int(result['details_match_result']) * 100,
+                'completeness_score': int(not result['has_duplicates']) * 100
             })
         return scores
 
@@ -235,80 +240,32 @@ class DataProcessor:
         try:
             cursor.execute("BEGIN")
             
+            # Get the column names of the staged_egypt_weekly_data table, excluding staged_id
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'staged_egypt_weekly_data'
+                AND column_name != 'staged_id'
+                ORDER BY ordinal_position
+            """)
+            target_columns = [row[0] for row in cursor.fetchall()]
+            
             insert_data = []
             for row in data:
-                insert_data.append((
-                    row['preprocessed_id'],
-                    row['raw_data_id'],
-                    row['report_name'],
-                    row['report_date'],
-                    row['sheet_name'],
-                    row['original_line'],
-                    row['system_identifier_code'],
-                    row['jcn'],
-                    row['twcode'],
-                    row['nomenclature'],
-                    row['cog'],
-                    row['fsc'],
-                    row['niin'],
-                    row['part_no'],
-                    row['qty'],
-                    row['ui'],
-                    row['market_research_up'],
-                    row['market_research_ep'],
-                    row['availability_identifier'],
-                    row['request_date'],
-                    row['rdd'],
-                    row['pri'],
-                    row['swlin'],
-                    row['hull_or_shop'],
-                    row['suggested_source'],
-                    row['mfg_cage'],
-                    row['apl'],
-                    row['nha_equipment_system'],
-                    row['nha_model'],
-                    row['nha_serial'],
-                    row['techmanual'],
-                    row['dwg_pc'],
-                    row['requestor_remarks'],
-                    row['shipdoc_tcn'],
-                    row['v2x_ship_no'],
-                    row['booking'],
-                    row['vessel'],
-                    row['container'],
-                    row['carrier'],
-                    row['sail_date'],
-                    row['edd_to_ches'],
-                    row['edd_egypt'],
-                    row['rcd_v2x_date'],
-                    row['lot_id'],
-                    row['triwall'],
-                    row['lsc_on_hand_date'],
-                    row['arr_lsc_egypt'],
-                    row['milstrip_req_no'],
-                    row['additional_data'],
-                    row['overall_quality_score'],
-                    row['flags'],
-                    row['data_integrity_score'],
-                    row['consistency_score'],
-                    row['completeness_score'],
-                    row['check_details'],
-                    row['mapped_fields']
-                ))
+                row_data = []
+                for column in target_columns:
+                    value = row.get(column)
+                    if isinstance(value, (dict, list)):
+                        value = json.dumps(value)
+                    row_data.append(value)
+                insert_data.append(tuple(row_data))
 
-            execute_values(cursor, """
-                INSERT INTO staged_egypt_weekly_data
-                (preprocessed_id, raw_data_id, report_name, report_date, sheet_name, original_line,
-                system_identifier_code, jcn, twcode, nomenclature, cog, fsc, niin, part_no, qty, ui,
-                market_research_up, market_research_ep, availability_identifier, request_date, rdd,
-                pri, swlin, hull_or_shop, suggested_source, mfg_cage, apl, nha_equipment_system,
-                nha_model, nha_serial, techmanual, dwg_pc, requestor_remarks, shipdoc_tcn,
-                v2x_ship_no, booking, vessel, container, carrier, sail_date, edd_to_ches,
-                edd_egypt, rcd_v2x_date, lot_id, triwall, lsc_on_hand_date, arr_lsc_egypt,
-                milstrip_req_no, additional_data, overall_quality_score, flags,
-                data_integrity_score, consistency_score, completeness_score, check_details,
-                mapped_fields)
-                VALUES %s
+            columns_string = ', '.join(target_columns)
+            placeholders = ', '.join(['%s'] * len(target_columns))
+            
+            cursor.executemany(f"""
+                INSERT INTO staged_egypt_weekly_data ({columns_string})
+                VALUES ({placeholders})
             """, insert_data)
 
             cursor.execute("COMMIT")
@@ -320,88 +277,89 @@ class DataProcessor:
             cursor.close()
             conn.close()
 
-	def export_and_cleanup(self, report_name, report_date, sheet_name):
-			conn = self.connect_to_db(self.source_db_config)
-			cursor = conn.cursor()
-			try:
-				cursor.execute("BEGIN")
+    def export_and_cleanup(self, report_name, report_date, sheet_name):
+        conn = self.connect_to_db(self.source_db_config)
+        cursor = conn.cursor()
+        try:
+            cursor.execute("BEGIN")
 
-				# Fetch data
-				cursor.execute("""
-					SELECT p.*, q.overall_quality_score, q.data_integrity_score, 
-						   q.consistency_score, q.completeness_score, q.check_details
-					FROM preprocessed_egypt_weekly_data p
-					LEFT JOIN quality_checked_records q ON p.preprocessed_id = q.preprocessed_id
-					WHERE p.report_name = %s AND p.report_date = %s AND p.sheet_name = %s
-				""", (report_name, report_date, sheet_name))
-				
-				data = cursor.fetchall()
-				columns = [desc[0] for desc in cursor.description]
-				data = [dict(zip(columns, row)) for row in data]
+            # Fetch data
+            cursor.execute("""
+                SELECT p.*, q.overall_quality_score, q.data_integrity_score, 
+                       q.consistency_score, q.completeness_score, q.check_details
+                FROM preprocessed_egypt_weekly_data p
+                LEFT JOIN quality_checked_records q ON p.preprocessed_id = q.preprocessed_id
+                WHERE p.report_name = %s AND p.report_date = %s AND p.sheet_name = %s
+            """, (report_name, report_date, sheet_name))
+            
+            data = cursor.fetchall()
+            columns = [desc[0] for desc in cursor.description]
+            data = [dict(zip(columns, row)) for row in data]
 
-				# Export data
-				self.export_to_external_db(data)
+            # Export data
+            self.export_to_external_db(data)
 
-				# Cleanup
-				cursor.execute("""
-					DELETE FROM preprocessed_egypt_weekly_data
-					WHERE report_name = %s AND report_date = %s AND sheet_name = %s
-				""", (report_name, report_date, sheet_name))
-				
-				cursor.execute("""
-					DELETE FROM quality_checked_records
-					WHERE preprocessed_id IN (
-						SELECT preprocessed_id
-						FROM preprocessed_egypt_weekly_data
-						WHERE report_name = %s AND report_date = %s AND sheet_name = %s
-					)
-				""", (report_name, report_date, sheet_name))
-				
-				cursor.execute("""
-					UPDATE raw_egypt_weekly_reports
-					SET processed = TRUE, exported = TRUE
-					WHERE report_name = %s AND report_date = %s AND sheet_name = %s
-				""", (report_name, report_date, sheet_name))
-				
-				cursor.execute("COMMIT")
-				print(f"Successfully exported and cleaned up data for report {report_name} dated {report_date}, sheet {sheet_name}")
-			except Exception as e:
-				cursor.execute("ROLLBACK")
-				print(f"Error in export and cleanup process: {str(e)}")
-			finally:
-				cursor.close()
-				conn.close()
+            # Cleanup - delete from quality_checked_records first
+            cursor.execute("""
+                DELETE FROM quality_checked_records
+                WHERE preprocessed_id IN (
+                    SELECT preprocessed_id
+                    FROM preprocessed_egypt_weekly_data
+                    WHERE report_name = %s AND report_date = %s AND sheet_name = %s
+                )
+            """, (report_name, report_date, sheet_name))
+            
+            # Then delete from preprocessed_egypt_weekly_data
+            cursor.execute("""
+                DELETE FROM preprocessed_egypt_weekly_data
+                WHERE report_name = %s AND report_date = %s AND sheet_name = %s
+            """, (report_name, report_date, sheet_name))
+            
+            cursor.execute("""
+                UPDATE raw_egypt_weekly_reports
+                SET preprocessed = TRUE, exported = TRUE
+                WHERE report_name = %s AND report_date = %s AND sheet_name = %s
+            """, (report_name, report_date, sheet_name))
+            
+            cursor.execute("COMMIT")
+            print(f"Successfully exported and cleaned up data for report {report_name} dated {report_date}, sheet {sheet_name}")
+        except Exception as e:
+            cursor.execute("ROLLBACK")
+            print(f"Error in export and cleanup process: {str(e)}")
+        finally:
+            cursor.close()
+            conn.close()
 
-		def process_report(self):
-			selected_report, selected_sheets = self.select_report_and_sheet()
-			if selected_report is None or selected_sheets is None:
-				print("No report or sheets selected. Exiting.")
-				return
+    def process_report(self):
+        selected_report, selected_sheets = self.select_report_and_sheet()
+        if selected_report is None or selected_sheets is None:
+            print("No report or sheets selected. Exiting.")
+            return
 
-			report_name, report_date = selected_report
+        report_name, report_date = selected_report
 
-			for sheet_name in selected_sheets:
-				print(f"Processing sheet: {sheet_name}")
-				check_results = self.process_sheet(report_name, report_date, sheet_name)
-				self.export_and_cleanup(report_name, report_date, sheet_name)
+        for sheet_name in selected_sheets:
+            print(f"Processing sheet: {sheet_name}")
+            check_results = self.process_sheet(report_name, report_date, sheet_name)
+            self.export_and_cleanup(report_name, report_date, sheet_name)
 
-			print("Processing completed.")
+        print("Processing completed.")
 
-	# Usage
-	if __name__ == "__main__":
-		source_db_config = {
-			"dbname": "ReportsDB",
-			"user": "postgres",
-			"password": "123456",
-			"host": "cmms-db-01",
-			"port": "5432"
-		}
-		target_db_config = {
-			"dbname": "Beta_004",
-			"user": "postgres",
-			"password": "123456",
-			"host": "cmms-db-01",
-			"port": "5432"
-		}
-		processor = DataProcessor(source_db_config, target_db_config)
-		processor.process_report()
+# Usage
+if __name__ == "__main__":
+    source_db_config = {
+        "dbname": "ReportsDB",
+        "user": "postgres",
+        "password": "123456",
+        "host": "cmms-db-01",
+        "port": "5432"
+    }
+    target_db_config = {
+        "dbname": "ExtLogDB",
+        "user": "postgres",
+        "password": "123456",
+        "host": "cmms-db-01",
+        "port": "5432"
+    }
+    processor = DataProcessor(source_db_config, target_db_config)
+    processor.process_report()

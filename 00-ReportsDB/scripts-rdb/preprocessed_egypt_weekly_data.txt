@@ -60,7 +60,7 @@ CREATE TABLE preprocessed_egypt_weekly_data (
     flags JSONB,
     
     -- Metadata
-    preprocessing_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    preprocessing_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     mapped_fields TEXT[],
     
     -- Composite unique constraint for record identification
