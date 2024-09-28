@@ -1,10 +1,10 @@
-
 CREATE TABLE raw_egypt_weekly_reports (
     raw_data_id SERIAL PRIMARY KEY,
     report_name VARCHAR(255),
     report_date DATE,
     sheet_name VARCHAR(255),
     column_names TEXT[],
-    row_data JSONB
+    row_data JSONB,
+    preprocessed BOOLEAN DEFAULT FALSE,
+    exported BOOLEAN DEFAULT FALSE
 );
-

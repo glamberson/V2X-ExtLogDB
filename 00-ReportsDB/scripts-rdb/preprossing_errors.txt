@@ -7,5 +7,5 @@ CREATE TABLE preprocessing_errors (
     original_line INT,
     field_name VARCHAR(255),
     error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
