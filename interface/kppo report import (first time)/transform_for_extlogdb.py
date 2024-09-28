@@ -78,9 +78,15 @@ def get_availability_identifier(sheet_name):
 
 # Function to convert Excel date format to PostgreSQL-friendly date format (YYYY-MM-DD)
 def convert_excel_date(excel_date):
-    if pd.isna(excel_date):
+    if pd.isna(excel_date):  # Handle missing values
         return None
-    return pd.to_datetime('1899-12-30') + pd.to_timedelta(excel_date, 'D')
+    elif isinstance(excel_date, pd.Timestamp):  # Already a valid Timestamp
+        return excel_date
+    elif isinstance(excel_date, (int, float)):  # Excel serial date format
+        return pd.to_datetime('1899-12-30') + pd.to_timedelta(excel_date, 'D')
+    else:
+        # Handle unexpected types (e.g., strings) by returning None
+        return None
 
 def truncate_part_no_field(sheet, max_length=50):
     if 'part_no' in sheet.columns:
@@ -129,9 +135,12 @@ def process_sheet_with_swlin_extraction(file_path, sheet_name):
         'part_no': 'part_no',
         'qty': 'qty',
         'ui': 'ui',
+        'up': 'market_research_up',
+        'tp': 'market_research_ep',
         'pri': 'pri',
         'lsc_dt': 'request_date',
-        'swlin': 'swlin'
+        'swlin': 'swlin',
+        'remarks': 'requestor_remarks'
     }
 
     # Filter columns for MRL line items
@@ -155,14 +164,17 @@ def process_sheet_with_swlin_extraction(file_path, sheet_name):
 
     # Fulfillment Mapping
     fulfillment_mapping = {
-        'shipdoc_v2x': 'shipdoc_tcn',
+        'milstrip/requisition': 'milstrip_req_no',
+        'shipdoc': 'shipdoc_tcn',
         'v2x_ship_no': 'v2x_ship_no',
         'booking_no': 'booking',
         'vessel': 'vessel',
         'container': 'container',
-        'sail_date': 'sail_date',
+        'lot_id': 'lot_id',
+        'tri_wall': 'triwall',
+        'sail_dt': 'sail_date',
         'edd_to_egy': 'edd_egypt',
-        'rcd_v2x_date': 'rcd_v2x_date'
+        'rec_v2x_dt': 'rcd_v2x_date'
     }
 
     # Filter columns for Fulfillment records
