@@ -55,7 +55,7 @@ CREATE TABLE staged_egypt_weekly_data (
     arr_lsc_egypt DATE,
     milstrip_req_no VARCHAR(25),
     
-    -- Additional fields
+    -- Additional fields and metadata
     additional_data JSONB,
     overall_quality_score DECIMAL(5,2),
     flags JSONB,
@@ -63,8 +63,8 @@ CREATE TABLE staged_egypt_weekly_data (
     consistency_score DECIMAL(5,2),
     completeness_score DECIMAL(5,2),
     check_details JSONB,
-    
-    -- Metadata
+    processing_completed BOOLEAN DEFAULT FALSE,
+    processing_category VARCHAR(50),
     mapped_fields TEXT[],
     import_timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     

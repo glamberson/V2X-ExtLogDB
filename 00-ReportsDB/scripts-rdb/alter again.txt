@@ -1,0 +1,6 @@
+-- Add unique constraint to quality_checked_records
+ALTER TABLE quality_checked_records ADD CONSTRAINT unique_preprocessed_id UNIQUE (preprocessed_id);
+
+-- Add processed and exported columns to raw_egypt_weekly_reports
+ALTER TABLE raw_egypt_weekly_reports ADD COLUMN preprocessed BOOLEAN DEFAULT FALSE;
+ALTER TABLE raw_egypt_weekly_reports ADD COLUMN exported BOOLEAN DEFAULT FALSE;
