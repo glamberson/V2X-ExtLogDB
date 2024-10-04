@@ -1,3 +1,0 @@
-ALTER TABLE staged_egypt_weekly_data
-ADD COLUMN processing_completed BOOLEAN DEFAULT FALSE,
-ADD COLUMN processing_category VARCHAR(50);
