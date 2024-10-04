@@ -31,3 +31,4 @@ CREATE TABLE potential_matches (
 CREATE INDEX idx_potential_matches_staged_id ON potential_matches (staged_id);
 CREATE INDEX idx_potential_matches_processed ON potential_matches (processed);
 CREATE INDEX idx_potential_matches_decision ON potential_matches (decision);
+
