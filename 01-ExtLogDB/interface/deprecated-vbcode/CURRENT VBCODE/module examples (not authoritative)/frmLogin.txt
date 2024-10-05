@@ -1,0 +1,70 @@
+
+' btnLogin
+' version 0.8.05
+Private Sub btnLogin_Click()
+    Dim username As String
+    Dim password As String
+
+    username = Nz(Me.txtusername.Value, "")
+    password = Nz(Me.txtPassword.Value, "")
+
+    If Trim(username) = "" Or Trim(password) = "" Then
+        MsgBox "Username and password cannot be empty.", vbExclamation
+        Exit Sub
+    End If
+
+    ' Ensure connection is initialized
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
+
+    If ValidateUser(username, password) Then
+        MsgBox "Login successful! Session token: " & g_sessionToken
+        ' Open your main form or navigate to the main part of your application here
+    Else
+        MsgBox "Login failed. Please check your username and password."
+    End If
+End Sub
+
+
+'cmdLogout
+' Version 0.8.05
+
+Private Sub cmdLogout_Click()
+    Dim cmd As ADODB.Command
+
+    If g_sessionToken = "" Then
+        MsgBox "No active session. You may already be logged out."
+        Exit Sub
+    End If
+
+    On Error GoTo ErrorHandler
+
+    ' Use the global connection directly
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandType = adCmdText
+        .commandText = "SELECT user_logout(?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+    End With
+
+    cmd.Execute
+
+    ' Clear session token and related variables
+    g_sessionToken = ""
+    g_userId = 0
+    g_roleId = 0
+
+    MsgBox "You have been logged out successfully."
+
+    ' Here you would typically close the current form and return to the login form
+    ' DoCmd.Close acForm, "YourMainFormName"
+    ' DoCmd.OpenForm "LoginForm"
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Error during logout: " & Err.Description
+    conn.Close
+End Sub
+

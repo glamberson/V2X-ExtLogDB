@@ -1,0 +1,25 @@
+
+' Validate Excel Data
+' version 0.9.15
+
+Public Function ValidateExcelData(xlSheet As Object, validationRules As Collection, columnLookup As Object) As Boolean
+    Dim row As Integer
+    Dim isValid As Boolean
+    Dim rule As Variant
+    isValid = True
+
+    ' Iterate through each row and apply validation rules
+    For row = 2 To xlSheet.Cells(xlSheet.Rows.count, 1).End(-4162).row
+        For Each rule In validationRules
+            If Not rule(xlSheet, row, columnLookup) Then
+                isValid = False
+                Exit For
+            End If
+        Next rule
+        
+        If Not isValid Then Exit For
+    Next row
+
+    ValidateExcelData = isValid
+End Function
+

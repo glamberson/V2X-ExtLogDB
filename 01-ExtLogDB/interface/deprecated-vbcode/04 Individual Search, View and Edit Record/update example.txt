@@ -1,0 +1,31 @@
+Private Sub cmdUpdate_Click()
+    Dim strSQL As String
+    Dim params As New Dictionary
+    
+    strSQL = "UPDATE fulfillment_items SET "
+    
+    If Not IsNull(Me.txtEDDToChes) Then
+        strSQL = strSQL & "edd_to_ches = :edd_to_ches, "
+        params.Add "edd_to_ches", Me.txtEDDToChes
+    End If
+    
+    If Not IsNull(Me.txtRCDV2XDate) Then
+        strSQL = strSQL & "rcd_v2x_date = :rcd_v2x_date, "
+        params.Add "rcd_v2x_date", Me.txtRCDV2XDate
+    End If
+    
+    ' Add more fields as needed
+    
+    ' Remove the trailing comma and space
+    If Right(strSQL, 2) = ", " Then
+        strSQL = Left(strSQL, Len(strSQL) - 2)
+    End If
+    
+    strSQL = strSQL & " WHERE fulfillment_item_id = :fulfillment_item_id"
+    params.Add "fulfillment_item_id", Me.txtFulfillmentItemID
+    
+    ExecutePostgresUpdate strSQL, params
+    
+    MsgBox "Fulfillment record updated successfully.", vbInformation
+    Me.Refresh
+End Sub

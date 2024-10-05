@@ -1,0 +1,162 @@
+Option Compare Database
+' global variables
+' version 0.7.14.21
+Option Explicit
+
+' Declare a global variable to store the session token
+Public g_sessionToken As String
+Public g_conn As ADODB.Connection
+Public g_connString As String
+Public g_userId As Long
+Public g_roleId As Long
+
+
+' Initialize Postgres Connection
+' version 0.9.45
+
+Public Sub InitializePostgresConnection()
+    If g_conn Is Nothing Then
+        g_connString = "Driver={PostgreSQL Unicode};" & _
+                       "Server=CMMS-DB-01;" & _
+                       "Port=5432;" & _
+                       "Database=Beta_004;" & _
+                       "Uid=login;" & _
+                       "Pwd=FOTS-Egypt;" & _
+                       "AutoCommit=1;" ' added this line
+        Set g_conn = New ADODB.Connection
+        g_conn.ConnectionString = g_connString
+        g_conn.Open
+    End If
+End Sub
+
+' CreatePostgresConnection
+' version 0.7.14.4
+
+
+Public Function CreatePostgresConnection() As ADODB.Connection
+    ' Just return the existing connection as it's supposed to be initialized only once
+    Set CreatePostgresConnection = g_conn
+End Function
+
+' ValidateUser
+' Version 0.8.02
+
+Public Function ValidateUser(username As String, password As String) As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+    Dim dbRoleName As String
+
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
+
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = g_conn
+    cmd.commandText = "SELECT * FROM login_wrapper(?, ?, ?)"
+    cmd.Parameters.Append cmd.CreateParameter("@p_username", adVarChar, adParamInput, 255, username)
+    cmd.Parameters.Append cmd.CreateParameter("@p_password", adVarChar, adParamInput, 255, password)
+    cmd.Parameters.Append cmd.CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
+
+    Set rs = cmd.Execute
+    If Not rs.EOF Then
+        ' Check if session_id is NULL, which indicates a failed login attempt
+        If Not IsNull(rs.Fields("session_id").Value) Then
+            g_sessionToken = rs.Fields("session_id").Value
+            g_userId = rs.Fields("login_user_id").Value
+            g_roleId = rs.Fields("login_role_id").Value
+            dbRoleName = rs.Fields("login_db_role_name").Value
+            isValid = True
+            
+            ' Set the user role
+            Set cmd = New ADODB.Command
+            cmd.ActiveConnection = g_conn
+            cmd.commandText = "SELECT set_user_role(?)"
+            cmd.Parameters.Append cmd.CreateParameter("@p_db_role_name", adVarChar, adParamInput, 255, dbRoleName)
+            cmd.Execute
+        Else
+            ' Handle the failed login case
+            isValid = False
+            MsgBox "Invalid username or password.", vbExclamation
+        End If
+    Else
+        isValid = False
+        MsgBox "Invalid username or password.", vbExclamation
+    End If
+
+    rs.Close
+
+    ValidateUser = isValid
+End Function
+
+' Helper function to parse NOTICE message
+' version 0.8.80
+
+Public Function ParseNoticeMessage(message As String) As Variant
+    Dim result(3) As Long
+    Dim matches As Object
+    Dim regex As Object
+    
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Duplicates: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Set matches = regex.Execute(message)
+    
+    If matches.count > 0 Then
+        result(0) = CLng(matches(0).SubMatches(0)) ' Total
+        result(1) = CLng(matches(0).SubMatches(1)) ' Success
+        result(2) = CLng(matches(0).SubMatches(2)) ' Duplicates
+        result(3) = CLng(matches(0).SubMatches(3)) ' Errors
+    Else
+        ' If no match is found, set all values to -1 to indicate an error
+        result(0) = -1
+        result(1) = -1
+        result(2) = -1
+        result(3) = -1
+    End If
+    
+    ParseNoticeMessage = result
+End Function
+
+' version 0.9.47
+' Helper function to log errors, duplicates, and warnings
+
+Public Sub LogErrorsAndDuplicates(totalCount As Long, successCount As Long, duplicateOrWarningCount As Long, errorCount As Long, errorLog As String, Optional isWarning As Boolean = False, Optional batchId As String = "")
+    Dim db As DAO.Database
+    Dim rst As DAO.Recordset
+    Dim countType As String
+    
+    countType = IIf(isWarning, "Warning", "Duplicate")
+    
+    Set db = CurrentDb()
+    Set rst = db.OpenRecordset("ErrorLog", dbOpenDynaset)
+    
+    rst.AddNew
+    rst!LogDate = Now()
+    rst!totalCount = totalCount
+    rst!successCount = successCount
+    rst!duplicateCount = duplicateOrWarningCount
+    rst!errorCount = errorCount
+    rst!ErrorDetails = errorLog
+    rst!LogType = IIf(isWarning, "Warning", "Duplicate")
+    rst!batchId = batchId
+    rst.Update
+    
+    rst.Close
+    Set rst = Nothing
+    Set db = Nothing
+End Sub
+
+
+' WRITE TO LOG FILE
+' version 0.9.48
+
+Public Sub WriteToLogFile(filePath As String, message As Variant)
+    Dim fileNum As Integer
+    fileNum = FreeFile
+    
+    Open filePath For Append As #fileNum
+    Print #fileNum, Format(Now, "yyyy-mm-dd hh:nn:ss") & " - " & CStr(message)
+    Close #fileNum
+End Sub

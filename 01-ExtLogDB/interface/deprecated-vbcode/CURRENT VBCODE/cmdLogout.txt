@@ -1,0 +1,40 @@
+'cmdLogout
+' Version 0.8.05
+
+Private Sub cmdLogout_Click()
+    Dim cmd As ADODB.Command
+
+    If g_sessionToken = "" Then
+        MsgBox "No active session. You may already be logged out."
+        Exit Sub
+    End If
+
+    On Error GoTo ErrorHandler
+
+    ' Use the global connection directly
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandType = adCmdText
+        .CommandText = "SELECT user_logout(?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+    End With
+
+    cmd.Execute
+
+    ' Clear session token and related variables
+    g_sessionToken = ""
+    g_userId = 0
+    g_roleId = 0
+
+    MsgBox "You have been logged out successfully."
+
+    ' Here you would typically close the current form and return to the login form
+    ' DoCmd.Close acForm, "YourMainFormName"
+    ' DoCmd.OpenForm "LoginForm"
+    Exit Sub
+    
+ErrorHandler:
+    MsgBox "Error during logout: " & Err.Description
+    conn.Close
+End Sub

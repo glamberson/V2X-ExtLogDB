@@ -1,0 +1,14 @@
+
+' Kill Excel Processes
+' version 0.9.34
+
+Sub KillExcelProcesses()
+    Dim objWMI As Object, colProcess As Object, objProcess As Object
+    Set objWMI = GetObject("winmgmts:\\.\root\cimv2")
+    Set colProcess = objWMI.ExecQuery("Select * from Win32_Process Where Name = 'EXCEL.EXE'")
+    
+    For Each objProcess In colProcess
+        objProcess.Terminate
+    Next objProcess
+End Sub
+

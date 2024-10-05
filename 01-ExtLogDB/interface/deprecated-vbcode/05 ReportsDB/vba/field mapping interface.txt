@@ -1,0 +1,117 @@
+Sub CreateFieldMappingInterface()
+    Dim frm As Form
+    Set frm = CreateForm()
+    
+    ' Add controls to the form
+    With frm
+        .AddControl "ComboBox", "cboReportName"
+        .AddControl "ComboBox", "cboSheetName"
+        .AddControl "ComboBox", "cboMappingType", "mrl,fulfillment,additional,ignore"
+        .AddControl "ListBox", "lstRawFields"
+        .AddControl "ComboBox", "cboTargetField"
+        .AddControl "ComboBox", "cboMappingType"
+        .AddControl "TextBox", "txtPriority"
+        .AddControl "TextBox", "txtTransformationRule"
+        .AddControl "CommandButton", "cmdSaveMapping"
+        .AddControl "CommandButton", "cmdLoadMappings"
+    End With
+    
+    ' Populate report names
+    PopulateReportNames frm!cboReportName
+    
+    ' Handle report selection change
+    frm!cboReportName.AfterUpdate = "PopulateSheetNames"
+    
+    ' Handle sheet selection change
+    frm!cboSheetName.AfterUpdate = "PopulateRawFields"
+    
+    ' Handle save mapping button click
+    frm!cmdSaveMapping.OnClick = "SaveFieldMapping"
+    
+    ' Handle load mappings button click
+    frm!cmdLoadMappings.OnClick = "LoadFieldMappings"
+    
+    frm.Display
+End Sub
+
+Sub PopulateReportNames(cbo As ComboBox)
+    Dim sql As String
+    sql = "SELECT report_id, report_name FROM imported_reports ORDER BY report_name"
+    
+    ' Execute query and populate combo box
+    PopulateComboBox cbo, sql
+End Sub
+
+Sub PopulateSheetNames()
+    Dim frm As Form
+    Set frm = Screen.ActiveForm
+    
+    Dim sql As String
+    sql = "SELECT rs.sheet_id, rs.sheet_name " & _
+          "FROM report_sheets rs " & _
+          "JOIN imported_reports ir ON rs.report_id = ir.report_id " & _
+          "WHERE ir.report_id = ? ORDER BY rs.sheet_name"
+    
+    ' Execute query and populate sheet names combo box
+    PopulateComboBox frm!cboSheetName, sql, Array(frm!cboReportName.Value)
+End Sub
+
+Sub PopulateRawFields()
+    Dim frm As Form
+    Set frm = Screen.ActiveForm
+    
+    Dim sql As String
+    sql = "SELECT DISTINCT unnest(column_names) AS field_name " & _
+          "FROM raw_egypt_weekly_reports " & _
+          "WHERE sheet_id = ? " & _
+          "ORDER BY field_name"
+    
+    ' Execute query and populate raw fields list box
+    PopulateListBox frm!lstRawFields, sql, Array(frm!cboSheetName.Value)
+End Sub
+
+Sub SaveFieldMapping()
+    Dim frm As Form
+    Set frm = Screen.ActiveForm
+    
+    ' Get values from form controls
+    Dim sheetId As Long, rawField As String
+    Dim targetField As String, mappingType As String
+    Dim priority As Integer, transformationRule As String
+    
+    sheetId = frm!cboSheetName.Value
+    rawField = frm!lstRawFields.Value
+    targetField = frm!cboTargetField.Value
+    mappingType = frm!cboMappingType.Value
+    priority = frm!txtPriority.Value
+    transformationRule = frm!txtTransformationRule.Value
+    
+    ' Insert or update mapping in PostgreSQL
+    UpsertFieldMapping sheetId, rawField, targetField, mappingType, priority, transformationRule
+End Sub
+
+Sub UpsertFieldMapping(sheetId As Long, rawField As String, targetField As String, mappingType As String, priority As Integer, transformationRule As String)
+    Dim sql As String
+    sql = "INSERT INTO field_mappings (sheet_id, raw_field_name, target_field_name, mapping_type, priority, transformation_rule) " & _
+          "VALUES (?, ?, ?, ?, ?, ?) " & _
+          "ON CONFLICT (sheet_id, raw_field_name) DO UPDATE SET " & _
+          "target_field_name = EXCLUDED.target_field_name, " & _
+          "mapping_type = EXCLUDED.mapping_type, " & _
+          "priority = EXCLUDED.priority, " & _
+          "transformation_rule = EXCLUDED.transformation_rule"
+    
+    ' Execute SQL using your existing database connection method
+    ExecuteSQL sql, Array(sheetId, rawField, targetField, mappingType, priority, transformationRule)
+End Sub
+
+Sub LoadFieldMappings()
+    Dim frm As Form
+    Set frm = Screen.ActiveForm
+    
+    Dim sql As String
+    sql = "SELECT * FROM field_mappings WHERE sheet_id = ? ORDER BY priority"
+    
+    ' Execute query and populate form with existing mappings
+    DisplayExistingMappings frm, sql, Array(frm!cboSheetName.Value)
+End Sub
+

@@ -1,0 +1,483 @@
+Option Compare Database
+
+' InsertMRLLineItems
+' version 0.9.48
+
+Public Sub InsertMRLLineItems()
+    Dim jsonData As Variant
+    Dim updateSource As String
+    Dim result As Variant
+    Dim jsonString As String
+    Dim errorLog As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Dim jsonObject As Object
+    Dim logFile As String
+    
+    On Error GoTo ErrorHandler
+    
+    ' Initialize log file
+    logFile = "C:\Temp\MRLInsertLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    WriteToLogFile logFile, "Starting InsertMRLLineItems"
+    
+    On Error Resume Next
+    Set frm = Forms!frMRL
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting form reference: " & Err.description
+        WriteToLogFile logFile, "Variable: frm"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("TempTable", dbOpenSnapshot)
+    
+    On Error Resume Next
+    jsonData = ConvertToJSON(rs)
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.description
+        WriteToLogFile logFile, "Variable: " & GetVariableName(rs)
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    On Error Resume Next
+    jsonString = CStr(jsonData(0))
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting jsonString: " & Err.description
+        WriteToLogFile logFile, "Variable: jsonData"
+        Err.Clear
+    End If
+    
+    errorLog = CStr(jsonData(1))
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting errorLog: " & Err.description
+        WriteToLogFile logFile, "Variable: jsonData"
+        Err.Clear
+    End If
+    
+    updateSource = frm.txtUpdateSource.Value
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting updateSource: " & Err.description
+        WriteToLogFile logFile, "Variable: frm.txtUpdateSource"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    WriteToLogFile logFile, "JSON string length: " & Len(jsonString)
+    WriteToLogFile logFile, "Update source: " & updateSource
+    
+    WriteToLogFile logFile, "Calling ExecuteProtectedFunction"
+    result = ExecuteProtectedFunction("insert_mrl_line_items", jsonString, updateSource)
+    WriteToLogFile logFile, "ExecuteProtectedFunction completed"
+    
+    ' Check the result
+    If Not IsNull(result) Then
+        WriteToLogFile logFile, "Result type: " & TypeName(result)
+        WriteToLogFile logFile, "Result value: " & result
+
+        Set jsonObject = ParseJson(result)
+        
+        If Not jsonObject Is Nothing Then
+            Dim status As String
+            Dim batchId As String
+            Dim totalCount As Long
+            Dim successCount As Long
+            Dim duplicateCount As Long
+            Dim errorCount As Long
+            Dim operationType As String
+            Dim timestamp As Date
+            
+            status = jsonObject("status")
+            batchId = jsonObject("batch_id")
+            totalCount = CLng(jsonObject("total"))
+            successCount = CLng(jsonObject("success"))
+            duplicateCount = CLng(jsonObject("duplicates"))
+            errorCount = CLng(jsonObject("errors"))
+            operationType = jsonObject("operation")
+            timestamp = CDate(jsonObject("timestamp"))
+            
+            ' Log errors and duplicates for later processing
+            LogErrorsAndDuplicates totalCount, successCount, duplicateCount, errorCount, errorLog, False, batchId
+            
+            ' Log results
+            WriteToLogFile logFile, "Process completed."
+            WriteToLogFile logFile, "Status: " & status
+            WriteToLogFile logFile, "Batch ID: " & batchId
+            WriteToLogFile logFile, "Total Records: " & totalCount
+            WriteToLogFile logFile, "Successful Inserts: " & successCount
+            WriteToLogFile logFile, "Duplicate Records: " & duplicateCount
+            WriteToLogFile logFile, "Failed Inserts: " & errorCount
+            WriteToLogFile logFile, "Operation: " & operationType
+            WriteToLogFile logFile, "Timestamp: " & timestamp
+            
+            ' Display results
+            MsgBox "Process completed." & vbNewLine & _
+                   "Status: " & status & vbNewLine & _
+                   "Batch ID: " & batchId & vbNewLine & _
+                   "Total Records: " & totalCount & vbNewLine & _
+                   "Successful Inserts: " & successCount & vbNewLine & _
+                   "Duplicate Records: " & duplicateCount & vbNewLine & _
+                   "Failed Inserts: " & errorCount & vbNewLine & _
+                   "Operation: " & operationType & vbNewLine & _
+                   "Timestamp: " & timestamp & vbNewLine & _
+                   "See log file for details.", vbInformation
+            
+            ' Append error logs to the file
+            WriteToLogFile logFile, vbNewLine & "Pre-insert Errors:"
+            WriteToLogFile logFile, errorLog
+            WriteToLogFile logFile, vbNewLine & "Insert Process Results:"
+            WriteToLogFile logFile, "Raw result: " & CStr(result)
+            
+        Else
+            WriteToLogFile logFile, "Failed to parse result JSON. Raw result: " & result
+            MsgBox "Failed to parse result JSON. Check the log file for details.", vbExclamation
+        End If
+    Else
+        WriteToLogFile logFile, "Unexpected result type from insert_mrl_line_items. Result is Null."
+        MsgBox "Unexpected result type from insert_mrl_line_items. Check the log file for details.", vbExclamation
+    End If
+
+    WriteToLogFile logFile, "InsertMRLLineItems completed"
+    MsgBox "Process completed. Log file has been saved to " & logFile, vbInformation
+
+    Exit Sub
+
+ErrorHandler:
+    WriteToLogFile logFile, "Error in InsertMRLLineItems: " & Err.description
+    WriteToLogFile logFile, "Error Number: " & Err.Number
+    WriteToLogFile logFile, "Error Source: " & Err.Source
+    WriteToLogFile logFile, "Line: " & Erl
+    MsgBox "An error occurred: " & Err.description & vbNewLine & "See log file for details.", vbExclamation
+    Resume Next
+End Sub
+
+
+
+
+
+' convert to JSON
+' version 0.9.33
+
+Public Function ConvertToJSON(rs As DAO.Recordset, Optional keyFields As Collection) As Variant
+    Dim json As String
+    Dim f As DAO.Field
+    Dim keyField As Variant
+    Dim isEmptyRecord As Boolean
+    Dim recordCount As Long
+    Dim errorCount As Long
+    Dim errorLog As String
+    
+    ' If keyFields is not provided, initialize it with default values
+    If keyFields Is Nothing Then
+        Set keyFields = New Collection
+        keyFields.Add "jcn"
+        keyFields.Add "twcode"
+        'keyFields.Add "qty"
+        'keyFields.Add "request_date"
+        ' Add other key fields as needed
+    End If
+    
+    If rs.EOF Then
+        ConvertToJSON = Array("[]", "No records found.")
+        Exit Function
+    End If
+
+    json = "["
+    errorLog = ""
+    recordCount = 0
+    errorCount = 0
+    
+    Do While Not rs.EOF
+        recordCount = recordCount + 1
+        isEmptyRecord = True
+        
+        ' Check if key fields are empty
+        For Each keyField In keyFields
+            If IsNull(rs.Fields(keyField).Value) Or rs.Fields(keyField).Value = "" Then
+                errorLog = errorLog & "Record " & recordCount & ": Empty " & keyField & vbCrLf
+                errorCount = errorCount + 1
+            Else
+                isEmptyRecord = False
+            End If
+        Next keyField
+        
+        If Not isEmptyRecord Then
+            json = json & "{"
+            For Each f In rs.Fields
+                json = json & """" & EscapeJSON(f.Name) & """:"
+                If IsNull(f.Value) Then
+                    json = json & "null"
+                ElseIf f.Type = dbText Then
+                    json = json & """" & EscapeJSON(CStr(f.Value)) & """"
+                ElseIf f.Type = dbDate Then
+                    json = json & """" & Format(f.Value, "yyyy-mm-ddThh:nn:ss") & """"
+                Else
+                    json = json & EscapeJSON(CStr(f.Value))
+                End If
+                json = json & ","
+            Next f
+            json = Left(json, Len(json) - 1) ' Remove trailing comma
+            json = json & "},"
+        End If
+
+        rs.MoveNext
+    Loop
+    
+    If Right(json, 1) = "," Then
+        json = Left(json, Len(json) - 1) ' Remove trailing comma
+    End If
+    
+    json = json & "]"
+    
+    rs.Close
+    Set rs = Nothing
+    
+    errorLog = "Total Records: " & recordCount & vbCrLf & _
+               "Records with Errors: " & errorCount & vbCrLf & vbCrLf & errorLog
+    
+    ConvertToJSON = Array(json, errorLog)
+End Function
+
+' UpdateFulfillmentItems
+' version 0.9.48
+
+Public Sub UpdateFulfillmentItems()
+    Dim jsonData As Variant
+    Dim updateSource As String
+    Dim result As Variant
+    Dim jsonString As String
+    Dim errorLog As String
+    Dim db As DAO.Database
+    Dim rs As DAO.Recordset
+    Dim jsonObject As Object
+    Dim logFile As String
+    
+    On Error GoTo ErrorHandler
+    
+    ' Initialize log file
+    logFile = "C:\Temp\FulfillmentUpdateLog_" & Format(Now, "yyyymmdd_hhnnss") & ".txt"
+    WriteToLogFile logFile, "Starting UpdateFulfillmentItems"
+    
+    On Error Resume Next
+    Set frm = Forms!frMRL
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting form reference: " & Err.description
+        WriteToLogFile logFile, "Variable: frm"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    Set db = CurrentDb()
+    Set rs = db.OpenRecordset("TempTable", dbOpenSnapshot)
+    
+    On Error Resume Next
+    jsonData = ConvertToJSON(rs)
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error in ConvertToJSON: " & Err.description
+        WriteToLogFile logFile, "Variable: " & GetVariableName(rs)
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    rs.Close
+    Set rs = Nothing
+    Set db = Nothing
+    
+    On Error Resume Next
+    jsonString = CStr(jsonData(0))
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting jsonString: " & Err.description
+        WriteToLogFile logFile, "Variable: jsonData"
+        Err.Clear
+    End If
+    
+    errorLog = CStr(jsonData(1))
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting errorLog: " & Err.description
+        WriteToLogFile logFile, "Variable: jsonData"
+        Err.Clear
+    End If
+    
+    updateSource = frm.txtUpdateSource.Value
+    If Err.Number <> 0 Then
+        WriteToLogFile logFile, "Error setting updateSource: " & Err.description
+        WriteToLogFile logFile, "Variable: frm.txtUpdateSource"
+        Err.Clear
+    End If
+    On Error GoTo ErrorHandler
+    
+    WriteToLogFile logFile, "JSON string length: " & Len(jsonString)
+    WriteToLogFile logFile, "Update source: " & updateSource
+    
+    WriteToLogFile logFile, "Calling ExecuteProtectedFunction"
+    result = ExecuteProtectedFunction("update_fulfillment_items", jsonString, updateSource)
+    WriteToLogFile logFile, "ExecuteProtectedFunction completed"
+    
+    ' Check the result
+    If Not IsNull(result) Then
+        WriteToLogFile logFile, "Result type: " & TypeName(result)
+        WriteToLogFile logFile, "Result value: " & result
+        
+        Set jsonObject = ParseJson(result)
+        
+        If Not jsonObject Is Nothing Then
+            Dim status As String
+            Dim batchId As String
+            Dim totalCount As Long
+            Dim successCount As Long
+            Dim warningCount As Long
+            Dim errorCount As Long
+            Dim multipleRecordsCount As Long
+            Dim operationType As String
+            Dim timestamp As Date
+            
+            status = jsonObject("status")
+            batchId = jsonObject("batch_id")
+            totalCount = CLng(jsonObject("total"))
+            successCount = CLng(jsonObject("success"))
+            warningCount = CLng(jsonObject("warnings"))
+            errorCount = CLng(jsonObject("errors"))
+            multipleRecordsCount = CLng(jsonObject("multiple_records"))
+            operationType = jsonObject("operation")
+            timestamp = CDate(jsonObject("timestamp"))
+            
+            ' Log errors and warnings for later processing
+            LogErrorsAndDuplicates totalCount, successCount, warningCount, errorCount, errorLog, True, batchId
+            
+            ' Log results
+            WriteToLogFile logFile, "Process completed."
+            WriteToLogFile logFile, "Status: " & status
+            WriteToLogFile logFile, "Batch ID: " & batchId
+            WriteToLogFile logFile, "Total Records: " & totalCount
+            WriteToLogFile logFile, "Successful Updates: " & successCount
+            WriteToLogFile logFile, "Warnings: " & warningCount
+            WriteToLogFile logFile, "Errors: " & errorCount
+            WriteToLogFile logFile, "Multiple Records: " & multipleRecordsCount
+            WriteToLogFile logFile, "Operation: " & operationType
+            WriteToLogFile logFile, "Timestamp: " & timestamp
+            
+            ' Display results
+            MsgBox "Process completed." & vbNewLine & _
+                   "Status: " & status & vbNewLine & _
+                   "Batch ID: " & batchId & vbNewLine & _
+                   "Total Records: " & totalCount & vbNewLine & _
+                   "Successful Updates: " & successCount & vbNewLine & _
+                   "Warnings: " & warningCount & vbNewLine & _
+                   "Errors: " & errorCount & vbNewLine & _
+                   "Multiple Records: " & multipleRecordsCount & vbNewLine & _
+                   "Operation: " & operationType & vbNewLine & _
+                   "Timestamp: " & timestamp & vbNewLine & _
+                   "See log file for details.", vbInformation
+            
+            ' Append error logs to the file
+            WriteToLogFile logFile, vbNewLine & "Pre-update Errors:"
+            WriteToLogFile logFile, errorLog
+            WriteToLogFile logFile, vbNewLine & "Update Process Results:"
+            WriteToLogFile logFile, "Raw result: " & CStr(result)
+            
+        Else
+            WriteToLogFile logFile, "Failed to parse result JSON. Raw result: " & result
+            MsgBox "Failed to parse result JSON. Check the log file for details.", vbExclamation
+        End If
+    Else
+        WriteToLogFile logFile, "Unexpected result type from update_fulfillment_items. Result is Null."
+        MsgBox "Unexpected result type from update_fulfillment_items. Check the log file for details.", vbExclamation
+    End If
+
+    WriteToLogFile logFile, "UpdateFulfillmentItems completed"
+    MsgBox "Process completed. Log file has been saved to " & logFile, vbInformation
+
+    Exit Sub
+
+ErrorHandler:
+    WriteToLogFile logFile, "Error in UpdateFulfillmentItems: " & Err.description
+    WriteToLogFile logFile, "Error Number: " & Err.Number
+    WriteToLogFile logFile, "Error Source: " & Err.Source
+    WriteToLogFile logFile, "Line: " & Erl
+    MsgBox "An error occurred: " & Err.description & vbNewLine & "See log file for details.", vbExclamation
+    Resume Next
+End Sub
+
+
+
+' Helper function to escape JSON
+' version 0.8.60 REVERTED 39
+
+Private Function EscapeJSON(ByVal text As String) As String
+    Dim i As Integer
+    Dim char As String
+    Dim result As String
+    
+    For i = 1 To Len(text)
+        char = Mid(text, i, 1)
+        Select Case AscW(char)
+            Case 8:  result = result & "\b"
+            Case 9:  result = result & "\t"
+            Case 10: result = result & "\n"
+            Case 12: result = result & "\f"
+            Case 13: result = result & "\r"
+            Case 34: result = result & "\"""
+            Case 92: result = result & "\\"
+            Case 0 To 31
+                result = result & "\u" & Right("0000" & Hex(AscW(char)), 4)
+            Case Else
+                result = result & char
+        End Select
+    Next i
+    
+    EscapeJSON = result
+End Function
+
+' Helper function to get the number of records in the JSON string
+' version 0.8.34
+
+Private Function GetJSONRecordCount(jsonString As String) As Long
+    Dim count As Long
+    Dim i As Long
+    count = 0
+    For i = 1 To Len(jsonString)
+        If Mid(jsonString, i, 1) = "{" Then
+            count = count + 1
+        End If
+    Next i
+    GetJSONRecordCount = count
+End Function
+
+
+' Parse JSON
+' version 0.9.47
+
+Public Function ParseJson(ByVal jsonString As Variant) As Object
+    Dim script As Object
+    Set script = CreateObject("ScriptControl")
+    script.Language = "JScript"
+    
+    On Error GoTo ErrorHandler
+    
+    ' Convert jsonString to string if it's not already
+    If VarType(jsonString) <> vbString Then
+        jsonString = CStr(jsonString)
+    End If
+    
+    ' Trim any leading/trailing whitespace
+    jsonString = Trim(jsonString)
+    
+    ' Check if the string starts and ends with curly braces
+    If Left(jsonString, 1) <> "{" Or Right(jsonString, 1) <> "}" Then
+        Err.Raise 5, "ParseJson", "Invalid JSON string"
+    End If
+    
+    Set ParseJson = script.Eval("(" & jsonString & ")")
+    Exit Function
+
+ErrorHandler:
+    Debug.Print "Error in ParseJson: " & Err.description
+    Set ParseJson = Nothing
+End Function
+
+

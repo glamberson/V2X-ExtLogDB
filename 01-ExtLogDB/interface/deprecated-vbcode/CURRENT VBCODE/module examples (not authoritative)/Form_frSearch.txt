@@ -1,0 +1,189 @@
+Private Sub btnSearch_Click()
+    ApplyFilter
+End Sub
+Private Sub ApplyFilter()
+    On Error GoTo ErrorHandler
+
+    Dim sqlQuery As String
+    Dim conditions As String
+    Dim rs As ADODB.Recordset
+    Dim tokens As Variant
+    Dim token As Variant
+    Dim searchValue As String
+
+    ' Base SQL query
+    sqlQuery = "SELECT * FROM combined_line_items_fulfillments_search_view WHERE 1=1"
+    
+    ' Build conditions for each field, supporting multiple tokens
+    If Not IsNull(Me!jcn) Then
+        searchValue = Replace(Me!jcn, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND JCN ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    If Not IsNull(Me!niin) Then
+        searchValue = Replace(Me!niin, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND NIIN ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    If Not IsNull(Me!part_no) Then
+        searchValue = Replace(Me!part_no, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND part_no ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    If Not IsNull(Me!twcode) Then
+        searchValue = Replace(Me!twcode, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND twcode ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    If Not IsNull(Me!swlin) Then
+        searchValue = Replace(Me!swlin, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND swlin ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    If Not IsNull(Me!nomenclature) Then
+        searchValue = Replace(Me!nomenclature, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND nomenclature ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    If Not IsNull(Me!availability_identifier) Then
+        searchValue = Replace(Me!availability_identifier, "*", "%")
+        tokens = Split(searchValue, "%")
+        For Each token In tokens
+            If token <> "" Then
+                conditions = conditions & " AND CAST(availability_identifier AS TEXT) ILIKE '%" & token & "%'"
+            End If
+        Next token
+    End If
+    
+    ' Final SQL query with conditions
+    sqlQuery = sqlQuery & conditions & " LIMIT 100"
+    
+    ' Open the recordset using the global connection
+    Set rs = New ADODB.Recordset
+    rs.CursorLocation = adUseClient
+    rs.Open sqlQuery, g_conn, adOpenStatic, adLockReadOnly
+    
+    ' Bind the list box's row source to the data
+    Set Me.List.Recordset = rs
+
+    ' Requery the list box to refresh it
+    Me.List.Requery
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.description, vbCritical, "Filter Error"
+End Sub
+
+Private Sub btnClear_Click()
+    On Error GoTo ErrorHandler
+
+    ' Clear all filter fields
+    Me!jcn = Null
+    Me!niin = Null
+    Me!part_no = Null
+    Me!twcode = Null
+    Me!swlin = Null
+    Me!nomenclature = Null
+    Me!availability_identifier = Null
+    
+    ' Refresh the list box to show the first 100 records
+    Call ApplyFilter
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.description, vbCritical, "Clear Error"
+End Sub
+
+Private Sub Form_Load()
+    On Error GoTo ErrorHandler
+
+    Dim rs As ADODB.Recordset
+    Dim sqlQuery As String
+    
+    ' Define the SQL query to select from the view
+    sqlQuery = "SELECT * FROM combined_line_items_fulfillments_search_view"
+    
+    ' Open the recordset using the global connection
+    Set rs = New ADODB.Recordset
+    rs.CursorLocation = adUseClient ' Use client-side cursor
+    rs.Open sqlQuery, g_conn, adOpenStatic, adLockReadOnly
+    
+    ' Bind the form's recordset to the view's data
+    Set Me.Recordset = rs
+
+    ' Populate the list box with the initial data
+    ApplyFilter
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.description, vbCritical, "Connection Error"
+End Sub
+
+Private Sub List_DblClick(Cancel As Integer)
+    On Error GoTo ErrorHandler
+
+    ' Get the selected order_line_item_id from the list box
+    Dim selectedOrderLineItemId As Long
+    selectedOrderLineItemId = Me.List.Column(0) ' Assuming the order_line_item_id is in the first column
+
+    ' Open the frmrl_line_items form
+    DoCmd.OpenForm "frmrl_line_items"
+
+    ' Set the recordset for frmrl_line_items to only show the selected order_line_item_id
+    Dim sqlQuery As String
+    sqlQuery = "SELECT * FROM mrl_line_items WHERE order_line_item_id = " & selectedOrderLineItemId
+    
+    With Forms!frmrl_line_items
+        ' Load the recordset using the same method as your existing scripts
+        Dim rs As ADODB.Recordset
+        Set rs = New ADODB.Recordset
+        rs.CursorLocation = adUseClient ' Use client-side cursor
+        rs.Open sqlQuery, g_conn, adOpenStatic, adLockReadOnly
+        
+        ' Bind the form's recordset to the filtered data
+        Set .Recordset = rs
+        
+        ' Ensure the subform is also refreshed
+        .fulfillment_items_subform.Form.Requery
+    End With
+
+    Exit Sub
+
+ErrorHandler:
+    MsgBox "Error " & Err.Number & ": " & Err.description, vbCritical, "Open Form Error"
+End Sub
+
+

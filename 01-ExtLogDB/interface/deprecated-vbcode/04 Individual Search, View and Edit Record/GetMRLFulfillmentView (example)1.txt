@@ -1,0 +1,14 @@
+Public Function GetMRLFulfillmentView() As ADODB.Recordset
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    
+    Set cmd = New ADODB.Command
+    With cmd
+        .ActiveConnection = g_conn
+        .CommandType = adCmdText
+        .CommandText = "SELECT * FROM combined_line_items_fulfillments_view"
+    End With
+    
+    Set rs = cmd.Execute
+    Set GetMRLFulfillmentView = rs
+End Function
