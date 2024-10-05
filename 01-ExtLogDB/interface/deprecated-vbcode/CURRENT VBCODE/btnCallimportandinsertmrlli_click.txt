@@ -1,8 +1,0 @@
-
-' version 0.8.40
-
-Private Sub btnCallImportAndInsertMRLLI_Click()
-    ' Call the ImportAndInsertMRLLineItems subroutine from modMRL module
-    Call ImportAndInsertMRLLineItems
-End Sub
-
