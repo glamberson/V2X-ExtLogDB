@@ -1,0 +1,207 @@
+Option Compare Database
+
+' execute protected (postgres) function or procedure
+' version 0.9.32
+
+Public Function ExecuteProtectedFunction(functionName As String, ParamArray args()) As Variant
+    Dim cmdValidate As ADODB.Command
+    Dim cmdExecute As ADODB.Command
+    Dim cmdRenew As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim functionArgs() As Variant
+    Dim i As Long
+    Dim commandText As String
+    Dim outputParam As ADODB.Parameter
+    
+    On Error GoTo ErrorHandler
+    
+    ' Store args in a separate array to ensure they're not lost
+    ReDim functionArgs(LBound(args) To UBound(args))
+    For i = LBound(args) To UBound(args)
+        functionArgs(i) = args(i)
+    Next i
+    
+    ' Debug print arguments
+    For i = LBound(functionArgs) To UBound(functionArgs)
+        Debug.Print "Argument " & i & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100)
+    Next i
+    
+    ' Validate session and permission
+    Set cmdValidate = New ADODB.Command
+    With cmdValidate
+        .ActiveConnection = g_conn
+        .commandText = "SELECT (validate_session_and_permission(?, ?)).*"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_function_name", adVarChar, adParamInput, 255, functionName)
+    End With
+    
+    Set rs = cmdValidate.Execute
+    
+    Dim isValid As Boolean
+    If Not rs.EOF Then
+        isValid = rs.Fields("is_valid").Value
+    Else
+        isValid = False
+    End If
+    
+    rs.Close
+    Set rs = Nothing
+    Set cmdValidate = Nothing
+    
+    If Not isValid Then
+        MsgBox "You don't have permission to perform this action.", vbExclamation
+        ExecuteProtectedFunction = False
+        Exit Function
+    End If
+    
+    ' Execute the actual function or procedure
+    Set cmdExecute = New ADODB.Command
+    With cmdExecute
+        .ActiveConnection = g_conn
+        .CommandType = adCmdText
+        
+        If functionName = "insert_mrl_line_items" Or functionName = "update_fulfillment_items" Then
+            Debug.Print "JSON data size: " & Len(CStr(functionArgs(0))) & " bytes"
+            commandText = "CALL " & functionName & "(?::jsonb, ?::text, ?)"
+            .commandText = commandText
+            
+            ' Add input parameters with unlimited size
+            .Parameters.Append .CreateParameter("param1", adLongVarChar, adParamInput, -1, functionArgs(0))
+            .Parameters.Append .CreateParameter("param2", adVarChar, adParamInput, 255, functionArgs(1))
+            
+            ' Add output parameter for summary
+            Set outputParam = .CreateParameter("summary", adVarChar, adParamOutput, 8000)
+            .Parameters.Append outputParam
+        Else
+            ' Handle other functions/procedures as before
+            commandText = "CALL " & functionName & "("
+            
+            ' Add parameters
+            For i = LBound(functionArgs) To UBound(functionArgs)
+                If i > LBound(functionArgs) Then commandText = commandText & ", "
+                commandText = commandText & "?"
+                .Parameters.Append .CreateParameter("param" & (i + 1), adLongVarChar, adParamInput, -1, functionArgs(i))
+            Next i
+            
+            commandText = commandText & ")"
+            .commandText = commandText
+        End If
+        
+        ' Debug print
+        Debug.Print "Command text: " & commandText
+        Debug.Print "Command text length: " & Len(commandText)
+    End With
+    
+    Debug.Print "Before Execute"
+    cmdExecute.Execute
+    Debug.Print "After Execute"
+    
+    Dim result As Variant
+    
+    ' For insert_mrl_line_items and update_fulfillment_items, retrieve the summary from the output parameter
+    If functionName = "insert_mrl_line_items" Or functionName = "update_fulfillment_items" Then
+        Debug.Print "Entering " & functionName & " specific code"
+        Debug.Print "Output parameter exists: " & Not (outputParam Is Nothing)
+        If Not outputParam Is Nothing Then
+            Debug.Print "Output parameter value is null: " & IsNull(outputParam.Value)
+            If Not IsNull(outputParam.Value) Then
+                Debug.Print "Output parameter value: " & outputParam.Value
+                Debug.Print "Output parameter value type: " & TypeName(outputParam.Value)
+                result = CStr(outputParam.Value)
+            Else
+                result = "No summary returned (NULL value)"
+            End If
+        Else
+            result = "No summary parameter found"
+        End If
+    Else
+        result = True ' Indicate success for other procedures
+    End If
+    
+    ' Renew session
+    Set cmdRenew = New ADODB.Command
+    With cmdRenew
+        .ActiveConnection = g_conn
+        .CommandType = adCmdText
+        .commandText = "SELECT renew_session(?, ?)"
+        .Parameters.Append .CreateParameter("@p_session_id", adGUID, adParamInput, , g_sessionToken)
+        .Parameters.Append .CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
+    End With
+    
+    Set rs = cmdRenew.Execute
+    
+    If Not rs.EOF Then
+        Dim renewSuccess As Boolean
+        renewSuccess = rs.Fields(0).Value
+        If Not renewSuccess Then
+            Debug.Print "Failed to renew session"
+        End If
+    End If
+    
+    Debug.Print "ExecuteProtectedFunction completed successfully"
+    Debug.Print "Returning result: " & CStr(result)
+    ExecuteProtectedFunction = result
+    Exit Function
+
+ErrorHandler:
+    Debug.Print "Error in ExecuteProtectedFunction: " & Err.description
+    Debug.Print "Error Number: " & Err.Number
+    Debug.Print "Error Source: " & Err.Source
+    Debug.Print "Command Text: " & commandText
+    Debug.Print "Command Text length: " & Len(commandText)
+    Debug.Print "Function Name: " & functionName
+    
+    ' Print out all parameter values for debugging
+    For i = LBound(functionArgs) To UBound(functionArgs)
+        Debug.Print "Parameter " & i + 1 & ": Type=" & TypeName(functionArgs(i)) & ", Value=" & Left$(CStr(functionArgs(i)), 100) & "..."
+    Next i
+    
+    ExecuteProtectedFunction = "Error: " & Err.description ' Return error message
+    If Err.Number = 42883 Then  ' Function does not exist
+        MsgBox "Function or procedure '" & functionName & "' does not exist.", vbExclamation
+    Else
+        MsgBox "An error occurred: " & Err.description & vbNewLine & _
+               "See Immediate window for more details.", vbExclamation
+    End If
+
+    Resume Next
+End Function
+
+'GLOBALERRORHANDLER goes here
+
+' Parse results from error message
+' version 0.8.45
+
+Public Sub ParseResults(errorMessage As String, ByRef totalCount As Long, ByRef successCount As Long, ByRef errorCount As Long)
+    Dim regex As Object
+    Set regex = CreateObject("VBScript.RegExp")
+    regex.Pattern = "Total: (\d+), Success: (\d+), Errors: (\d+)"
+    regex.Global = False
+    
+    Dim matches As Object
+    Set matches = regex.Execute(errorMessage)
+    
+    If matches.count > 0 Then
+        totalCount = CLng(matches(0).SubMatches(0))
+        successCount = CLng(matches(0).SubMatches(1))
+        errorCount = CLng(matches(0).SubMatches(2))
+    Else
+        totalCount = 0
+        successCount = 0
+        errorCount = 0
+    End If
+End Sub
+
+' Get Variable Name
+' version 0.9.23
+
+Public Function GetVariableName(ByVal vbl As Variant) As String
+    On Error Resume Next
+    GetVariableName = vbl.Name
+    If Err.Number <> 0 Then
+        GetVariableName = TypeName(vbl)
+    End If
+    On Error GoTo 0
+End Function
+
+

@@ -1,0 +1,32 @@
+
+' Import Excel To Access
+' version 0.9.21
+
+Sub ImportExcelToAccess(filePath As String)
+    Dim db As DAO.Database
+    
+    On Error GoTo ErrorHandler
+    
+    Debug.Print "Starting ImportExcelToAccess"
+    
+    ' Delete TempTable if it exists
+    Set db = CurrentDb()
+    On Error Resume Next
+    db.Execute "DROP TABLE TempTable"
+    On Error GoTo ErrorHandler
+    
+    ' Import the Excel sheet data into the Access TempTable
+    DoCmd.TransferSpreadsheet acImport, acSpreadsheetTypeExcel12, "TempTable", filePath, True
+    Debug.Print "Data imported to TempTable from: " & filePath
+    
+    GoTo Cleanup
+
+ErrorHandler:
+    Debug.Print "Error in ImportExcelToAccess: " & Err.Description
+    MsgBox "An error occurred while importing the Excel data: " & Err.Description, vbExclamation
+
+Cleanup:
+    Set db = Nothing
+    Debug.Print "ImportExcelToAccess completed"
+End Sub
+

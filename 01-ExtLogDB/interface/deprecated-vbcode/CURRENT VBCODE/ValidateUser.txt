@@ -1,0 +1,51 @@
+
+' ValidateUser
+' Version 0.8.02
+
+Public Function ValidateUser(username As String, password As String) As Boolean
+    Dim cmd As ADODB.Command
+    Dim rs As ADODB.Recordset
+    Dim isValid As Boolean
+    Dim dbRoleName As String
+
+    If g_conn Is Nothing Then
+        InitializePostgresConnection
+    End If
+
+    Set cmd = New ADODB.Command
+    cmd.ActiveConnection = g_conn
+    cmd.commandText = "SELECT * FROM login_wrapper(?, ?, ?)"
+    cmd.Parameters.Append cmd.CreateParameter("@p_username", adVarChar, adParamInput, 255, username)
+    cmd.Parameters.Append cmd.CreateParameter("@p_password", adVarChar, adParamInput, 255, password)
+    cmd.Parameters.Append cmd.CreateParameter("@p_duration", adVarChar, adParamInput, 255, "1 hour")
+
+    Set rs = cmd.Execute
+    If Not rs.EOF Then
+        ' Check if session_id is NULL, which indicates a failed login attempt
+        If Not IsNull(rs.Fields("session_id").Value) Then
+            g_sessionToken = rs.Fields("session_id").Value
+            g_userId = rs.Fields("login_user_id").Value
+            g_roleId = rs.Fields("login_role_id").Value
+            dbRoleName = rs.Fields("login_db_role_name").Value
+            isValid = True
+            
+            ' Set the user role
+            Set cmd = New ADODB.Command
+            cmd.ActiveConnection = g_conn
+            cmd.commandText = "SELECT set_user_role(?)"
+            cmd.Parameters.Append cmd.CreateParameter("@p_db_role_name", adVarChar, adParamInput, 255, dbRoleName)
+            cmd.Execute
+        Else
+            ' Handle the failed login case
+            isValid = False
+            MsgBox "Invalid username or password.", vbExclamation
+        End If
+    Else
+        isValid = False
+        MsgBox "Invalid username or password.", vbExclamation
+    End If
+
+    rs.Close
+
+    ValidateUser = isValid
+End Function

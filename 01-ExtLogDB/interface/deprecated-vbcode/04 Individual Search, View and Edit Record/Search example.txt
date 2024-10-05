@@ -1,0 +1,29 @@
+Private Sub cmdSearch_Click()
+    Dim strSQL As String
+    Dim rs As DAO.Recordset
+    
+    strSQL = "SELECT * FROM mrl_fulfillment_view WHERE "
+    
+    If Not IsNull(Me.txtJCN) And Me.txtJCN <> "" Then
+        strSQL = strSQL & "jcn LIKE '%" & Me.txtJCN & "%' AND "
+    End If
+    
+    If Not IsNull(Me.txtTWCode) And Me.txtTWCode <> "" Then
+        strSQL = strSQL & "twcode LIKE '%" & Me.txtTWCode & "%' AND "
+    End If
+    
+    ' Add more search criteria as needed
+    
+    ' Remove the trailing "AND "
+    If Right(strSQL, 5) = " AND " Then
+        strSQL = Left(strSQL, Len(strSQL) - 5)
+    End If
+    
+    ' If no search criteria were added, remove the "WHERE" clause
+    If Right(strSQL, 5) = "WHERE" Then
+        strSQL = Left(strSQL, Len(strSQL) - 6)
+    End If
+    
+    Set rs = ExecutePostgresQuery(strSQL)
+    Set Me.Recordset = rs
+End Sub

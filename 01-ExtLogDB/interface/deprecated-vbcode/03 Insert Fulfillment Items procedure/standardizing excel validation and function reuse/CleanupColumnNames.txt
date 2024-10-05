@@ -1,0 +1,28 @@
+Public Sub CleanUpColumnNames(sheet As Object, headerRow As Integer)
+    Dim col As Integer
+    Dim colName As String
+    
+    For col = 1 To 200 ' Limit to the first 200 columns
+        colName = sheet.Cells(headerRow, col).Value
+        If IsEmpty(colName) Then Exit For
+        
+        ' Trim leading and trailing spaces
+        colName = Trim(colName)
+        
+        ' Convert to lowercase
+        colName = LCase(colName)
+        
+        ' Replace multiple spaces, dashes, and slashes with a single underscore
+        colName = Replace(colName, " ", "_")
+        colName = Replace(colName, "-", "_")
+        colName = Replace(colName, "/", "_")
+        
+        ' Handle multiple underscores caused by consecutive replacements
+        Do While InStr(colName, "__") > 0
+            colName = Replace(colName, "__", "_")
+        Loop
+        
+        ' Update the column name in the sheet
+        sheet.Cells(headerRow, col).Value = colName
+    Next col
+End Sub
