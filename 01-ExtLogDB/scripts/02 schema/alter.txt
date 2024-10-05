@@ -1,0 +1,5 @@
+ALTER TABLE staged_egypt_weekly_data
+ADD COLUMN processing_completed BOOLEAN DEFAULT FALSE,
+ADD COLUMN mrl_matched BOOLEAN DEFAULT FALSE,
+ADD COLUMN fulfillment_matched BOOLEAN DEFAULT FALSE,
+ADD COLUMN processing_category VARCHAR(50);
