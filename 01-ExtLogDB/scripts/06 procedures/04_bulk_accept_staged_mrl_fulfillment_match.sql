@@ -96,7 +96,7 @@ BEGIN
             update_source,
             role_id,
             user_id,
-            timestamp
+            changed_at
         ) VALUES (
             p_order_line_item_ids[idx],
             p_fulfillment_item_ids[idx],

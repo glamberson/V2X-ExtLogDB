@@ -22,8 +22,8 @@ CREATE TABLE report_record_links (
     update_source TEXT,                    -- Reason or source of the link
     
     UNIQUE (staged_id, order_line_item_id, fulfillment_item_id),
-    UNIQUE (raw_data_id, system_identifier_code),
-    UNIQUE (raw_data_id, original_line)
+    UNIQUE (raw_data_id, system_identifier_code)
+ --- commented out since there seems to be a problem with original_line importing   UNIQUE (raw_data_id, original_line)
 );
 
 -- Add indexes for improved query performance
