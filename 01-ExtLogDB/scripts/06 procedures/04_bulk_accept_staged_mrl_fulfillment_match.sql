@@ -5,8 +5,8 @@ CREATE OR REPLACE PROCEDURE bulk_accept_staged_mrl_fulfillment_match(
     IN p_fulfillment_item_ids INT[],
     IN p_match_scores DECIMAL[],
     IN p_match_grades TEXT[],
-    IN p_matched_fields TEXT[][],
-    IN p_mismatched_fields TEXT[][],
+    IN p_matched_fields TEXT[],
+    IN p_mismatched_fields TEXT[],
     IN p_report_name TEXT,
     IN p_report_date DATE,
     IN p_sheet_name TEXT,
@@ -41,9 +41,9 @@ BEGIN
             p_fulfillment_item_ids[idx],
             p_match_scores[idx],
             p_match_grades[idx],
-            p_matched_fields[idx],
-            p_mismatched_fields[idx],
-            TRUE,
+            p_matched_fields[idx]::TEXT[],  -- Cast to TEXT[]
+            p_mismatched_fields[idx]::TEXT[],  -- Cast to TEXT[]
+            FALSE,
             'Accepted',
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP
