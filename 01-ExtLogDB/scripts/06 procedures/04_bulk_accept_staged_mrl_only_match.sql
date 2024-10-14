@@ -1,3 +1,4 @@
+-- Procedure for MRL-only bulk accept of staged records
 CREATE OR REPLACE PROCEDURE bulk_accept_staged_mrl_only_match(
     IN p_staged_ids INT[],
     IN p_order_line_item_ids INT[],
@@ -37,16 +38,17 @@ BEGIN
             p_order_line_item_ids[idx],
             p_match_scores[idx],
             p_match_grades[idx],
-            p_matched_fields[idx]::TEXT[],  -- Cast to TEXT[]
-            p_mismatched_fields[idx]::TEXT[],  -- Cast to TEXT[]
+            p_matched_fields[idx]::TEXT[],
+            p_mismatched_fields[idx]::TEXT[],
             FALSE,
             'Accepted',
             CURRENT_TIMESTAMP,
             CURRENT_TIMESTAMP
-        );
+        )
+        ON CONFLICT (staged_id, order_line_item_id) DO NOTHING;  -- Adjust conflict target as appropriate
     END LOOP;
 
-     -- Loop through the arrays and insert into report_record_links
+    -- Loop through the arrays and insert into report_record_links
     FOR idx IN 1 .. array_length(p_staged_ids, 1) LOOP
         INSERT INTO report_record_links (
             staged_id,
@@ -76,7 +78,8 @@ BEGIN
             CURRENT_TIMESTAMP AS linked_at,
             v_update_source
         FROM staged_egypt_weekly_data s
-        WHERE s.staged_id = p_staged_ids[idx];
+        WHERE s.staged_id = p_staged_ids[idx]
+        ON CONFLICT (raw_data_id, system_identifier_code) DO NOTHING;  -- Adjust conflict target as per your unique constraint
     END LOOP;
 
     -- Loop through the arrays and insert into audit_trail
@@ -99,7 +102,8 @@ BEGIN
             p_role_id,
             p_user_id,
             CURRENT_TIMESTAMP
-        );
+        )
+        ON CONFLICT DO NOTHING;  -- Adjust conflict target if necessary
     END LOOP;
 
     -- Update staged table
