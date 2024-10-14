@@ -17,6 +17,11 @@ AS $$
 DECLARE
     v_update_source TEXT;
     idx INT;
+
+    -- Variables to hold data from staged_egypt_weekly_data
+    v_raw_data_id INT;
+    v_system_identifier_code VARCHAR(50);
+    v_original_line INT;
 BEGIN
     v_update_source := p_report_name || ' | ' || p_report_date::TEXT || ' | ' || p_sheet_name;
 
@@ -55,6 +60,13 @@ BEGIN
      -- Loop through the arrays and insert into report_record_links
     FOR idx IN 1 .. array_length(p_staged_ids, 1) LOOP
         BEGIN
+            -- Fetch the required fields from staged_egypt_weekly_data
+            SELECT s.raw_data_id, s.system_identifier_code, s.original_line
+            INTO v_raw_data_id, v_system_identifier_code, v_original_line
+            FROM staged_egypt_weekly_data s
+            WHERE s.staged_id = p_staged_ids[idx];
+
+            -- Perform the insert into report_record_links
             INSERT INTO report_record_links (
                 staged_id,
                 order_line_item_id,
@@ -68,25 +80,23 @@ BEGIN
                 linked_by,
                 linked_at,
                 update_source
-            )
-            SELECT 
-                s.staged_id,
+            ) VALUES (
+                p_staged_ids[idx],
                 p_order_line_item_ids[idx],
-                s.raw_data_id,
-                s.system_identifier_code,
-                s.original_line,
-                s.report_name,
-                s.report_date,
-                s.sheet_name,
-                'bulk_staged_mrl_only_match' AS link_type,
-                p_user_id AS linked_by,
-                CURRENT_TIMESTAMP AS linked_at,
+                v_raw_data_id,
+                v_system_identifier_code,
+                v_original_line,
+                p_report_name,
+                p_report_date,
+                p_sheet_name,
+                'bulk_staged_mrl_only_match',
+                p_user_id,
+                CURRENT_TIMESTAMP,
                 v_update_source
-            FROM staged_egypt_weekly_data s
-            WHERE s.staged_id = p_staged_ids[idx];
+            );
         EXCEPTION WHEN unique_violation THEN
             -- Handle the unique violation by skipping this record
-            RAISE NOTICE 'Unique violation in report_record_links for raw_data_id %, system_identifier_code %; skipping record.', s.raw_data_id, s.system_identifier_code;
+            RAISE NOTICE 'Unique violation in report_record_links for raw_data_id %, system_identifier_code %; skipping record.', v_raw_data_id, v_system_identifier_code;
         END;
     END LOOP;
 
